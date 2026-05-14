@@ -181,3 +181,64 @@ function Field({ label, value }: { label: string; value: string }) {
     </div>
   );
 }
+
+function HistoriaClinica({ patientId }: { patientId: string }) {
+  const { questions, getAnswers, setAnswer } = useClinicalForm();
+  const answers = getAnswers(patientId);
+  const sections = Array.from(new Set(questions.map((q) => q.section)));
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-start justify-between gap-4 flex-wrap">
+        <div>
+          <h3 className="font-display text-lg font-semibold inline-flex items-center gap-2"><ClipboardList className="h-5 w-5 text-primary" /> Historia clínica</h3>
+          <p className="text-sm text-muted-foreground mt-1">Las respuestas se guardan automáticamente.</p>
+        </div>
+        <Link to="/configuracion" className="text-sm text-primary font-medium hover:underline">+ Editar preguntas</Link>
+      </div>
+      {sections.map((s) => (
+        <div key={s} className="bg-card border rounded-2xl p-6 space-y-4">
+          <div className="font-display font-semibold">{s}</div>
+          <div className="grid md:grid-cols-2 gap-4">
+            {questions.filter((q) => q.section === s).map((q) => (
+              <QuestionField key={q.id} q={q} value={answers[q.id]} onChange={(v) => setAnswer(patientId, q.id, v)} />
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function QuestionField({ q, value, onChange }: { q: Question; value: string | string[] | undefined; onChange: (v: string | string[]) => void }) {
+  const wrap = q.type === "textarea" || q.type === "checkbox_group" ? "md:col-span-2" : "";
+  return (
+    <div className={wrap}>
+      <label className="text-sm font-medium block mb-1.5">{q.label}</label>
+      {q.type === "text" && (
+        <input value={(value as string) ?? ""} onChange={(e) => onChange(e.target.value)} className="w-full h-10 px-3 rounded-lg bg-surface border text-sm outline-none focus:ring-2 focus:ring-ring" />
+      )}
+      {q.type === "textarea" && (
+        <textarea value={(value as string) ?? ""} onChange={(e) => onChange(e.target.value)} rows={3} className="w-full p-3 rounded-lg bg-surface border text-sm outline-none focus:ring-2 focus:ring-ring resize-y" />
+      )}
+      {q.type === "yes_no" && (
+        <div className="flex gap-2">
+          {["Sí", "No"].map((opt) => (
+            <button key={opt} type="button" onClick={() => onChange(opt)} className={`px-4 h-10 rounded-lg border text-sm font-medium transition-colors ${value === opt ? "bg-primary text-primary-foreground border-primary" : "bg-surface hover:bg-accent/10"}`}>{opt}</button>
+          ))}
+        </div>
+      )}
+      {q.type === "checkbox_group" && (
+        <div className="flex flex-wrap gap-2">
+          {q.options?.map((opt) => {
+            const arr = Array.isArray(value) ? value : [];
+            const checked = arr.includes(opt);
+            return (
+              <button key={opt} type="button" onClick={() => onChange(checked ? arr.filter((x) => x !== opt) : [...arr, opt])} className={`px-3 h-9 rounded-lg border text-sm transition-colors ${checked ? "bg-primary text-primary-foreground border-primary" : "bg-surface hover:bg-accent/10"}`}>{opt}</button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
