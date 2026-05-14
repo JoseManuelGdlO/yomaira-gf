@@ -1,11 +1,8 @@
 import { Link, useRouterState, Outlet } from "@tanstack/react-router";
-import { LayoutDashboard, Users, Calendar, FileText, Pill, History, Palette, Settings, Search, ChevronDown } from "lucide-react";
+import { LayoutDashboard, Users, Calendar, FileText, Pill, History, Settings, Search } from "lucide-react";
 import { useBranding } from "@/lib/theme/ThemeProvider";
 import { useState } from "react";
 import { useStore } from "@/lib/store";
-import {
-  DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator,
-} from "@/components/ui/dropdown-menu";
 
 const NAV = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -14,12 +11,11 @@ const NAV = [
   { to: "/expedientes", label: "Expedientes", icon: FileText },
   { to: "/recetas", label: "Recetas", icon: Pill },
   { to: "/historial", label: "Historial", icon: History },
-  { to: "/branding", label: "Personalización", icon: Palette },
   { to: "/configuracion", label: "Configuración", icon: Settings },
 ] as const;
 
 export function AppShell() {
-  const { branding, setBrandingId, allBrandings } = useBranding();
+  const { branding } = useBranding();
   const path = useRouterState({ select: (s) => s.location.pathname });
   const [q, setQ] = useState("");
   const { patients } = useStore();
@@ -91,26 +87,15 @@ export function AppShell() {
               </div>
             )}
           </div>
-          <DropdownMenu>
-            <DropdownMenuTrigger className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-accent/10 text-sm">
-              <span className="hidden sm:inline text-muted-foreground">Branding:</span>
-              <span className="font-medium">{branding.clinicName}</span>
-              <ChevronDown className="h-4 w-4" />
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-64">
-              <DropdownMenuLabel>Demo multi-doctor</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              {allBrandings.map((b) => (
-                <DropdownMenuItem key={b.id} onClick={() => setBrandingId(b.id)} className="gap-3">
-                  <span className="text-lg">{b.logoEmoji}</span>
-                  <div>
-                    <div className="text-sm font-medium">{b.clinicName}</div>
-                    <div className="text-xs text-muted-foreground">{b.specialty}</div>
-                  </div>
-                </DropdownMenuItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <div className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm">
+            <div className="h-9 w-9 rounded-full bg-primary text-primary-foreground grid place-items-center text-sm font-semibold">
+              {branding.doctorName.split(" ").map((n) => n[0]).slice(0, 2).join("")}
+            </div>
+            <div className="hidden sm:block leading-tight">
+              <div className="font-medium">{branding.doctorName}</div>
+              <div className="text-xs text-muted-foreground">{branding.specialty}</div>
+            </div>
+          </div>
         </header>
         <main className="flex-1 px-4 lg:px-8 py-6 lg:py-8 max-w-[1400px] w-full mx-auto">
           <Outlet />
