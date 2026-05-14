@@ -6,6 +6,8 @@ import { StatCard } from "@/components/clinical/StatCard";
 import { PatientAvatar } from "@/components/clinical/PatientAvatar";
 import { StatusBadge } from "@/components/clinical/StatusBadge";
 import { fmtShort, fmtMonthShort, fmtDay, fmtWeekdayLong, fmtMonthLong, todayISO } from "@/lib/format";
+import { QuickPrescriptionDialog } from "@/components/prescription/QuickPrescriptionDialog";
+import { useState } from "react";
 
 export const Route = createFileRoute("/_app/dashboard")({
   head: () => ({ meta: [{ title: "Dashboard — MedFlow" }] }),
@@ -15,6 +17,7 @@ export const Route = createFileRoute("/_app/dashboard")({
 function Dashboard() {
   const { branding } = useBranding();
   const { patients, appointments, prescriptions, consultations } = useStore();
+  const [rxOpen, setRxOpen] = useState(false);
   const today = todayISO();
   const todayAppts = appointments.filter((a) => a.date === today);
   const upcoming = appointments.filter((a) => a.date >= today && a.status !== "cancelada").sort((a, b) => a.date.localeCompare(b.date) || a.time.localeCompare(b.time)).slice(0, 5);
@@ -31,9 +34,9 @@ function Dashboard() {
           <h1 className="font-display text-3xl lg:text-4xl font-semibold leading-tight">Hola, {branding.doctorName.split(" ")[1] ?? "Doctora"} 👋</h1>
           <p className="mt-2 opacity-90">Tienes <strong>{todayAppts.length}</strong> {todayAppts.length === 1 ? "consulta" : "consultas"} hoy. Tu día está organizado.</p>
           <div className="flex gap-3 mt-6 flex-wrap">
-            <Link to="/recetas/nueva" className="inline-flex items-center gap-2 bg-white text-foreground rounded-xl px-4 py-2.5 text-sm font-medium hover:bg-white/90">
+            <button onClick={() => setRxOpen(true)} className="inline-flex items-center gap-2 bg-white text-foreground rounded-xl px-4 py-2.5 text-sm font-medium hover:bg-white/90">
               <Plus className="h-4 w-4" /> Nueva receta
-            </Link>
+            </button>
             <Link to="/pacientes" className="inline-flex items-center gap-2 bg-white/15 backdrop-blur border border-white/30 rounded-xl px-4 py-2.5 text-sm font-medium hover:bg-white/25">
               Ver pacientes <ArrowUpRight className="h-4 w-4" />
             </Link>
@@ -97,6 +100,7 @@ function Dashboard() {
           </div>
         </div>
       </div>
+      <QuickPrescriptionDialog patientId={null} open={rxOpen} onOpenChange={setRxOpen} />
     </div>
   );
 }
