@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, Outlet, useLocation } from "@tanstack/react-router";
 import { useState } from "react";
 import { useStore } from "@/lib/store";
 import { Search, Plus, AlertCircle, Eye, Pill } from "lucide-react";
@@ -10,8 +10,18 @@ import { QuickPrescriptionDialog } from "@/components/prescription/QuickPrescrip
 
 export const Route = createFileRoute("/_app/pacientes")({
   head: () => ({ meta: [{ title: "Pacientes — MedFlow" }] }),
-  component: PatientsPage,
+  component: PatientsRoute,
 });
+
+function PatientsRoute() {
+  const location = useLocation();
+
+  if (location.pathname !== "/pacientes") {
+    return <Outlet />;
+  }
+
+  return <PatientsPage />;
+}
 
 function PatientsPage() {
   const { patients } = useStore();
