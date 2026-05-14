@@ -9,6 +9,7 @@ import {
 } from "@tanstack/react-router";
 import { ThemeProvider } from "@/lib/theme/ThemeProvider";
 import { StoreProvider } from "@/lib/store";
+import { ClinicalFormProvider } from "@/lib/clinicalForm";
 import { Toaster } from "@/components/ui/sonner";
 
 import appCss from "../styles.css?url";
@@ -96,8 +97,10 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
         <StoreProvider>
-          <Outlet />
-          <Toaster />
+          <ClinicalFormProvider>
+            <Outlet />
+            <Toaster />
+          </ClinicalFormProvider>
         </StoreProvider>
       </ThemeProvider>
     </QueryClientProvider>
