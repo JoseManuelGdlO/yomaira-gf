@@ -1,4 +1,5 @@
 import type { Prescription, Patient } from "@/mocks/data";
+import { fmtLong } from "@/lib/format";
 import { useBranding } from "@/lib/theme/ThemeProvider";
 
 export function PrescriptionPreview({ rx, patient }: { rx: Prescription; patient: Patient }) {
@@ -32,7 +33,7 @@ export function PrescriptionPreview({ rx, patient }: { rx: Prescription; patient
           </div>
           <div className="text-xs text-muted-foreground text-right">
             <div className="uppercase tracking-wide">Receta médica</div>
-            <div>{new Date(rx.date).toLocaleDateString("es-MX", { day: "2-digit", month: "long", year: "numeric" })}</div>
+            <div>{fmtLong(rx.date)}</div>
           </div>
         </div>
 

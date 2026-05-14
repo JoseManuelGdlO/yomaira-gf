@@ -1,10 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useStore } from "@/lib/store";
 import { PatientAvatar } from "@/components/clinical/PatientAvatar";
 import { StatusBadge } from "@/components/clinical/StatusBadge";
 import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import { toast } from "sonner";
+import { fmtMonthLong, fmtWeekdayShort, todayISO } from "@/lib/format";
 
 export const Route = createFileRoute("/_app/agenda")({
   head: () => ({ meta: [{ title: "Agenda — MedFlow" }] }),
@@ -13,9 +14,11 @@ export const Route = createFileRoute("/_app/agenda")({
 
 function AgendaPage() {
   const { appointments, patients, setAppointmentStatus } = useStore();
-  const [cursor, setCursor] = useState(new Date());
+  const [cursor, setCursor] = useState<Date | null>(null);
   const [view, setView] = useState<"semana" | "dia">("semana");
-  const [selected, setSelected] = useState(new Date().toISOString().slice(0, 10));
+  const [selected, setSelected] = useState<string>("");
+  useEffect(() => { setCursor(new Date()); setSelected(todayISO()); }, []);
+  if (!cursor) return <div className="h-96" />;
 
   const startOfWeek = (d: Date) => {
     const x = new Date(d);
@@ -51,7 +54,7 @@ function AgendaPage() {
         <div className="px-4 py-3 border-b flex items-center justify-between">
           <button onClick={() => { const d = new Date(cursor); d.setDate(d.getDate() - 7); setCursor(d); }} className="p-2 rounded-lg hover:bg-surface"><ChevronLeft className="h-4 w-4" /></button>
           <div className="font-medium">
-            {weekStart.toLocaleDateString("es-MX", { day: "numeric", month: "long" })} – {days[6].toLocaleDateString("es-MX", { day: "numeric", month: "long", year: "numeric" })}
+            {weekStart.getDate()} {fmtMonthLong(weekStart)} – {days[6].getDate()} {fmtMonthLong(days[6])} {days[6].getFullYear()}
           </div>
           <button onClick={() => { const d = new Date(cursor); d.setDate(d.getDate() + 7); setCursor(d); }} className="p-2 rounded-lg hover:bg-surface"><ChevronRight className="h-4 w-4" /></button>
         </div>
@@ -59,13 +62,13 @@ function AgendaPage() {
         {view === "semana" ? (
           <div className="grid grid-cols-7 divide-x">
             {days.map((d) => {
-              const iso = d.toISOString().slice(0, 10);
+              const iso = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
               const list = apptsByDay(iso);
-              const isToday = iso === new Date().toISOString().slice(0, 10);
+              const isToday = iso === todayISO();
               return (
                 <div key={iso} className="min-h-[420px]">
                   <div className={`px-3 py-2 border-b text-center ${isToday ? "bg-primary/10" : ""}`}>
-                    <div className="text-xs uppercase text-muted-foreground">{d.toLocaleDateString("es-MX", { weekday: "short" })}</div>
+                    <div className="text-xs uppercase text-muted-foreground">{fmtWeekdayShort(d)}</div>
                     <div className={`font-display text-xl font-semibold ${isToday ? "text-primary" : ""}`}>{d.getDate()}</div>
                   </div>
                   <div className="p-2 space-y-1.5">

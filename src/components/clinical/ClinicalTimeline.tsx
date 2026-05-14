@@ -1,4 +1,5 @@
 import type { Consultation } from "@/mocks/data";
+import { fmtMedium } from "@/lib/format";
 import { Stethoscope } from "lucide-react";
 
 export function ClinicalTimeline({ items }: { items: Consultation[] }) {
@@ -12,7 +13,7 @@ export function ClinicalTimeline({ items }: { items: Consultation[] }) {
           <div className="flex items-center gap-2 mb-1">
             <Stethoscope className="h-4 w-4 text-primary" />
             <span className="text-sm font-medium">{c.reason}</span>
-            <span className="text-xs text-muted-foreground ml-auto">{new Date(c.date).toLocaleDateString("es-MX", { day: "2-digit", month: "short", year: "numeric" })}</span>
+            <span className="text-xs text-muted-foreground ml-auto">{fmtMedium(c.date)}</span>
           </div>
           <div className="bg-surface rounded-xl border p-4 ml-0">
             <div className="text-xs text-muted-foreground uppercase tracking-wide">Diagnóstico</div>

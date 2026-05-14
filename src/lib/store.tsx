@@ -11,6 +11,7 @@ type Store = {
   updatePatient: (id: string, patch: Partial<Patient>) => void;
   setAppointmentStatus: (id: string, status: Appointment["status"]) => void;
   addAppointment: (a: Appointment) => void;
+  addPatient: (p: Patient) => void;
 };
 
 const Ctx = createContext<Store | null>(null);
@@ -29,6 +30,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       updatePatient: (id, patch) => setPatients((p) => p.map((x) => x.id === id ? { ...x, ...patch } : x)),
       setAppointmentStatus: (id, status) => setAppointments((p) => p.map((x) => x.id === id ? { ...x, status } : x)),
       addAppointment: (a) => setAppointments((p) => [...p, a]),
+      addPatient: (np) => setPatients((p) => [np, ...p]),
     }}>
       {children}
     </Ctx.Provider>

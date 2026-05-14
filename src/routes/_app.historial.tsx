@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { fmtLong } from "@/lib/format";
 import { useStore } from "@/lib/store";
 import { ClinicalTimeline } from "@/components/clinical/ClinicalTimeline";
 
@@ -25,7 +26,7 @@ function HistorialPage() {
                 <div className="flex items-center gap-2 text-sm">
                   <span className="font-medium">{p?.name}</span>
                   <span className="text-muted-foreground">·</span>
-                  <span className="text-muted-foreground">{new Date(c.date).toLocaleDateString("es-MX", { day: "numeric", month: "long", year: "numeric" })}</span>
+                  <span className="text-muted-foreground">{fmtLong(c.date)}</span>
                 </div>
                 <div className="text-sm mt-1"><span className="text-muted-foreground">Diagnóstico:</span> {c.diagnosis}</div>
                 <div className="text-sm"><span className="text-muted-foreground">Tratamiento:</span> {c.treatment}</div>

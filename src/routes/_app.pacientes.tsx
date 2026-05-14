@@ -1,8 +1,12 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { useStore } from "@/lib/store";
-import { Search, Plus, AlertCircle } from "lucide-react";
+import { Search, Plus, AlertCircle, Eye, Pill } from "lucide-react";
 import { PatientAvatar } from "@/components/clinical/PatientAvatar";
+import { fmtShort } from "@/lib/format";
+import { NewPatientDialog } from "@/components/clinical/NewPatientDialog";
+import { PatientQuickViewDialog } from "@/components/clinical/PatientQuickViewDialog";
+import { QuickPrescriptionDialog } from "@/components/prescription/QuickPrescriptionDialog";
 
 export const Route = createFileRoute("/_app/pacientes")({
   head: () => ({ meta: [{ title: "Pacientes — MedFlow" }] }),
@@ -12,6 +16,9 @@ export const Route = createFileRoute("/_app/pacientes")({
 function PatientsPage() {
   const { patients } = useStore();
   const [q, setQ] = useState("");
+  const [newOpen, setNewOpen] = useState(false);
+  const [quickId, setQuickId] = useState<string | null>(null);
+  const [rxId, setRxId] = useState<string | null>(null);
   const filtered = patients.filter((p) => p.name.toLowerCase().includes(q.toLowerCase()) || p.guardian.toLowerCase().includes(q.toLowerCase()));
 
   return (
@@ -21,7 +28,7 @@ function PatientsPage() {
           <h1 className="font-display text-3xl font-semibold">Pacientes</h1>
           <p className="text-muted-foreground text-sm mt-1">{patients.length} pacientes registrados</p>
         </div>
-        <button className="inline-flex items-center gap-2 bg-primary text-primary-foreground rounded-xl px-4 py-2.5 text-sm font-medium hover:bg-primary/90">
+        <button onClick={() => setNewOpen(true)} className="inline-flex items-center gap-2 bg-primary text-primary-foreground rounded-xl px-4 py-2.5 text-sm font-medium hover:bg-primary/90">
           <Plus className="h-4 w-4" /> Nuevo paciente
         </button>
       </div>
@@ -42,6 +49,7 @@ function PatientsPage() {
                 <th className="px-6 py-3 font-medium">Tutor</th>
                 <th className="px-6 py-3 font-medium">Alergias</th>
                 <th className="px-6 py-3 font-medium">Última visita</th>
+                <th className="px-6 py-3 font-medium text-right">Acciones</th>
               </tr>
             </thead>
             <tbody>
@@ -74,16 +82,30 @@ function PatientsPage() {
                       </div>
                     )}
                   </td>
-                  <td className="px-6 py-3 text-muted-foreground">{new Date(p.lastVisit).toLocaleDateString("es-MX")}</td>
+                  <td className="px-6 py-3 text-muted-foreground">{fmtShort(p.lastVisit)}</td>
+                  <td className="px-6 py-3">
+                    <div className="flex justify-end gap-1">
+                      <button onClick={() => setQuickId(p.id)} title="Vista rápida" className="p-2 rounded-lg hover:bg-primary/10 text-muted-foreground hover:text-primary">
+                        <Eye className="h-4 w-4" />
+                      </button>
+                      <button onClick={() => setRxId(p.id)} title="Nueva receta" className="p-2 rounded-lg hover:bg-primary/10 text-muted-foreground hover:text-primary">
+                        <Pill className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </td>
                 </tr>
               ))}
               {filtered.length === 0 && (
-                <tr><td colSpan={5} className="text-center py-12 text-muted-foreground">Sin resultados.</td></tr>
+                <tr><td colSpan={6} className="text-center py-12 text-muted-foreground">Sin resultados.</td></tr>
               )}
             </tbody>
           </table>
         </div>
       </div>
+
+      <NewPatientDialog open={newOpen} onOpenChange={setNewOpen} />
+      <PatientQuickViewDialog patientId={quickId} open={!!quickId} onOpenChange={(o) => !o && setQuickId(null)} />
+      <QuickPrescriptionDialog patientId={rxId} open={!!rxId} onOpenChange={(o) => !o && setRxId(null)} />
     </div>
   );
 }
