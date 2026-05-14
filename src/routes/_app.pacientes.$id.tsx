@@ -245,3 +245,47 @@ function QuestionField({ q, value, onChange }: { q: Question; value: string | st
     </div>
   );
 }
+
+function ConsentPhotoCard({ patientId, photo, onChange }: { patientId: string; photo?: string; onChange: (v: string | undefined) => void }) {
+  const inputRef = (typeof document !== "undefined" ? null : null);
+  const handleFile = (file: File) => {
+    if (!file.type.startsWith("image/")) { toast.error("Selecciona una imagen"); return; }
+    const reader = new FileReader();
+    reader.onload = () => { onChange(reader.result as string); toast.success("Consentimiento cargado"); };
+    reader.readAsDataURL(file);
+  };
+  return (
+    <div className="bg-card border rounded-2xl p-6">
+      <div className="flex items-center justify-between mb-4 gap-4 flex-wrap">
+        <div>
+          <h3 className="font-display text-lg font-semibold inline-flex items-center gap-2"><FileSignature className="h-5 w-5 text-primary" /> Consentimiento informado firmado</h3>
+          <p className="text-sm text-muted-foreground mt-1">Sube la foto del documento firmado por el tutor.</p>
+        </div>
+        <Link to="/consentimiento" search={{ patientId }} className="text-sm text-primary font-medium hover:underline">Imprimir formato →</Link>
+      </div>
+      {photo ? (
+        <div className="space-y-3">
+          <div className="border rounded-xl overflow-hidden bg-surface">
+            <img src={photo} alt="Consentimiento firmado" className="w-full max-h-[480px] object-contain" />
+          </div>
+          <div className="flex gap-2">
+            <label className="inline-flex items-center gap-2 border rounded-lg px-3 py-2 text-sm font-medium cursor-pointer hover:bg-accent/10">
+              <Camera className="h-4 w-4" /> Reemplazar
+              <input type="file" accept="image/*" className="hidden" onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])} />
+            </label>
+            <button onClick={() => { onChange(undefined); toast.success("Consentimiento eliminado"); }} className="inline-flex items-center gap-2 border rounded-lg px-3 py-2 text-sm font-medium text-destructive hover:bg-destructive/10">
+              <Trash2 className="h-4 w-4" /> Quitar
+            </button>
+          </div>
+        </div>
+      ) : (
+        <label className="border-2 border-dashed rounded-2xl p-10 text-center block cursor-pointer hover:bg-surface/60 transition-colors">
+          <Upload className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
+          <div className="font-medium">Cargar foto del consentimiento</div>
+          <div className="text-sm text-muted-foreground mt-1">PNG, JPG o HEIC desde la cámara o el dispositivo</div>
+          <input type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])} />
+        </label>
+      )}
+    </div>
+  );
+}
