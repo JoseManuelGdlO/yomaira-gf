@@ -4,8 +4,9 @@ import { useState } from "react";
 import { useStore } from "@/lib/store";
 import { PatientAvatar } from "@/components/clinical/PatientAvatar";
 import { ClinicalTimeline } from "@/components/clinical/ClinicalTimeline";
-import { Phone, Mail, Cake, Droplet, AlertCircle, FileText, Pill, Plus, Upload, Edit2, Save } from "lucide-react";
+import { Phone, Mail, Cake, Droplet, AlertCircle, FileText, Pill, Plus, Upload, Edit2, Save, ClipboardList, FileSignature } from "lucide-react";
 import { toast } from "sonner";
+import { useClinicalForm, type Question } from "@/lib/clinicalForm";
 
 export const Route = createFileRoute("/_app/pacientes/$id")({
   head: ({ params }) => ({ meta: [{ title: `Expediente — MedFlow` }] }),
@@ -13,7 +14,7 @@ export const Route = createFileRoute("/_app/pacientes/$id")({
   notFoundComponent: () => <div className="p-8">Paciente no encontrado.</div>,
 });
 
-const TABS = ["Resumen", "Historial", "Diagnósticos", "Medicamentos", "Estudios", "Notas", "Recetas"] as const;
+const TABS = ["Resumen", "Historia clínica", "Historial", "Diagnósticos", "Medicamentos", "Estudios", "Notas", "Recetas"] as const;
 type Tab = typeof TABS[number];
 
 function PatientDetail() {
@@ -57,6 +58,9 @@ function PatientDetail() {
           <Link to="/recetas/nueva" search={{ patientId: patient.id }} className="inline-flex items-center gap-2 bg-primary text-primary-foreground rounded-xl px-4 py-2.5 text-sm font-medium hover:bg-primary/90 shrink-0">
             <Plus className="h-4 w-4" /> Nueva receta
           </Link>
+          <Link to="/consentimiento" search={{ patientId: patient.id }} className="inline-flex items-center gap-2 border rounded-xl px-4 py-2.5 text-sm font-medium hover:bg-accent/10 shrink-0">
+            <FileSignature className="h-4 w-4" /> Consentimiento
+          </Link>
         </div>
       </div>
 
@@ -85,6 +89,8 @@ function PatientDetail() {
             </Section>
           </div>
         )}
+
+        {tab === "Historia clínica" && <HistoriaClinica patientId={patient.id} />}
 
         {tab === "Historial" && <ClinicalTimeline items={patientConsults} />}
 
