@@ -28,7 +28,7 @@ function NuevaReceta() {
 
   const patient = patients.find((p) => p.id === patientId);
 
-  const addItem = () => setItems([...items, { medication: MEDICATIONS[0].name + " " + MEDICATIONS[0].presentation, dose: "5 ml", frequency: "cada 8 horas", duration: "5 días" }]);
+  const addItem = () => setItems([...items, { medication: "", dose: "", frequency: "", duration: "" }]);
   const updateItem = (i: number, patch: Partial<PrescriptionItem>) => setItems(items.map((x, idx) => idx === i ? { ...x, ...patch } : x));
   const removeItem = (i: number) => setItems(items.filter((_, idx) => idx !== i));
 
@@ -107,15 +107,16 @@ function NuevaReceta() {
             <div className="space-y-3">
               {items.map((it, i) => (
                 <div key={i} className="bg-surface rounded-xl p-3 grid grid-cols-1 sm:grid-cols-12 gap-2 items-center">
-                  <select value={it.medication} onChange={(e) => updateItem(i, { medication: e.target.value })} className="sm:col-span-4 h-9 px-2 rounded-lg bg-card border text-sm">
-                    {MEDICATIONS.map((m) => <option key={m.name} value={`${m.name} ${m.presentation}`}>{m.name} — {m.presentation}</option>)}
-                  </select>
-                  <input value={it.dose} onChange={(e) => updateItem(i, { dose: e.target.value })} placeholder="Dosis" className="sm:col-span-2 h-9 px-2 rounded-lg bg-card border text-sm" />
+                  <input list="med-list-page" value={it.medication} onChange={(e) => updateItem(i, { medication: e.target.value })} placeholder="Medicamento y presentación" className="sm:col-span-4 h-9 px-2 rounded-lg bg-card border text-sm" />
+                  <input value={it.dose} onChange={(e) => updateItem(i, { dose: e.target.value })} placeholder="Dosis (ej. 5 ml)" className="sm:col-span-2 h-9 px-2 rounded-lg bg-card border text-sm" />
                   <input value={it.frequency} onChange={(e) => updateItem(i, { frequency: e.target.value })} placeholder="Frecuencia" className="sm:col-span-3 h-9 px-2 rounded-lg bg-card border text-sm" />
                   <input value={it.duration} onChange={(e) => updateItem(i, { duration: e.target.value })} placeholder="Duración" className="sm:col-span-2 h-9 px-2 rounded-lg bg-card border text-sm" />
                   <button onClick={() => removeItem(i)} className="sm:col-span-1 p-2 text-destructive hover:bg-destructive/10 rounded-lg"><Trash2 className="h-4 w-4" /></button>
                 </div>
               ))}
+              <datalist id="med-list-page">
+                {MEDICATIONS.map((m) => <option key={m.name} value={`${m.name} ${m.presentation}`} />)}
+              </datalist>
               {items.length === 0 && <div className="text-sm text-muted-foreground text-center py-4">Agrega al menos un medicamento.</div>}
             </div>
           </div>
