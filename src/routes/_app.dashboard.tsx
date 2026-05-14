@@ -100,6 +100,7 @@ function Dashboard() {
           </div>
         </div>
       </div>
+      <QuickPrescriptionDialog patientId={null} open={rxOpen} onOpenChange={setRxOpen} />
     </div>
   );
 }
