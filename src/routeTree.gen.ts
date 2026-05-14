@@ -13,6 +13,8 @@ import { Route as AppRouteImport } from './routes/_app'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppRecetasRouteImport } from './routes/_app.recetas'
 import { Route as AppPacientesRouteImport } from './routes/_app.pacientes'
+import { Route as AppHistorialRouteImport } from './routes/_app.historial'
+import { Route as AppExpedientesRouteImport } from './routes/_app.expedientes'
 import { Route as AppDashboardRouteImport } from './routes/_app.dashboard'
 import { Route as AppAgendaRouteImport } from './routes/_app.agenda'
 import { Route as AppRecetasNuevaRouteImport } from './routes/_app.recetas.nueva'
@@ -35,6 +37,16 @@ const AppRecetasRoute = AppRecetasRouteImport.update({
 const AppPacientesRoute = AppPacientesRouteImport.update({
   id: '/pacientes',
   path: '/pacientes',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppHistorialRoute = AppHistorialRouteImport.update({
+  id: '/historial',
+  path: '/historial',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppExpedientesRoute = AppExpedientesRouteImport.update({
+  id: '/expedientes',
+  path: '/expedientes',
   getParentRoute: () => AppRoute,
 } as any)
 const AppDashboardRoute = AppDashboardRouteImport.update({
@@ -62,6 +74,8 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/agenda': typeof AppAgendaRoute
   '/dashboard': typeof AppDashboardRoute
+  '/expedientes': typeof AppExpedientesRoute
+  '/historial': typeof AppHistorialRoute
   '/pacientes': typeof AppPacientesRouteWithChildren
   '/recetas': typeof AppRecetasRouteWithChildren
   '/pacientes/$id': typeof AppPacientesIdRoute
@@ -71,6 +85,8 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/agenda': typeof AppAgendaRoute
   '/dashboard': typeof AppDashboardRoute
+  '/expedientes': typeof AppExpedientesRoute
+  '/historial': typeof AppHistorialRoute
   '/pacientes': typeof AppPacientesRouteWithChildren
   '/recetas': typeof AppRecetasRouteWithChildren
   '/pacientes/$id': typeof AppPacientesIdRoute
@@ -82,6 +98,8 @@ export interface FileRoutesById {
   '/_app': typeof AppRouteWithChildren
   '/_app/agenda': typeof AppAgendaRoute
   '/_app/dashboard': typeof AppDashboardRoute
+  '/_app/expedientes': typeof AppExpedientesRoute
+  '/_app/historial': typeof AppHistorialRoute
   '/_app/pacientes': typeof AppPacientesRouteWithChildren
   '/_app/recetas': typeof AppRecetasRouteWithChildren
   '/_app/pacientes/$id': typeof AppPacientesIdRoute
@@ -93,6 +111,8 @@ export interface FileRouteTypes {
     | '/'
     | '/agenda'
     | '/dashboard'
+    | '/expedientes'
+    | '/historial'
     | '/pacientes'
     | '/recetas'
     | '/pacientes/$id'
@@ -102,6 +122,8 @@ export interface FileRouteTypes {
     | '/'
     | '/agenda'
     | '/dashboard'
+    | '/expedientes'
+    | '/historial'
     | '/pacientes'
     | '/recetas'
     | '/pacientes/$id'
@@ -112,6 +134,8 @@ export interface FileRouteTypes {
     | '/_app'
     | '/_app/agenda'
     | '/_app/dashboard'
+    | '/_app/expedientes'
+    | '/_app/historial'
     | '/_app/pacientes'
     | '/_app/recetas'
     | '/_app/pacientes/$id'
@@ -151,6 +175,20 @@ declare module '@tanstack/react-router' {
       path: '/pacientes'
       fullPath: '/pacientes'
       preLoaderRoute: typeof AppPacientesRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/historial': {
+      id: '/_app/historial'
+      path: '/historial'
+      fullPath: '/historial'
+      preLoaderRoute: typeof AppHistorialRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/expedientes': {
+      id: '/_app/expedientes'
+      path: '/expedientes'
+      fullPath: '/expedientes'
+      preLoaderRoute: typeof AppExpedientesRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/dashboard': {
@@ -211,6 +249,8 @@ const AppRecetasRouteWithChildren = AppRecetasRoute._addFileChildren(
 interface AppRouteChildren {
   AppAgendaRoute: typeof AppAgendaRoute
   AppDashboardRoute: typeof AppDashboardRoute
+  AppExpedientesRoute: typeof AppExpedientesRoute
+  AppHistorialRoute: typeof AppHistorialRoute
   AppPacientesRoute: typeof AppPacientesRouteWithChildren
   AppRecetasRoute: typeof AppRecetasRouteWithChildren
 }
@@ -218,6 +258,8 @@ interface AppRouteChildren {
 const AppRouteChildren: AppRouteChildren = {
   AppAgendaRoute: AppAgendaRoute,
   AppDashboardRoute: AppDashboardRoute,
+  AppExpedientesRoute: AppExpedientesRoute,
+  AppHistorialRoute: AppHistorialRoute,
   AppPacientesRoute: AppPacientesRouteWithChildren,
   AppRecetasRoute: AppRecetasRouteWithChildren,
 }
