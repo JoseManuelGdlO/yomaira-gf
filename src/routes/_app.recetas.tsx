@@ -27,7 +27,7 @@ function RecetasPage() {
                 <div className="h-10 w-10 rounded-xl bg-primary/10 text-primary grid place-items-center"><Pill className="h-5 w-5" /></div>
                 <div className="flex-1 min-w-0">
                   <div className="font-medium truncate">{p?.name}</div>
-                  <div className="text-xs text-muted-foreground">{new Date(r.date).toLocaleDateString("es-MX", { day: "numeric", month: "long", year: "numeric" })}</div>
+                  <div className="text-xs text-muted-foreground">{fmtLong(r.date)}</div>
                 </div>
               </div>
               <div className="text-sm text-muted-foreground line-clamp-2">{r.diagnosis}</div>

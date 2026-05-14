@@ -60,7 +60,7 @@ function Dashboard() {
               return (
                 <Link key={a.id} to="/pacientes/$id" params={{ id: p.id }} className="flex items-center gap-4 py-3 hover:bg-surface -mx-2 px-2 rounded-lg transition-colors">
                   <div className="text-center w-14 shrink-0">
-                    <div className="text-xs text-muted-foreground uppercase">{new Date(a.date).toLocaleDateString("es-MX", { month: "short" })}</div>
+                    <div className="text-xs text-muted-foreground uppercase">{fmtMonthShort(a.date)}</div>
                     <div className="font-display text-xl font-semibold leading-none">{new Date(a.date).getDate()}</div>
                     <div className="text-xs text-primary font-medium mt-0.5">{a.time}</div>
                   </div>
@@ -87,7 +87,7 @@ function Dashboard() {
                 <PatientAvatar patient={p} size={36} />
                 <div className="flex-1 min-w-0">
                   <div className="text-sm font-medium truncate">{p.name}</div>
-                  <div className="text-xs text-muted-foreground">{p.age} años · {new Date(p.lastVisit).toLocaleDateString("es-MX")}</div>
+                  <div className="text-xs text-muted-foreground">{p.age} años · {fmtShort(p.lastVisit)}</div>
                 </div>
               </Link>
             ))}

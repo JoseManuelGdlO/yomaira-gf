@@ -74,7 +74,7 @@ function PatientsPage() {
                       </div>
                     )}
                   </td>
-                  <td className="px-6 py-3 text-muted-foreground">{new Date(p.lastVisit).toLocaleDateString("es-MX")}</td>
+                  <td className="px-6 py-3 text-muted-foreground">{fmtShort(p.lastVisit)}</td>
                 </tr>
               ))}
               {filtered.length === 0 && (

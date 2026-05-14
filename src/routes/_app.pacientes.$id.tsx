@@ -38,7 +38,7 @@ function PatientDetail() {
           <div className="flex-1 min-w-0">
             <h1 className="font-display text-2xl lg:text-3xl font-semibold">{patient.name}</h1>
             <div className="flex flex-wrap gap-x-6 gap-y-1 text-sm text-muted-foreground mt-2">
-              <span className="inline-flex items-center gap-1.5"><Cake className="h-4 w-4" /> {patient.age} años · {new Date(patient.birthDate).toLocaleDateString("es-MX")}</span>
+              <span className="inline-flex items-center gap-1.5"><Cake className="h-4 w-4" /> {patient.age} años · {fmtShort(patient.birthDate)}</span>
               <span className="inline-flex items-center gap-1.5"><Droplet className="h-4 w-4" /> {patient.bloodType}</span>
               <span className="inline-flex items-center gap-1.5"><Phone className="h-4 w-4" /> {patient.guardianPhone}</span>
               <span className="inline-flex items-center gap-1.5"><Mail className="h-4 w-4" /> {patient.email}</span>
@@ -74,7 +74,7 @@ function PatientDetail() {
             <Section title="Datos generales">
               <Field label="Tutor" value={patient.guardian} />
               <Field label="Género" value={patient.gender === "F" ? "Femenino" : "Masculino"} />
-              <Field label="Fecha de nacimiento" value={new Date(patient.birthDate).toLocaleDateString("es-MX")} />
+              <Field label="Fecha de nacimiento" value={fmtShort(patient.birthDate)} />
               <Field label="Tipo de sangre" value={patient.bloodType} />
             </Section>
             <Section title="Antecedentes médicos">
@@ -94,7 +94,7 @@ function PatientDetail() {
                 <div key={c.id} className="bg-card border rounded-xl p-4">
                   <div className="flex items-center justify-between">
                     <div className="font-medium">{c.diagnosis}</div>
-                    <div className="text-xs text-muted-foreground">{new Date(c.date).toLocaleDateString("es-MX")}</div>
+                    <div className="text-xs text-muted-foreground">{fmtShort(c.date)}</div>
                   </div>
                   <div className="text-sm text-muted-foreground mt-1">Tratamiento: {c.treatment}</div>
                 </div>
@@ -112,7 +112,7 @@ function PatientDetail() {
                     <div className="font-medium">{it.medication}</div>
                     <div className="text-sm text-muted-foreground">{it.dose} · {it.frequency} · {it.duration}</div>
                   </div>
-                  <div className="text-xs text-muted-foreground">{new Date(r.date).toLocaleDateString("es-MX")}</div>
+                  <div className="text-xs text-muted-foreground">{fmtShort(r.date)}</div>
                 </div>
               )))}
           </div>
@@ -147,7 +147,7 @@ function PatientDetail() {
                   <div className="h-10 w-10 rounded-lg bg-primary/10 text-primary grid place-items-center"><FileText className="h-5 w-5" /></div>
                   <div className="flex-1">
                     <div className="font-medium">{r.diagnosis || "Receta médica"}</div>
-                    <div className="text-sm text-muted-foreground">{r.items.length} medicamentos · {new Date(r.date).toLocaleDateString("es-MX")}</div>
+                    <div className="text-sm text-muted-foreground">{r.items.length} medicamentos · {fmtShort(r.date)}</div>
                   </div>
                 </div>
               ))}
