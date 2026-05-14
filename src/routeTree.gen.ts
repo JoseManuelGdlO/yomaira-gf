@@ -16,6 +16,7 @@ import { Route as AppPacientesRouteImport } from './routes/_app.pacientes'
 import { Route as AppHistorialRouteImport } from './routes/_app.historial'
 import { Route as AppExpedientesRouteImport } from './routes/_app.expedientes'
 import { Route as AppDashboardRouteImport } from './routes/_app.dashboard'
+import { Route as AppConsentimientoRouteImport } from './routes/_app.consentimiento'
 import { Route as AppConfiguracionRouteImport } from './routes/_app.configuracion'
 import { Route as AppBrandingRouteImport } from './routes/_app.branding'
 import { Route as AppAgendaRouteImport } from './routes/_app.agenda'
@@ -56,6 +57,11 @@ const AppDashboardRoute = AppDashboardRouteImport.update({
   path: '/dashboard',
   getParentRoute: () => AppRoute,
 } as any)
+const AppConsentimientoRoute = AppConsentimientoRouteImport.update({
+  id: '/consentimiento',
+  path: '/consentimiento',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppConfiguracionRoute = AppConfiguracionRouteImport.update({
   id: '/configuracion',
   path: '/configuracion',
@@ -87,6 +93,7 @@ export interface FileRoutesByFullPath {
   '/agenda': typeof AppAgendaRoute
   '/branding': typeof AppBrandingRoute
   '/configuracion': typeof AppConfiguracionRoute
+  '/consentimiento': typeof AppConsentimientoRoute
   '/dashboard': typeof AppDashboardRoute
   '/expedientes': typeof AppExpedientesRoute
   '/historial': typeof AppHistorialRoute
@@ -100,6 +107,7 @@ export interface FileRoutesByTo {
   '/agenda': typeof AppAgendaRoute
   '/branding': typeof AppBrandingRoute
   '/configuracion': typeof AppConfiguracionRoute
+  '/consentimiento': typeof AppConsentimientoRoute
   '/dashboard': typeof AppDashboardRoute
   '/expedientes': typeof AppExpedientesRoute
   '/historial': typeof AppHistorialRoute
@@ -115,6 +123,7 @@ export interface FileRoutesById {
   '/_app/agenda': typeof AppAgendaRoute
   '/_app/branding': typeof AppBrandingRoute
   '/_app/configuracion': typeof AppConfiguracionRoute
+  '/_app/consentimiento': typeof AppConsentimientoRoute
   '/_app/dashboard': typeof AppDashboardRoute
   '/_app/expedientes': typeof AppExpedientesRoute
   '/_app/historial': typeof AppHistorialRoute
@@ -130,6 +139,7 @@ export interface FileRouteTypes {
     | '/agenda'
     | '/branding'
     | '/configuracion'
+    | '/consentimiento'
     | '/dashboard'
     | '/expedientes'
     | '/historial'
@@ -143,6 +153,7 @@ export interface FileRouteTypes {
     | '/agenda'
     | '/branding'
     | '/configuracion'
+    | '/consentimiento'
     | '/dashboard'
     | '/expedientes'
     | '/historial'
@@ -157,6 +168,7 @@ export interface FileRouteTypes {
     | '/_app/agenda'
     | '/_app/branding'
     | '/_app/configuracion'
+    | '/_app/consentimiento'
     | '/_app/dashboard'
     | '/_app/expedientes'
     | '/_app/historial'
@@ -220,6 +232,13 @@ declare module '@tanstack/react-router' {
       path: '/dashboard'
       fullPath: '/dashboard'
       preLoaderRoute: typeof AppDashboardRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/consentimiento': {
+      id: '/_app/consentimiento'
+      path: '/consentimiento'
+      fullPath: '/consentimiento'
+      preLoaderRoute: typeof AppConsentimientoRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/configuracion': {
@@ -288,6 +307,7 @@ interface AppRouteChildren {
   AppAgendaRoute: typeof AppAgendaRoute
   AppBrandingRoute: typeof AppBrandingRoute
   AppConfiguracionRoute: typeof AppConfiguracionRoute
+  AppConsentimientoRoute: typeof AppConsentimientoRoute
   AppDashboardRoute: typeof AppDashboardRoute
   AppExpedientesRoute: typeof AppExpedientesRoute
   AppHistorialRoute: typeof AppHistorialRoute
@@ -299,6 +319,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppAgendaRoute: AppAgendaRoute,
   AppBrandingRoute: AppBrandingRoute,
   AppConfiguracionRoute: AppConfiguracionRoute,
+  AppConsentimientoRoute: AppConsentimientoRoute,
   AppDashboardRoute: AppDashboardRoute,
   AppExpedientesRoute: AppExpedientesRoute,
   AppHistorialRoute: AppHistorialRoute,
