@@ -3,9 +3,11 @@ import { useEffect, useState } from "react";
 import { useStore } from "@/lib/store";
 import { PatientAvatar } from "@/components/clinical/PatientAvatar";
 import { StatusBadge } from "@/components/clinical/StatusBadge";
-import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, CheckCircle2 } from "lucide-react";
 import { fmtMonthLong, fmtWeekdayShort, todayISO } from "@/lib/format";
 import { NewAppointmentDialog } from "@/components/clinical/NewAppointmentDialog";
+import { CompleteAppointmentDialog } from "@/components/clinical/CompleteAppointmentDialog";
+import type { Appointment } from "@/mocks/data";
 
 export const Route = createFileRoute("/_app/agenda")({
   head: () => ({ meta: [{ title: "Agenda — MedFlow" }] }),
@@ -18,6 +20,7 @@ function AgendaPage() {
   const [view, setView] = useState<"semana" | "dia">("semana");
   const [selected, setSelected] = useState<string>("");
   const [newOpen, setNewOpen] = useState(false);
+  const [completeAppt, setCompleteAppt] = useState<Appointment | null>(null);
   useEffect(() => { setCursor(new Date()); setSelected(todayISO()); }, []);
   if (!cursor) return <div className="h-96" />;
 
@@ -52,6 +55,7 @@ function AgendaPage() {
       </div>
 
       <NewAppointmentDialog open={newOpen} onOpenChange={setNewOpen} defaultDate={selected || todayISO()} />
+      <CompleteAppointmentDialog appointment={completeAppt} open={!!completeAppt} onOpenChange={(o) => !o && setCompleteAppt(null)} />
 
       <div className="bg-card rounded-2xl border overflow-hidden">
         <div className="px-4 py-3 border-b flex items-center justify-between">
@@ -106,7 +110,16 @@ function AgendaPage() {
                       <div className="text-sm text-muted-foreground">{a.reason}</div>
                     </div>
                     <StatusBadge status={a.status} />
-                    <select value={a.status} onChange={(e) => setAppointmentStatus(a.id, e.target.value as any)} className="text-xs border rounded-md px-2 py-1 bg-card">
+                    {a.status !== "completada" && (
+                      <button onClick={() => setCompleteAppt(a)} className="inline-flex items-center gap-1 text-xs bg-primary text-primary-foreground rounded-md px-2.5 py-1.5 font-medium hover:bg-primary/90">
+                        <CheckCircle2 className="h-3.5 w-3.5" /> Completar
+                      </button>
+                    )}
+                    <select value={a.status} onChange={(e) => {
+                      const v = e.target.value as Appointment["status"];
+                      if (v === "completada") setCompleteAppt(a);
+                      else setAppointmentStatus(a.id, v);
+                    }} className="text-xs border rounded-md px-2 py-1 bg-card">
                       <option value="pendiente">Pendiente</option>
                       <option value="confirmada">Confirmada</option>
                       <option value="completada">Completada</option>
