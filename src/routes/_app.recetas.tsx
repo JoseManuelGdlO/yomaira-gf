@@ -1,7 +1,9 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
+import { useState } from "react";
 import { fmtLong } from "@/lib/format";
 import { useStore } from "@/lib/store";
 import { Pill, Plus } from "lucide-react";
+import { QuickPrescriptionDialog } from "@/components/prescription/QuickPrescriptionDialog";
 
 export const Route = createFileRoute("/_app/recetas")({
   head: () => ({ meta: [{ title: "Recetas — MedFlow" }] }),
@@ -10,6 +12,7 @@ export const Route = createFileRoute("/_app/recetas")({
 
 function RecetasPage() {
   const { prescriptions, patients } = useStore();
+  const [open, setOpen] = useState(false);
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-4 flex-wrap">
@@ -17,7 +20,7 @@ function RecetasPage() {
           <h1 className="font-display text-3xl font-semibold">Recetas</h1>
           <p className="text-muted-foreground text-sm mt-1">{prescriptions.length} recetas emitidas</p>
         </div>
-        <Link to="/recetas/nueva" className="inline-flex items-center gap-2 bg-primary text-primary-foreground rounded-xl px-4 py-2.5 text-sm font-medium hover:bg-primary/90"><Plus className="h-4 w-4" /> Nueva receta</Link>
+        <button onClick={() => setOpen(true)} className="inline-flex items-center gap-2 bg-primary text-primary-foreground rounded-xl px-4 py-2.5 text-sm font-medium hover:bg-primary/90"><Plus className="h-4 w-4" /> Nueva receta</button>
       </div>
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
         {prescriptions.map((r) => {
@@ -38,6 +41,7 @@ function RecetasPage() {
         })}
         {prescriptions.length === 0 && <div className="text-sm text-muted-foreground col-span-full text-center py-12">Sin recetas aún.</div>}
       </div>
+      <QuickPrescriptionDialog patientId={null} open={open} onOpenChange={setOpen} />
     </div>
   );
 }
