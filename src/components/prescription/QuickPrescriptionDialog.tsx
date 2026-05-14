@@ -5,7 +5,6 @@ import { MEDICATIONS, type PrescriptionItem } from "@/mocks/data";
 import { PrescriptionPreview } from "./PrescriptionPreview";
 import { PatientAvatar } from "@/components/clinical/PatientAvatar";
 import { Pill, Plus, Printer, Trash2, Eye, ArrowLeft, Search } from "lucide-react";
-import { PatientAvatar as _PA } from "@/components/clinical/PatientAvatar";
 import { toast } from "sonner";
 import { todayISO } from "@/lib/format";
 
@@ -67,7 +66,7 @@ export function QuickPrescriptionDialog({ patientId, open, onOpenChange }: { pat
             <div className="grid sm:grid-cols-2 gap-2 max-h-[420px] overflow-auto">
               {filteredPatients.map((p) => (
                 <button key={p.id} onClick={() => setPickedId(p.id)} className="flex items-center gap-3 p-3 rounded-xl border text-left hover:bg-surface">
-                  <_PA patient={p} size={36} />
+                  <PatientAvatar patient={p} size={36} />
                   <div className="flex-1 min-w-0">
                     <div className="text-sm font-medium truncate">{p.name}</div>
                     <div className="text-xs text-muted-foreground">{p.age} años · {p.guardian}</div>
