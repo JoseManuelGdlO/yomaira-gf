@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Users, Calendar, Pill, Activity, Plus, ArrowUpRight } from "lucide-react";
+import { Users, Calendar, Pill, Activity, Plus, ArrowUpRight, Sparkles } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { useBranding } from "@/lib/theme/ThemeProvider";
 import { StatCard } from "@/components/clinical/StatCard";
@@ -7,7 +7,8 @@ import { PatientAvatar } from "@/components/clinical/PatientAvatar";
 import { StatusBadge } from "@/components/clinical/StatusBadge";
 import { fmtShort, fmtMonthShort, fmtDay, fmtWeekdayLong, fmtMonthLong, todayISO } from "@/lib/format";
 import { QuickPrescriptionDialog } from "@/components/prescription/QuickPrescriptionDialog";
-import { useState } from "react";
+import { OnboardingDialog } from "@/components/app/OnboardingDialog";
+import { useEffect, useState } from "react";
 
 export const Route = createFileRoute("/_app/dashboard")({
   head: () => ({ meta: [{ title: "Dashboard — MedFlow" }] }),
@@ -18,6 +19,15 @@ function Dashboard() {
   const { branding } = useBranding();
   const { patients, appointments, prescriptions, consultations } = useStore();
   const [rxOpen, setRxOpen] = useState(false);
+  const [tourOpen, setTourOpen] = useState(false);
+  useEffect(() => {
+    try {
+      if (!localStorage.getItem("onboarding-seen")) {
+        const t = setTimeout(() => setTourOpen(true), 400);
+        return () => clearTimeout(t);
+      }
+    } catch {}
+  }, []);
   const today = todayISO();
   const todayAppts = appointments.filter((a) => a.date === today);
   const upcoming = appointments.filter((a) => a.date >= today && a.status !== "cancelada").sort((a, b) => a.date.localeCompare(b.date) || a.time.localeCompare(b.time)).slice(0, 5);
@@ -40,6 +50,9 @@ function Dashboard() {
             <Link to="/pacientes" className="inline-flex items-center gap-2 bg-white/15 backdrop-blur border border-white/30 rounded-xl px-4 py-2.5 text-sm font-medium hover:bg-white/25">
               Ver pacientes <ArrowUpRight className="h-4 w-4" />
             </Link>
+            <button onClick={() => setTourOpen(true)} className="inline-flex items-center gap-2 bg-white/15 backdrop-blur border border-white/30 rounded-xl px-4 py-2.5 text-sm font-medium hover:bg-white/25">
+              <Sparkles className="h-4 w-4" /> Ver tutorial
+            </button>
           </div>
         </div>
         <div className="absolute -right-10 -top-10 text-[14rem] opacity-15 select-none">{branding.logoEmoji}</div>
@@ -101,6 +114,7 @@ function Dashboard() {
         </div>
       </div>
       <QuickPrescriptionDialog patientId={null} open={rxOpen} onOpenChange={setRxOpen} />
+      <OnboardingDialog open={tourOpen} onOpenChange={setTourOpen} />
     </div>
   );
 }
