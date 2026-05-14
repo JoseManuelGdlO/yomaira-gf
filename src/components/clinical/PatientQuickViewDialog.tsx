@@ -76,7 +76,7 @@ export function PatientQuickViewDialog({ patientId, open, onOpenChange }: { pati
         </div>
 
         <div className="flex justify-end pt-2 border-t">
-          <Link to="/pacientes/$id" params={{ id: patient.id }} onClick={() => onOpenChange(false)} className="inline-flex items-center gap-2 bg-primary text-primary-foreground rounded-xl px-4 py-2 text-sm font-medium hover:bg-primary/90">
+          <Link to="/pacientes/$id" params={{ id: patient.id }} onClick={() => setTimeout(() => onOpenChange(false), 0)} className="inline-flex items-center gap-2 bg-primary text-primary-foreground rounded-xl px-4 py-2 text-sm font-medium hover:bg-primary/90">
             Abrir expediente completo <ArrowRight className="h-4 w-4" />
           </Link>
         </div>
