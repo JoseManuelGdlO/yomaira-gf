@@ -12,6 +12,7 @@ export type Patient = {
   bloodType: string;
   lastVisit: string;
   avatarColor: string;
+  consentPhoto?: string;
 };
 
 export type Consultation = {
