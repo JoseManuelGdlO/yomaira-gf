@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useStore } from "@/lib/store";
 import { PatientAvatar } from "@/components/clinical/PatientAvatar";
 import { ClinicalTimeline } from "@/components/clinical/ClinicalTimeline";
-import { Phone, Mail, Cake, Droplet, AlertCircle, FileText, Pill, Plus, Upload, Edit2, Save, ClipboardList, FileSignature } from "lucide-react";
+import { Phone, Mail, Cake, Droplet, AlertCircle, FileText, Pill, Plus, Upload, Edit2, Save, ClipboardList, FileSignature, Camera, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { useClinicalForm, type Question } from "@/lib/clinicalForm";
 
@@ -87,6 +87,9 @@ function PatientDetail() {
                 <ul className="space-y-2">{patient.conditions.map((c) => <li key={c} className="text-sm bg-surface px-3 py-2 rounded-lg">• {c}</li>)}</ul>
               )}
             </Section>
+            <div className="lg:col-span-2">
+              <ConsentPhotoCard patientId={patient.id} photo={patient.consentPhoto} onChange={(v) => updatePatient(patient.id, { consentPhoto: v })} />
+            </div>
           </div>
         )}
 
