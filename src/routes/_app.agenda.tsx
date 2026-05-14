@@ -4,8 +4,8 @@ import { useStore } from "@/lib/store";
 import { PatientAvatar } from "@/components/clinical/PatientAvatar";
 import { StatusBadge } from "@/components/clinical/StatusBadge";
 import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
-import { toast } from "sonner";
 import { fmtMonthLong, fmtWeekdayShort, todayISO } from "@/lib/format";
+import { NewAppointmentDialog } from "@/components/clinical/NewAppointmentDialog";
 
 export const Route = createFileRoute("/_app/agenda")({
   head: () => ({ meta: [{ title: "Agenda — MedFlow" }] }),
@@ -17,6 +17,7 @@ function AgendaPage() {
   const [cursor, setCursor] = useState<Date | null>(null);
   const [view, setView] = useState<"semana" | "dia">("semana");
   const [selected, setSelected] = useState<string>("");
+  const [newOpen, setNewOpen] = useState(false);
   useEffect(() => { setCursor(new Date()); setSelected(todayISO()); }, []);
   if (!cursor) return <div className="h-96" />;
 
@@ -46,9 +47,11 @@ function AgendaPage() {
             <button onClick={() => setView("semana")} className={`px-3 py-1.5 text-sm rounded-lg ${view === "semana" ? "bg-card shadow-sm font-medium" : "text-muted-foreground"}`}>Semana</button>
             <button onClick={() => setView("dia")} className={`px-3 py-1.5 text-sm rounded-lg ${view === "dia" ? "bg-card shadow-sm font-medium" : "text-muted-foreground"}`}>Día</button>
           </div>
-          <button onClick={() => toast.success("Nueva cita (demo)")} className="inline-flex items-center gap-2 bg-primary text-primary-foreground rounded-xl px-4 py-2.5 text-sm font-medium hover:bg-primary/90"><Plus className="h-4 w-4" /> Nueva cita</button>
+          <button onClick={() => setNewOpen(true)} className="inline-flex items-center gap-2 bg-primary text-primary-foreground rounded-xl px-4 py-2.5 text-sm font-medium hover:bg-primary/90"><Plus className="h-4 w-4" /> Nueva cita</button>
         </div>
       </div>
+
+      <NewAppointmentDialog open={newOpen} onOpenChange={setNewOpen} defaultDate={selected || todayISO()} />
 
       <div className="bg-card rounded-2xl border overflow-hidden">
         <div className="px-4 py-3 border-b flex items-center justify-between">
