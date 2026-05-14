@@ -9,38 +9,177 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as AppRouteImport } from './routes/_app'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AppRecetasRouteImport } from './routes/_app.recetas'
+import { Route as AppPacientesRouteImport } from './routes/_app.pacientes'
+import { Route as AppHistorialRouteImport } from './routes/_app.historial'
+import { Route as AppExpedientesRouteImport } from './routes/_app.expedientes'
+import { Route as AppDashboardRouteImport } from './routes/_app.dashboard'
+import { Route as AppConfiguracionRouteImport } from './routes/_app.configuracion'
+import { Route as AppBrandingRouteImport } from './routes/_app.branding'
+import { Route as AppAgendaRouteImport } from './routes/_app.agenda'
+import { Route as AppRecetasNuevaRouteImport } from './routes/_app.recetas.nueva'
+import { Route as AppPacientesIdRouteImport } from './routes/_app.pacientes.$id'
 
+const AppRoute = AppRouteImport.update({
+  id: '/_app',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AppRecetasRoute = AppRecetasRouteImport.update({
+  id: '/recetas',
+  path: '/recetas',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppPacientesRoute = AppPacientesRouteImport.update({
+  id: '/pacientes',
+  path: '/pacientes',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppHistorialRoute = AppHistorialRouteImport.update({
+  id: '/historial',
+  path: '/historial',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppExpedientesRoute = AppExpedientesRouteImport.update({
+  id: '/expedientes',
+  path: '/expedientes',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppDashboardRoute = AppDashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppConfiguracionRoute = AppConfiguracionRouteImport.update({
+  id: '/configuracion',
+  path: '/configuracion',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppBrandingRoute = AppBrandingRouteImport.update({
+  id: '/branding',
+  path: '/branding',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppAgendaRoute = AppAgendaRouteImport.update({
+  id: '/agenda',
+  path: '/agenda',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppRecetasNuevaRoute = AppRecetasNuevaRouteImport.update({
+  id: '/nueva',
+  path: '/nueva',
+  getParentRoute: () => AppRecetasRoute,
+} as any)
+const AppPacientesIdRoute = AppPacientesIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => AppPacientesRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/agenda': typeof AppAgendaRoute
+  '/branding': typeof AppBrandingRoute
+  '/configuracion': typeof AppConfiguracionRoute
+  '/dashboard': typeof AppDashboardRoute
+  '/expedientes': typeof AppExpedientesRoute
+  '/historial': typeof AppHistorialRoute
+  '/pacientes': typeof AppPacientesRouteWithChildren
+  '/recetas': typeof AppRecetasRouteWithChildren
+  '/pacientes/$id': typeof AppPacientesIdRoute
+  '/recetas/nueva': typeof AppRecetasNuevaRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/agenda': typeof AppAgendaRoute
+  '/branding': typeof AppBrandingRoute
+  '/configuracion': typeof AppConfiguracionRoute
+  '/dashboard': typeof AppDashboardRoute
+  '/expedientes': typeof AppExpedientesRoute
+  '/historial': typeof AppHistorialRoute
+  '/pacientes': typeof AppPacientesRouteWithChildren
+  '/recetas': typeof AppRecetasRouteWithChildren
+  '/pacientes/$id': typeof AppPacientesIdRoute
+  '/recetas/nueva': typeof AppRecetasNuevaRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/_app': typeof AppRouteWithChildren
+  '/_app/agenda': typeof AppAgendaRoute
+  '/_app/branding': typeof AppBrandingRoute
+  '/_app/configuracion': typeof AppConfiguracionRoute
+  '/_app/dashboard': typeof AppDashboardRoute
+  '/_app/expedientes': typeof AppExpedientesRoute
+  '/_app/historial': typeof AppHistorialRoute
+  '/_app/pacientes': typeof AppPacientesRouteWithChildren
+  '/_app/recetas': typeof AppRecetasRouteWithChildren
+  '/_app/pacientes/$id': typeof AppPacientesIdRoute
+  '/_app/recetas/nueva': typeof AppRecetasNuevaRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/agenda'
+    | '/branding'
+    | '/configuracion'
+    | '/dashboard'
+    | '/expedientes'
+    | '/historial'
+    | '/pacientes'
+    | '/recetas'
+    | '/pacientes/$id'
+    | '/recetas/nueva'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/agenda'
+    | '/branding'
+    | '/configuracion'
+    | '/dashboard'
+    | '/expedientes'
+    | '/historial'
+    | '/pacientes'
+    | '/recetas'
+    | '/pacientes/$id'
+    | '/recetas/nueva'
+  id:
+    | '__root__'
+    | '/'
+    | '/_app'
+    | '/_app/agenda'
+    | '/_app/branding'
+    | '/_app/configuracion'
+    | '/_app/dashboard'
+    | '/_app/expedientes'
+    | '/_app/historial'
+    | '/_app/pacientes'
+    | '/_app/recetas'
+    | '/_app/pacientes/$id'
+    | '/_app/recetas/nueva'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AppRoute: typeof AppRouteWithChildren
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/_app': {
+      id: '/_app'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AppRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -48,11 +187,130 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_app/recetas': {
+      id: '/_app/recetas'
+      path: '/recetas'
+      fullPath: '/recetas'
+      preLoaderRoute: typeof AppRecetasRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/pacientes': {
+      id: '/_app/pacientes'
+      path: '/pacientes'
+      fullPath: '/pacientes'
+      preLoaderRoute: typeof AppPacientesRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/historial': {
+      id: '/_app/historial'
+      path: '/historial'
+      fullPath: '/historial'
+      preLoaderRoute: typeof AppHistorialRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/expedientes': {
+      id: '/_app/expedientes'
+      path: '/expedientes'
+      fullPath: '/expedientes'
+      preLoaderRoute: typeof AppExpedientesRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/dashboard': {
+      id: '/_app/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof AppDashboardRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/configuracion': {
+      id: '/_app/configuracion'
+      path: '/configuracion'
+      fullPath: '/configuracion'
+      preLoaderRoute: typeof AppConfiguracionRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/branding': {
+      id: '/_app/branding'
+      path: '/branding'
+      fullPath: '/branding'
+      preLoaderRoute: typeof AppBrandingRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/agenda': {
+      id: '/_app/agenda'
+      path: '/agenda'
+      fullPath: '/agenda'
+      preLoaderRoute: typeof AppAgendaRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/recetas/nueva': {
+      id: '/_app/recetas/nueva'
+      path: '/nueva'
+      fullPath: '/recetas/nueva'
+      preLoaderRoute: typeof AppRecetasNuevaRouteImport
+      parentRoute: typeof AppRecetasRoute
+    }
+    '/_app/pacientes/$id': {
+      id: '/_app/pacientes/$id'
+      path: '/$id'
+      fullPath: '/pacientes/$id'
+      preLoaderRoute: typeof AppPacientesIdRouteImport
+      parentRoute: typeof AppPacientesRoute
+    }
   }
 }
 
+interface AppPacientesRouteChildren {
+  AppPacientesIdRoute: typeof AppPacientesIdRoute
+}
+
+const AppPacientesRouteChildren: AppPacientesRouteChildren = {
+  AppPacientesIdRoute: AppPacientesIdRoute,
+}
+
+const AppPacientesRouteWithChildren = AppPacientesRoute._addFileChildren(
+  AppPacientesRouteChildren,
+)
+
+interface AppRecetasRouteChildren {
+  AppRecetasNuevaRoute: typeof AppRecetasNuevaRoute
+}
+
+const AppRecetasRouteChildren: AppRecetasRouteChildren = {
+  AppRecetasNuevaRoute: AppRecetasNuevaRoute,
+}
+
+const AppRecetasRouteWithChildren = AppRecetasRoute._addFileChildren(
+  AppRecetasRouteChildren,
+)
+
+interface AppRouteChildren {
+  AppAgendaRoute: typeof AppAgendaRoute
+  AppBrandingRoute: typeof AppBrandingRoute
+  AppConfiguracionRoute: typeof AppConfiguracionRoute
+  AppDashboardRoute: typeof AppDashboardRoute
+  AppExpedientesRoute: typeof AppExpedientesRoute
+  AppHistorialRoute: typeof AppHistorialRoute
+  AppPacientesRoute: typeof AppPacientesRouteWithChildren
+  AppRecetasRoute: typeof AppRecetasRouteWithChildren
+}
+
+const AppRouteChildren: AppRouteChildren = {
+  AppAgendaRoute: AppAgendaRoute,
+  AppBrandingRoute: AppBrandingRoute,
+  AppConfiguracionRoute: AppConfiguracionRoute,
+  AppDashboardRoute: AppDashboardRoute,
+  AppExpedientesRoute: AppExpedientesRoute,
+  AppHistorialRoute: AppHistorialRoute,
+  AppPacientesRoute: AppPacientesRouteWithChildren,
+  AppRecetasRoute: AppRecetasRouteWithChildren,
+}
+
+const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AppRoute: AppRouteWithChildren,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
