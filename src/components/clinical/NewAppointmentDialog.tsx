@@ -2,10 +2,12 @@ import { useEffect, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { useStore } from "@/lib/store";
 import { PatientAvatar } from "./PatientAvatar";
-import { CalendarPlus, Search } from "lucide-react";
+import { CalendarPlus, Search, UserPlus } from "lucide-react";
 import { toast } from "sonner";
 import { todayISO } from "@/lib/format";
 import type { Appointment } from "@/mocks/data";
+
+const COLORS = ["#FCE4F5", "#E4E8FC", "#FCE9D6", "#E4FCEA", "#F3E4FC", "#FCEAE4"];
 
 const REASONS = [
   "Revisión semestral",
@@ -26,22 +28,31 @@ export function NewAppointmentDialog({
   defaultDate?: string;
   defaultPatientId?: string;
 }) {
-  const { patients, addAppointment } = useStore();
+  const { patients, addAppointment, addPatient } = useStore();
+  const [mode, setMode] = useState<"existing" | "new">("existing");
   const [pickerQ, setPickerQ] = useState("");
   const [patientId, setPatientId] = useState<string | undefined>(defaultPatientId);
   const [date, setDate] = useState(defaultDate ?? todayISO());
   const [time, setTime] = useState("09:00");
   const [reason, setReason] = useState(REASONS[0]);
   const [status, setStatus] = useState<Appointment["status"]>("pendiente");
+  // New patient quick-form
+  const [npName, setNpName] = useState("");
+  const [npAge, setNpAge] = useState("");
+  const [npGuardian, setNpGuardian] = useState("");
+  const [npPhone, setNpPhone] = useState("");
+  const [npGender, setNpGender] = useState<"F" | "M">("F");
 
   useEffect(() => {
     if (open) {
+      setMode(defaultPatientId ? "existing" : "existing");
       setPatientId(defaultPatientId);
       setDate(defaultDate ?? todayISO());
       setTime("09:00");
       setReason(REASONS[0]);
       setStatus("pendiente");
       setPickerQ("");
+      setNpName(""); setNpAge(""); setNpGuardian(""); setNpPhone(""); setNpGender("F");
     }
   }, [open, defaultDate, defaultPatientId]);
 
@@ -49,15 +60,38 @@ export function NewAppointmentDialog({
   const filtered = patients.filter((p) => p.name.toLowerCase().includes(pickerQ.toLowerCase()));
 
   const submit = () => {
-    if (!patientId) return toast.error("Selecciona un paciente");
     if (!date || !time) return toast.error("Define fecha y hora");
+    let usePatientId = patientId;
+    if (mode === "new" && !patient) {
+      if (!npName.trim() || !npAge || !npGuardian.trim()) {
+        return toast.error("Completa nombre, edad y tutor");
+      }
+      const np = {
+        id: "p_" + Date.now(),
+        name: npName.trim(),
+        age: Number(npAge),
+        birthDate: todayISO(),
+        gender: npGender,
+        guardian: npGuardian.trim(),
+        guardianPhone: npPhone || "+52 55 0000 0000",
+        email: "—",
+        allergies: [],
+        conditions: [],
+        bloodType: "O+",
+        lastVisit: date,
+        avatarColor: COLORS[Math.floor(Math.random() * COLORS.length)],
+      };
+      addPatient(np);
+      usePatientId = np.id;
+    }
+    if (!usePatientId) return toast.error("Selecciona o registra un paciente");
     addAppointment({
       id: "a" + Date.now(),
-      patientId, date, time,
+      patientId: usePatientId, date, time,
       reason: reason.trim() || "Consulta",
       status,
     });
-    toast.success("Cita agendada");
+    toast.success(mode === "new" ? "Paciente registrado y cita agendada" : "Cita agendada");
     onOpenChange(false);
   };
 
@@ -77,7 +111,18 @@ export function NewAppointmentDialog({
         </DialogHeader>
 
         {/* Patient */}
-        {!patient ? (
+        {!patient && !defaultPatientId && (
+          <div className="grid grid-cols-2 gap-2 bg-surface rounded-xl p-1">
+            <button type="button" onClick={() => setMode("existing")} className={`h-9 rounded-lg text-sm font-medium inline-flex items-center justify-center gap-2 ${mode === "existing" ? "bg-card shadow-sm" : "text-muted-foreground"}`}>
+              <Search className="h-4 w-4" /> Paciente existente
+            </button>
+            <button type="button" onClick={() => setMode("new")} className={`h-9 rounded-lg text-sm font-medium inline-flex items-center justify-center gap-2 ${mode === "new" ? "bg-card shadow-sm" : "text-muted-foreground"}`}>
+              <UserPlus className="h-4 w-4" /> Paciente nuevo
+            </button>
+          </div>
+        )}
+
+        {!patient && mode === "existing" ? (
           <div className="space-y-3">
             <label className="text-xs font-medium text-muted-foreground">Paciente *</label>
             <div className="relative">
@@ -97,7 +142,37 @@ export function NewAppointmentDialog({
               {filtered.length === 0 && <div className="text-sm text-muted-foreground col-span-full text-center py-6">Sin resultados.</div>}
             </div>
           </div>
-        ) : (
+        ) : !patient && mode === "new" ? (
+          <div className="grid sm:grid-cols-2 gap-3">
+            <div className="sm:col-span-2">
+              <label className="text-xs font-medium text-muted-foreground">Nombre completo *</label>
+              <input value={npName} onChange={(e) => setNpName(e.target.value)} placeholder="Sofía Martínez Ruiz" className="mt-1 w-full h-10 px-3 rounded-lg bg-surface border text-sm outline-none focus:ring-2 focus:ring-ring" />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-muted-foreground">Edad *</label>
+              <input type="number" min="0" max="120" value={npAge} onChange={(e) => setNpAge(e.target.value)} placeholder="6" className="mt-1 w-full h-10 px-3 rounded-lg bg-surface border text-sm outline-none focus:ring-2 focus:ring-ring" />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-muted-foreground">Género</label>
+              <div className="mt-1 flex gap-2">
+                {(["F","M"] as const).map((g) => (
+                  <button key={g} type="button" onClick={() => setNpGender(g)} className={`flex-1 h-10 rounded-lg border text-sm font-medium ${npGender === g ? "bg-primary text-primary-foreground border-primary" : "bg-surface"}`}>
+                    {g === "F" ? "Femenino" : "Masculino"}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div>
+              <label className="text-xs font-medium text-muted-foreground">Tutor *</label>
+              <input value={npGuardian} onChange={(e) => setNpGuardian(e.target.value)} placeholder="Laura Ruiz" className="mt-1 w-full h-10 px-3 rounded-lg bg-surface border text-sm outline-none focus:ring-2 focus:ring-ring" />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-muted-foreground">Teléfono</label>
+              <input value={npPhone} onChange={(e) => setNpPhone(e.target.value)} placeholder="+52 55 1234 5678" className="mt-1 w-full h-10 px-3 rounded-lg bg-surface border text-sm outline-none focus:ring-2 focus:ring-ring" />
+            </div>
+            <p className="sm:col-span-2 text-xs text-muted-foreground">El paciente se registrará al guardar la cita. Podrás completar su expediente después.</p>
+          </div>
+        ) : patient ? (
           <div className="flex items-center gap-3 bg-surface rounded-xl p-3">
             <PatientAvatar patient={patient} />
             <div className="flex-1 min-w-0">
@@ -108,7 +183,7 @@ export function NewAppointmentDialog({
               <button type="button" onClick={() => setPatientId(undefined)} className="text-xs text-primary font-medium hover:underline">Cambiar</button>
             )}
           </div>
-        )}
+        ) : null}
 
         {/* Schedule */}
         <div className="grid sm:grid-cols-2 gap-4 mt-2">
