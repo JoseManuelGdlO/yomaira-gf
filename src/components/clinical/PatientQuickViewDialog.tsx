@@ -1,5 +1,5 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { Link } from "@tanstack/react-router";
+import { useNavigate } from "@tanstack/react-router";
 import { useStore } from "@/lib/store";
 import { PatientAvatar } from "./PatientAvatar";
 import { ClinicalTimeline } from "./ClinicalTimeline";
@@ -8,6 +8,7 @@ import { Phone, Mail, Cake, Droplet, AlertCircle, FileText, ArrowRight, Pill } f
 
 export function PatientQuickViewDialog({ patientId, open, onOpenChange }: { patientId: string | null; open: boolean; onOpenChange: (o: boolean) => void }) {
   const { patients, consultations, prescriptions } = useStore();
+  const navigate = useNavigate();
   const patient = patients.find((p) => p.id === patientId);
   if (!patient) return null;
   const patientConsults = consultations.filter((c) => c.patientId === patient.id);
@@ -76,9 +77,17 @@ export function PatientQuickViewDialog({ patientId, open, onOpenChange }: { pati
         </div>
 
         <div className="flex justify-end pt-2 border-t">
-          <Link to="/pacientes/$id" params={{ id: patient.id }} onClick={() => setTimeout(() => onOpenChange(false), 0)} className="inline-flex items-center gap-2 bg-primary text-primary-foreground rounded-xl px-4 py-2 text-sm font-medium hover:bg-primary/90">
+          <button
+            type="button"
+            onClick={() => {
+              const id = patient.id;
+              onOpenChange(false);
+              navigate({ to: "/pacientes/$id", params: { id } });
+            }}
+            className="inline-flex items-center gap-2 bg-primary text-primary-foreground rounded-xl px-4 py-2 text-sm font-medium hover:bg-primary/90"
+          >
             Abrir expediente completo <ArrowRight className="h-4 w-4" />
-          </Link>
+          </button>
         </div>
       </DialogContent>
     </Dialog>
