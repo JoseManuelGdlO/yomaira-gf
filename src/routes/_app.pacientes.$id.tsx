@@ -88,7 +88,7 @@ function PatientDetail() {
               )}
             </Section>
             <div className="lg:col-span-2">
-              <ConsentPhotoCard patientId={patient.id} photo={patient.consentPhoto} onChange={(v) => updatePatient(patient.id, { consentPhoto: v })} />
+              <ConsentPhotoCard patientId={patient.id} photo={patient.consentPhoto} onChange={(v: string | undefined) => updatePatient(patient.id, { consentPhoto: v })} />
             </div>
           </div>
         )}
