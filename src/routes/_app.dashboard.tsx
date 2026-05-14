@@ -5,6 +5,7 @@ import { useBranding } from "@/lib/theme/ThemeProvider";
 import { StatCard } from "@/components/clinical/StatCard";
 import { PatientAvatar } from "@/components/clinical/PatientAvatar";
 import { StatusBadge } from "@/components/clinical/StatusBadge";
+import { fmtShort, fmtMonthShort, fmtDay, fmtWeekdayLong, fmtMonthLong, todayISO } from "@/lib/format";
 
 export const Route = createFileRoute("/_app/dashboard")({
   head: () => ({ meta: [{ title: "Dashboard — MedFlow" }] }),
@@ -14,7 +15,7 @@ export const Route = createFileRoute("/_app/dashboard")({
 function Dashboard() {
   const { branding } = useBranding();
   const { patients, appointments, prescriptions, consultations } = useStore();
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayISO();
   const todayAppts = appointments.filter((a) => a.date === today);
   const upcoming = appointments.filter((a) => a.date >= today && a.status !== "cancelada").sort((a, b) => a.date.localeCompare(b.date) || a.time.localeCompare(b.time)).slice(0, 5);
   const recentPatients = [...patients].sort((a, b) => b.lastVisit.localeCompare(a.lastVisit)).slice(0, 5);
@@ -24,7 +25,9 @@ function Dashboard() {
       {/* Hero */}
       <div className="rounded-3xl p-8 lg:p-10 relative overflow-hidden" style={{ background: `linear-gradient(135deg, oklch(${branding.primary} / 0.92), oklch(${branding.accent} / 0.85))`, color: "white" }}>
         <div className="relative z-10 max-w-2xl">
-          <div className="text-sm opacity-90 mb-2">{new Date().toLocaleDateString("es-MX", { weekday: "long", day: "numeric", month: "long" })}</div>
+          <div className="text-sm opacity-90 mb-2" suppressHydrationWarning>
+            {(() => { const d = new Date(); return `${fmtWeekdayLong(d)}, ${d.getDate()} de ${fmtMonthLong(d)}`; })()}
+          </div>
           <h1 className="font-display text-3xl lg:text-4xl font-semibold leading-tight">Hola, {branding.doctorName.split(" ")[1] ?? "Doctora"} 👋</h1>
           <p className="mt-2 opacity-90">Tienes <strong>{todayAppts.length}</strong> {todayAppts.length === 1 ? "consulta" : "consultas"} hoy. Tu día está organizado.</p>
           <div className="flex gap-3 mt-6 flex-wrap">
@@ -61,7 +64,7 @@ function Dashboard() {
                 <Link key={a.id} to="/pacientes/$id" params={{ id: p.id }} className="flex items-center gap-4 py-3 hover:bg-surface -mx-2 px-2 rounded-lg transition-colors">
                   <div className="text-center w-14 shrink-0">
                     <div className="text-xs text-muted-foreground uppercase">{fmtMonthShort(a.date)}</div>
-                    <div className="font-display text-xl font-semibold leading-none">{new Date(a.date).getDate()}</div>
+                    <div className="font-display text-xl font-semibold leading-none">{fmtDay(a.date)}</div>
                     <div className="text-xs text-primary font-medium mt-0.5">{a.time}</div>
                   </div>
                   <PatientAvatar patient={p} />
