@@ -4,29 +4,34 @@ import { useStore } from "@/lib/store";
 import { MEDICATIONS, type PrescriptionItem } from "@/mocks/data";
 import { PrescriptionPreview } from "./PrescriptionPreview";
 import { PatientAvatar } from "@/components/clinical/PatientAvatar";
-import { Pill, Plus, Printer, Trash2, Eye, ArrowLeft } from "lucide-react";
+import { Pill, Plus, Printer, Trash2, Eye, ArrowLeft, Search } from "lucide-react";
+import { PatientAvatar as _PA } from "@/components/clinical/PatientAvatar";
 import { toast } from "sonner";
 import { todayISO } from "@/lib/format";
 
 export function QuickPrescriptionDialog({ patientId, open, onOpenChange }: { patientId: string | null; open: boolean; onOpenChange: (o: boolean) => void }) {
   const { patients, addPrescription } = useStore();
-  const patient = patients.find((p) => p.id === patientId);
+  const [pickedId, setPickedId] = useState<string | null>(patientId);
+  const [pickerQ, setPickerQ] = useState("");
+  const patient = patients.find((p) => p.id === (patientId ?? pickedId));
   const [items, setItems] = useState<PrescriptionItem[]>([]);
   const [diagnosis, setDiagnosis] = useState("");
   const [indications, setIndications] = useState("");
   const [preview, setPreview] = useState(false);
 
   useEffect(() => {
-    if (open) { setItems([]); setDiagnosis(""); setIndications(""); setPreview(false); }
+    if (open) {
+      setItems([]); setDiagnosis(""); setIndications(""); setPreview(false);
+      setPickedId(patientId); setPickerQ("");
+    }
   }, [open, patientId]);
-
-  if (!patient) return null;
 
   const addItem = () => setItems([...items, { medication: `${MEDICATIONS[0].name} ${MEDICATIONS[0].presentation}`, dose: "5 ml", frequency: "cada 8 horas", duration: "5 días" }]);
   const updateItem = (i: number, patch: Partial<PrescriptionItem>) => setItems(items.map((x, idx) => idx === i ? { ...x, ...patch } : x));
   const removeItem = (i: number) => setItems(items.filter((_, idx) => idx !== i));
 
   const save = () => {
+    if (!patient) return;
     if (items.length === 0) return toast.error("Agrega al menos un medicamento");
     addPrescription({
       id: "rx" + Date.now(), patientId: patient.id, date: todayISO(),
@@ -35,6 +40,8 @@ export function QuickPrescriptionDialog({ patientId, open, onOpenChange }: { pat
     toast.success("Receta guardada");
     onOpenChange(false);
   };
+
+  const filteredPatients = patients.filter((p) => p.name.toLowerCase().includes(pickerQ.toLowerCase()));
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -51,7 +58,27 @@ export function QuickPrescriptionDialog({ patientId, open, onOpenChange }: { pat
           </div>
         </DialogHeader>
 
-        {/* Patient banner */}
+        {!patient ? (
+          <div className="space-y-3">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <input value={pickerQ} onChange={(e) => setPickerQ(e.target.value)} placeholder="Buscar paciente..." className="w-full pl-10 pr-4 h-10 rounded-lg bg-surface border text-sm outline-none focus:ring-2 focus:ring-ring" />
+            </div>
+            <div className="grid sm:grid-cols-2 gap-2 max-h-[420px] overflow-auto">
+              {filteredPatients.map((p) => (
+                <button key={p.id} onClick={() => setPickedId(p.id)} className="flex items-center gap-3 p-3 rounded-xl border text-left hover:bg-surface">
+                  <_PA patient={p} size={36} />
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-medium truncate">{p.name}</div>
+                    <div className="text-xs text-muted-foreground">{p.age} años · {p.guardian}</div>
+                  </div>
+                </button>
+              ))}
+              {filteredPatients.length === 0 && <div className="text-sm text-muted-foreground col-span-full text-center py-6">Sin resultados.</div>}
+            </div>
+          </div>
+        ) : (
+        <>
         <div className="flex items-center gap-3 bg-surface rounded-xl p-3">
           <PatientAvatar patient={patient} />
           <div className="flex-1 min-w-0">
@@ -60,6 +87,9 @@ export function QuickPrescriptionDialog({ patientId, open, onOpenChange }: { pat
               {patient.age} años · {patient.allergies.length > 0 ? `Alergias: ${patient.allergies.join(", ")}` : "Sin alergias"}
             </div>
           </div>
+          {!patientId && (
+            <button onClick={() => setPickedId(null)} className="text-xs text-primary font-medium hover:underline">Cambiar</button>
+          )}
         </div>
 
         {!preview ? (
@@ -114,6 +144,8 @@ export function QuickPrescriptionDialog({ patientId, open, onOpenChange }: { pat
               </div>
             </div>
           </div>
+        )}
+        </>
         )}
       </DialogContent>
     </Dialog>
