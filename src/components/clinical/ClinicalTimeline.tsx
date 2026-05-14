@@ -1,4 +1,5 @@
 import type { Consultation } from "@/mocks/data";
+import { fmtMedium } from "@/lib/format";
 import { Stethoscope } from "lucide-react";
 
 export function ClinicalTimeline({ items }: { items: Consultation[] }) {

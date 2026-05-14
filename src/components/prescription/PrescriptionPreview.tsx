@@ -1,4 +1,5 @@
 import type { Prescription, Patient } from "@/mocks/data";
+import { fmtLong } from "@/lib/format";
 import { useBranding } from "@/lib/theme/ThemeProvider";
 
 export function PrescriptionPreview({ rx, patient }: { rx: Prescription; patient: Patient }) {
