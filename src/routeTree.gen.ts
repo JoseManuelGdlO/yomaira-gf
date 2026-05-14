@@ -14,7 +14,6 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppRecetasRouteImport } from './routes/_app.recetas'
 import { Route as AppPacientesRouteImport } from './routes/_app.pacientes'
 import { Route as AppHistorialRouteImport } from './routes/_app.historial'
-import { Route as AppExpedientesRouteImport } from './routes/_app.expedientes'
 import { Route as AppDashboardRouteImport } from './routes/_app.dashboard'
 import { Route as AppConsentimientoRouteImport } from './routes/_app.consentimiento'
 import { Route as AppConfiguracionRouteImport } from './routes/_app.configuracion'
@@ -45,11 +44,6 @@ const AppPacientesRoute = AppPacientesRouteImport.update({
 const AppHistorialRoute = AppHistorialRouteImport.update({
   id: '/historial',
   path: '/historial',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppExpedientesRoute = AppExpedientesRouteImport.update({
-  id: '/expedientes',
-  path: '/expedientes',
   getParentRoute: () => AppRoute,
 } as any)
 const AppDashboardRoute = AppDashboardRouteImport.update({
@@ -95,7 +89,6 @@ export interface FileRoutesByFullPath {
   '/configuracion': typeof AppConfiguracionRoute
   '/consentimiento': typeof AppConsentimientoRoute
   '/dashboard': typeof AppDashboardRoute
-  '/expedientes': typeof AppExpedientesRoute
   '/historial': typeof AppHistorialRoute
   '/pacientes': typeof AppPacientesRouteWithChildren
   '/recetas': typeof AppRecetasRouteWithChildren
@@ -109,7 +102,6 @@ export interface FileRoutesByTo {
   '/configuracion': typeof AppConfiguracionRoute
   '/consentimiento': typeof AppConsentimientoRoute
   '/dashboard': typeof AppDashboardRoute
-  '/expedientes': typeof AppExpedientesRoute
   '/historial': typeof AppHistorialRoute
   '/pacientes': typeof AppPacientesRouteWithChildren
   '/recetas': typeof AppRecetasRouteWithChildren
@@ -125,7 +117,6 @@ export interface FileRoutesById {
   '/_app/configuracion': typeof AppConfiguracionRoute
   '/_app/consentimiento': typeof AppConsentimientoRoute
   '/_app/dashboard': typeof AppDashboardRoute
-  '/_app/expedientes': typeof AppExpedientesRoute
   '/_app/historial': typeof AppHistorialRoute
   '/_app/pacientes': typeof AppPacientesRouteWithChildren
   '/_app/recetas': typeof AppRecetasRouteWithChildren
@@ -141,7 +132,6 @@ export interface FileRouteTypes {
     | '/configuracion'
     | '/consentimiento'
     | '/dashboard'
-    | '/expedientes'
     | '/historial'
     | '/pacientes'
     | '/recetas'
@@ -155,7 +145,6 @@ export interface FileRouteTypes {
     | '/configuracion'
     | '/consentimiento'
     | '/dashboard'
-    | '/expedientes'
     | '/historial'
     | '/pacientes'
     | '/recetas'
@@ -170,7 +159,6 @@ export interface FileRouteTypes {
     | '/_app/configuracion'
     | '/_app/consentimiento'
     | '/_app/dashboard'
-    | '/_app/expedientes'
     | '/_app/historial'
     | '/_app/pacientes'
     | '/_app/recetas'
@@ -218,13 +206,6 @@ declare module '@tanstack/react-router' {
       path: '/historial'
       fullPath: '/historial'
       preLoaderRoute: typeof AppHistorialRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/_app/expedientes': {
-      id: '/_app/expedientes'
-      path: '/expedientes'
-      fullPath: '/expedientes'
-      preLoaderRoute: typeof AppExpedientesRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/dashboard': {
@@ -309,7 +290,6 @@ interface AppRouteChildren {
   AppConfiguracionRoute: typeof AppConfiguracionRoute
   AppConsentimientoRoute: typeof AppConsentimientoRoute
   AppDashboardRoute: typeof AppDashboardRoute
-  AppExpedientesRoute: typeof AppExpedientesRoute
   AppHistorialRoute: typeof AppHistorialRoute
   AppPacientesRoute: typeof AppPacientesRouteWithChildren
   AppRecetasRoute: typeof AppRecetasRouteWithChildren
@@ -321,7 +301,6 @@ const AppRouteChildren: AppRouteChildren = {
   AppConfiguracionRoute: AppConfiguracionRoute,
   AppConsentimientoRoute: AppConsentimientoRoute,
   AppDashboardRoute: AppDashboardRoute,
-  AppExpedientesRoute: AppExpedientesRoute,
   AppHistorialRoute: AppHistorialRoute,
   AppPacientesRoute: AppPacientesRouteWithChildren,
   AppRecetasRoute: AppRecetasRouteWithChildren,
@@ -336,3 +315,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}

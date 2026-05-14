@@ -1,5 +1,5 @@
 import { Link, useRouterState, Outlet } from "@tanstack/react-router";
-import { LayoutDashboard, Users, Calendar, FileText, Pill, History, Palette, Settings, Search, FileSignature } from "lucide-react";
+import { LayoutDashboard, Users, Calendar, Pill, History, Palette, Settings, Search, FileSignature } from "lucide-react";
 import { useBranding } from "@/lib/theme/ThemeProvider";
 import { useState } from "react";
 import { useStore } from "@/lib/store";
@@ -8,7 +8,6 @@ const NAV = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { to: "/pacientes", label: "Pacientes", icon: Users },
   { to: "/agenda", label: "Agenda", icon: Calendar },
-  { to: "/expedientes", label: "Expedientes", icon: FileText },
   { to: "/recetas", label: "Recetas", icon: Pill },
   { to: "/historial", label: "Historial", icon: History },
   { to: "/consentimiento", label: "Consentimiento", icon: FileSignature },
