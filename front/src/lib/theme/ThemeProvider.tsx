@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { BRANDINGS, DEFAULT_BRANDING_ID, type Branding } from "@/mocks/brandings";
+import { applyPlatformBrandingToDOM } from "@/lib/theme/platformBranding";
 
 type ThemeCtx = {
   branding: Branding;
@@ -44,13 +45,18 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   });
 
   const branding: Branding = useMemo(() => {
+    if (!enabled) return FALLBACK_BRANDING;
     if (activeQ.data) return activeQ.data;
     return FALLBACK_BRANDING;
-  }, [activeQ.data]);
+  }, [enabled, activeQ.data]);
 
   useEffect(() => {
-    applyBrandingToDOM(branding);
-  }, [branding]);
+    if (enabled) {
+      applyBrandingToDOM(branding);
+    } else {
+      applyPlatformBrandingToDOM();
+    }
+  }, [enabled, branding]);
 
   const updateBranding = (patch: Partial<Branding>) => {
     if (!branding?.id) return;

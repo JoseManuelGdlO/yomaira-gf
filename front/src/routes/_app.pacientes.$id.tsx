@@ -11,7 +11,7 @@ import { ViewPrescriptionDialog } from "@/components/prescription/ViewPrescripti
 import type { Prescription } from "@/mocks/data";
 
 export const Route = createFileRoute("/_app/pacientes/$id")({
-  head: ({ params }) => ({ meta: [{ title: `Expediente — MedFlow` }] }),
+  head: ({ params }) => ({ meta: [{ title: `Expediente — MediFlow` }] }),
   component: PatientDetail,
   notFoundComponent: () => <div className="p-8">Paciente no encontrado.</div>,
 });

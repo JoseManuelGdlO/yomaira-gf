@@ -10,7 +10,7 @@ import { PermissionsPanel } from "@/components/admin/PermissionsPanel";
 import { ShieldCheck } from "lucide-react";
 
 export const Route = createFileRoute("/_app/administracion")({
-  head: () => ({ meta: [{ title: "Administración — MedFlow" }] }),
+  head: () => ({ meta: [{ title: "Administración — MediFlow" }] }),
   beforeLoad: () => ensureAnyPermission("users.read", "roles.read"),
   component: AdminPage,
 });

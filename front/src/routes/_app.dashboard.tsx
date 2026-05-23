@@ -11,7 +11,7 @@ import { OnboardingDialog } from "@/components/app/OnboardingDialog";
 import { useEffect, useState } from "react";
 
 export const Route = createFileRoute("/_app/dashboard")({
-  head: () => ({ meta: [{ title: "Dashboard — MedFlow" }] }),
+  head: () => ({ meta: [{ title: "Dashboard — MediFlow" }] }),
   component: Dashboard,
 });
 

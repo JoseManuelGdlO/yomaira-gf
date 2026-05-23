@@ -8,7 +8,7 @@ import { z } from "zod";
 const search = z.object({ patientId: z.string().optional() });
 
 export const Route = createFileRoute("/_app/consentimiento")({
-  head: () => ({ meta: [{ title: "Consentimiento informado — MedFlow" }] }),
+  head: () => ({ meta: [{ title: "Consentimiento informado — MediFlow" }] }),
   validateSearch: (s) => search.parse(s),
   component: ConsentPage,
 });

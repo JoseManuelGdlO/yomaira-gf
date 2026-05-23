@@ -4,7 +4,7 @@ import { useStore } from "@/lib/store";
 import { ClinicalTimeline } from "@/components/clinical/ClinicalTimeline";
 
 export const Route = createFileRoute("/_app/historial")({
-  head: () => ({ meta: [{ title: "Historial médico — MedFlow" }] }),
+  head: () => ({ meta: [{ title: "Historial médico — MediFlow" }] }),
   component: HistorialPage,
 });
 

@@ -4,18 +4,20 @@ import { Loader2, LogIn, Mail, Lock } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth";
 import { clearSession, redirectIfAuthenticated } from "@/lib/auth-guard";
-import { useBranding } from "@/lib/theme/ThemeProvider";
+import { MediFlowLogo } from "@/components/app/MediFlowLogo";
+import { MEDIFLOW_PLATFORM } from "@/lib/theme/platformBranding";
 import { ApiError } from "@/lib/api";
 
 export const Route = createFileRoute("/login")({
-  head: () => ({ meta: [{ title: "Iniciar sesión — MedFlow" }] }),
+  head: () => ({
+    meta: [{ title: `Iniciar sesión — ${MEDIFLOW_PLATFORM.name}` }],
+  }),
   beforeLoad: () => redirectIfAuthenticated(),
   component: LoginPage,
 });
 
 function LoginPage() {
   const { login, loading, user } = useAuth();
-  const { branding } = useBranding();
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -48,37 +50,36 @@ function LoginPage() {
   };
 
   const isLoading = loading || busy;
+  const gradient = `linear-gradient(135deg, ${MEDIFLOW_PLATFORM.primaryHex}, ${MEDIFLOW_PLATFORM.accentHex})`;
 
   return (
     <div className="min-h-screen w-full flex items-stretch bg-surface">
       <div
         className="hidden lg:flex relative flex-1 items-center justify-center overflow-hidden text-white"
-        style={{
-          background: `linear-gradient(135deg, oklch(${branding.primary} / 0.92), oklch(${branding.accent} / 0.88))`,
-        }}
+        style={{ background: gradient }}
       >
-        <div className="absolute -right-10 -bottom-10 text-[20rem] opacity-15 select-none leading-none">
-          {branding.logoEmoji}
-        </div>
-        <div className="relative z-10 max-w-md px-12">
-          <div className="h-14 w-14 rounded-2xl bg-white/15 backdrop-blur grid place-items-center text-3xl mb-8 border border-white/20">
-            {branding.logoEmoji}
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_80%,rgba(255,255,255,0.12),transparent_50%)]" />
+        <div className="relative z-10 max-w-md px-12 text-center">
+          <div className="rounded-2xl bg-white/95 p-6 shadow-xl mb-8">
+            <MediFlowLogo imgClassName="max-w-[240px] mx-auto" />
           </div>
-          <h1 className="font-display text-4xl font-semibold leading-tight">{branding.clinicName}</h1>
-          <p className="mt-3 text-base opacity-90">{branding.specialty}</p>
+          <h1 className="font-display text-3xl font-semibold leading-tight">{MEDIFLOW_PLATFORM.name}</h1>
+          <p className="mt-3 text-base opacity-95">{MEDIFLOW_PLATFORM.tagline}</p>
+          <p className="mt-2 text-sm opacity-80">{MEDIFLOW_PLATFORM.subtitle}</p>
         </div>
       </div>
 
       <div className="flex-1 flex items-center justify-center p-6 lg:p-12">
         <div className="w-full max-w-sm space-y-8">
-          <div className="lg:hidden text-center space-y-2">
-            <div className="text-4xl">{branding.logoEmoji}</div>
-            <h1 className="font-display text-2xl font-semibold">{branding.clinicName}</h1>
+          <div className="lg:hidden flex justify-center">
+            <MediFlowLogo imgClassName="max-w-[180px]" />
           </div>
 
           <div>
             <h2 className="font-display text-2xl font-semibold">Iniciar sesión</h2>
-            <p className="text-sm text-muted-foreground mt-1">Accede al panel del consultorio</p>
+            <p className="text-sm text-muted-foreground mt-1">
+              Entra con tu cuenta — cada consultorio conserva su propia personalización
+            </p>
           </div>
 
           <form onSubmit={submit} className="space-y-4">
@@ -92,7 +93,7 @@ function LoginPage() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="w-full h-11 pl-10 pr-3 rounded-lg border bg-card text-sm outline-none focus:ring-2 focus:ring-ring"
-                  placeholder="admin@medflow.local"
+                  placeholder="tu@correo.com"
                 />
               </div>
             </div>
@@ -118,6 +119,10 @@ function LoginPage() {
               Entrar
             </button>
           </form>
+
+          <p className="text-center text-xs text-muted-foreground">
+            {MEDIFLOW_PLATFORM.name} · Multi-consultorio
+          </p>
         </div>
       </div>
     </div>

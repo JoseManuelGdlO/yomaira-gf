@@ -10,7 +10,7 @@ import { PatientQuickViewDialog } from "@/components/clinical/PatientQuickViewDi
 import { QuickPrescriptionDialog } from "@/components/prescription/QuickPrescriptionDialog";
 
 export const Route = createFileRoute("/_app/pacientes")({
-  head: () => ({ meta: [{ title: "Pacientes — MedFlow" }] }),
+  head: () => ({ meta: [{ title: "Pacientes — MediFlow" }] }),
   component: PatientsRoute,
 });
 

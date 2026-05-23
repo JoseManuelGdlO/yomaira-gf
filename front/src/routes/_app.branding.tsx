@@ -12,7 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_app/branding")({
-  head: () => ({ meta: [{ title: "Personalización — MedFlow" }] }),
+  head: () => ({ meta: [{ title: "Personalización — MediFlow" }] }),
   beforeLoad: () => ensureAnyPermission("branding.read", "branding.write"),
   component: BrandingPage,
 });

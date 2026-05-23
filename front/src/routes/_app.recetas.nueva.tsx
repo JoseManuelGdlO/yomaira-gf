@@ -13,7 +13,7 @@ import { toast } from "sonner";
 const searchSchema = z.object({ patientId: z.string().optional() });
 
 export const Route = createFileRoute("/_app/recetas/nueva")({
-  head: () => ({ meta: [{ title: "Nueva receta — MedFlow" }] }),
+  head: () => ({ meta: [{ title: "Nueva receta — MediFlow" }] }),
   beforeLoad: () => ensureAnyPermission("prescriptions.write"),
   validateSearch: searchSchema,
   component: NuevaReceta,

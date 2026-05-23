@@ -6,7 +6,7 @@ import { Calendar, CheckCircle2, Loader2, Phone } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/agendar")({
-  head: () => ({ meta: [{ title: "Agendar cita — MedFlow" }] }),
+  head: () => ({ meta: [{ title: "Agendar cita — MediFlow" }] }),
   component: AgendarPage,
 });
 

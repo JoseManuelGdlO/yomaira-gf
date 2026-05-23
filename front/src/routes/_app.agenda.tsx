@@ -19,7 +19,7 @@ import {
 } from "@/lib/appointmentStatus";
 
 export const Route = createFileRoute("/_app/agenda")({
-  head: () => ({ meta: [{ title: "Agenda — MedFlow" }] }),
+  head: () => ({ meta: [{ title: "Agenda — MediFlow" }] }),
   component: AgendaPage,
 });
 

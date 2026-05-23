@@ -17,7 +17,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 
 export const Route = createFileRoute("/_app/configuracion")({
-  head: () => ({ meta: [{ title: "Configuración — MedFlow" }] }),
+  head: () => ({ meta: [{ title: "Configuración — MediFlow" }] }),
   beforeLoad: () =>
     ensureAnyPermission(
       "branding.read",

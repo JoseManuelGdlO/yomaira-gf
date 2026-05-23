@@ -9,7 +9,7 @@ import { ViewPrescriptionDialog } from "@/components/prescription/ViewPrescripti
 import type { Prescription } from "@/mocks/data";
 
 export const Route = createFileRoute("/_app/recetas")({
-  head: () => ({ meta: [{ title: "Recetas — MedFlow" }] }),
+  head: () => ({ meta: [{ title: "Recetas — MediFlow" }] }),
   component: RecetasPage,
 });
 
