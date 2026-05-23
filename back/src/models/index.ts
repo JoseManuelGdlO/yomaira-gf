@@ -1,0 +1,88 @@
+import { sequelize } from '../config/database';
+import { User } from './User';
+import { Role } from './Role';
+import { Permission } from './Permission';
+import { UserRole } from './UserRole';
+import { RolePermission } from './RolePermission';
+import { Branding } from './Branding';
+import { Patient } from './Patient';
+import { Appointment } from './Appointment';
+import { Consultation } from './Consultation';
+import { Medication } from './Medication';
+import { Prescription } from './Prescription';
+import { PrescriptionItem } from './PrescriptionItem';
+import { ClinicalQuestion } from './ClinicalQuestion';
+import { ClinicalAnswer } from './ClinicalAnswer';
+import { NotificationPreference } from './NotificationPreference';
+import { PushSubscription } from './PushSubscription';
+import { GoogleCalendarConnection } from './GoogleCalendarConnection';
+import { AppointmentCalendarEvent } from './AppointmentCalendarEvent';
+import { NotificationLog } from './NotificationLog';
+
+User.hasOne(NotificationPreference, { foreignKey: 'userId', as: 'notificationPreference' });
+NotificationPreference.belongsTo(User, { foreignKey: 'userId', as: 'user' });
+
+User.hasMany(PushSubscription, { foreignKey: 'userId', as: 'pushSubscriptions' });
+PushSubscription.belongsTo(User, { foreignKey: 'userId', as: 'user' });
+
+User.hasOne(GoogleCalendarConnection, { foreignKey: 'userId', as: 'googleCalendarConnection' });
+GoogleCalendarConnection.belongsTo(User, { foreignKey: 'userId', as: 'user' });
+
+Appointment.hasMany(AppointmentCalendarEvent, { foreignKey: 'appointmentId', as: 'calendarEvents' });
+AppointmentCalendarEvent.belongsTo(Appointment, { foreignKey: 'appointmentId', as: 'appointment' });
+AppointmentCalendarEvent.belongsTo(User, { foreignKey: 'userId', as: 'user' });
+
+UserRole.belongsTo(Role, { foreignKey: 'roleId', as: 'role' });
+UserRole.belongsTo(User, { foreignKey: 'userId', as: 'user' });
+
+User.belongsToMany(Role, {
+  through: UserRole,
+  foreignKey: 'userId',
+  otherKey: 'roleId',
+});
+Role.belongsToMany(User, {
+  through: UserRole,
+  foreignKey: 'roleId',
+  otherKey: 'userId',
+});
+
+Role.belongsToMany(Permission, { through: RolePermission, foreignKey: 'roleId', otherKey: 'permissionId' });
+Permission.belongsToMany(Role, { through: RolePermission, foreignKey: 'permissionId', otherKey: 'roleId' });
+
+Patient.hasMany(Appointment, { foreignKey: 'patientId', as: 'appointments', onDelete: 'CASCADE' });
+Appointment.belongsTo(Patient, { foreignKey: 'patientId', as: 'patient' });
+
+Patient.hasMany(Consultation, { foreignKey: 'patientId', as: 'consultations', onDelete: 'CASCADE' });
+Consultation.belongsTo(Patient, { foreignKey: 'patientId', as: 'patient' });
+
+Patient.hasMany(Prescription, { foreignKey: 'patientId', as: 'prescriptions', onDelete: 'CASCADE' });
+Prescription.belongsTo(Patient, { foreignKey: 'patientId', as: 'patient' });
+
+Prescription.hasMany(PrescriptionItem, { foreignKey: 'prescriptionId', as: 'items', onDelete: 'CASCADE' });
+PrescriptionItem.belongsTo(Prescription, { foreignKey: 'prescriptionId', as: 'prescription' });
+
+Patient.hasMany(ClinicalAnswer, { foreignKey: 'patientId', as: 'clinicalAnswers', onDelete: 'CASCADE' });
+ClinicalAnswer.belongsTo(Patient, { foreignKey: 'patientId', as: 'patient' });
+
+export {
+  sequelize,
+  User,
+  Role,
+  Permission,
+  UserRole,
+  RolePermission,
+  Branding,
+  Patient,
+  Appointment,
+  Consultation,
+  Medication,
+  Prescription,
+  PrescriptionItem,
+  ClinicalQuestion,
+  ClinicalAnswer,
+  NotificationPreference,
+  PushSubscription,
+  GoogleCalendarConnection,
+  AppointmentCalendarEvent,
+  NotificationLog,
+};
