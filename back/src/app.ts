@@ -46,6 +46,10 @@ export function createApp(): Express {
   app.use(express.urlencoded({ extended: true }));
   if (env.NODE_ENV !== 'test') app.use(morgan(env.NODE_ENV === 'production' ? 'combined' : 'dev'));
 
+  app.get('/health', (_req, res) => {
+    res.json({ data: { status: 'ok', service: 'medflow-api', time: new Date().toISOString() } });
+  });
+
   const limiter = rateLimit({
     windowMs: 60 * 1000,
     max: env.NODE_ENV === 'production' ? 120 : 1000,

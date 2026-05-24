@@ -39,8 +39,8 @@ docker compose -f docker-compose.yml -f docker-compose.local.yml up --build
 Verificar:
 
 ```bash
-curl http://localhost:4000/api/v1/health
-open http://localhost:3000
+curl http://localhost:4000/health
+curl http://localhost:3000/health
 ```
 
 ## 2. Crear proyecto en EasyPanel
@@ -76,6 +76,21 @@ Configura el proxy de cada servicio del compose:
 | `front` | `3000` | `app.tudominio.com` |
 
 **No uses `ports:` en el compose en producción** — EasyPanel enruta con Traefik. Publicar `3000:3000` en el host provoca el error `port is already allocated`.
+
+### Health checks en EasyPanel
+
+Configura el probe en cada dominio (pestaña **Details** o **Health**):
+
+| Servicio | Método | Path | Puerto |
+|----------|--------|------|--------|
+| `front` | `GET` | `/health` | `3000` |
+| `back` | `GET` | `/health` | `4000` |
+
+Respuesta esperada (200):
+
+```json
+{"data":{"status":"ok","service":"medflow-api","time":"..."}}
+```
 
 ## 2b. Alternativa: servicios App separados (sin Compose)
 
@@ -119,7 +134,7 @@ Referencia completa: [`.env.example`](.env.example)
 
 1. Click **Deploy**
 2. Revisar logs: debe ejecutar migraciones y arrancar en puerto 4000
-3. Verificar: `https://api.tudominio.com/api/v1/health`
+3. Verificar: `https://api.tudominio.com/health`
 
 ### Datos iniciales (consola EasyPanel del backend)
 
@@ -199,8 +214,8 @@ Cada servicio expone una **Deploy Webhook URL** en EasyPanel. Útil para dispara
 
 | Servicio | URL | Respuesta esperada |
 |----------|-----|-------------------|
-| Backend | `GET /api/v1/health` | `{"data":{"status":"ok",...}}` |
-| Frontend | `GET /` | HTTP 200 |
+| Backend | `GET /health` o `GET /api/v1/health` | `{"data":{"status":"ok",...}}` |
+| Frontend | `GET /health` | `{"data":{"status":"ok",...}}` |
 
 ## 8. Notas
 

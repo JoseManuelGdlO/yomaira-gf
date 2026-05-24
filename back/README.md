@@ -44,7 +44,7 @@ npm run db:reset
 npm run dev      # http://localhost:4000  (base path /api/v1)
 ```
 
-Health check: `GET http://localhost:4000/api/v1/health`
+Health check: `GET http://localhost:4000/health` (también `GET /api/v1/health`)
 
 ## Build / Producción
 

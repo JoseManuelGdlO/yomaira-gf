@@ -66,8 +66,23 @@ async function normalizeCatastrophicSsrResponse(response: Response): Promise<Res
   return brandedErrorResponse();
 }
 
+function healthResponse(): Response {
+  return Response.json({
+    data: {
+      status: "ok",
+      service: "medflow-front",
+      time: new Date().toISOString(),
+    },
+  });
+}
+
 export default {
   async fetch(request: Request, env: unknown, ctx: unknown) {
+    const { pathname } = new URL(request.url);
+    if (request.method === "GET" && pathname === "/health") {
+      return healthResponse();
+    }
+
     try {
       const handler = await getServerEntry();
       const response = await handler.fetch(request, env, ctx);
