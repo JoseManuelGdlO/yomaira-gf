@@ -10,6 +10,10 @@ import './models';
 import routes from './routes';
 import { errorHandler, notFoundHandler } from './middleware/error';
 
+function normalizeOrigin(value: string): string {
+  return value.trim().replace(/\/+$/, '');
+}
+
 export function createApp(): Express {
   const app = express();
 
@@ -19,7 +23,11 @@ export function createApp(): Express {
   app.use(helmet());
 
   const allowedOrigins =
-    env.CORS_ORIGIN === '*' ? null : env.CORS_ORIGIN.split(',').map((s) => s.trim());
+    env.CORS_ORIGIN === '*'
+      ? null
+      : env.CORS_ORIGIN.split(',')
+          .map(normalizeOrigin)
+          .filter(Boolean);
 
   app.use(
     cors({
@@ -34,7 +42,7 @@ export function createApp(): Express {
         ) {
           return callback(null, true);
         }
-        if (allowedOrigins?.includes(origin)) return callback(null, true);
+        if (allowedOrigins?.includes(normalizeOrigin(origin))) return callback(null, true);
         callback(new Error(`CORS: origin ${origin} not allowed`));
       },
       credentials: true,

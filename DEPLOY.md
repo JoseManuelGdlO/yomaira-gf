@@ -58,7 +58,7 @@ curl http://localhost:3000/health
 | `DB_PASSWORD` | contraseña MySQL |
 | `DB_NAME` | `medflow` |
 | `JWT_SECRET` | string aleatorio ≥ 16 caracteres |
-| `CORS_ORIGIN` | `https://app.tudominio.com` |
+| `CORS_ORIGIN` | `http://localhost:5173,http://localhost:3000,https://app.tudominio.com` |
 | `FRONTEND_URL` | `https://app.tudominio.com` |
 | `PUBLIC_BOOKING_SECRET` | string aleatorio |
 | `VITE_API_URL` | `https://api.tudominio.com/api/v1` |
@@ -123,7 +123,7 @@ Respuesta esperada (200):
 | `DB_PASSWORD` | contraseña MySQL |
 | `DB_NAME` | `medflow` |
 | `JWT_SECRET` | string aleatorio ≥ 16 caracteres |
-| `CORS_ORIGIN` | `https://app.tudominio.com` |
+| `CORS_ORIGIN` | `http://localhost:5173,http://localhost:3000,https://app.tudominio.com` |
 | `FRONTEND_URL` | `https://app.tudominio.com` |
 | `PUBLIC_BOOKING_SECRET` | string aleatorio |
 | `GOOGLE_REDIRECT_URI` | `https://api.tudominio.com/api/v1/integrations/google/callback` |
