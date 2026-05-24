@@ -1,6 +1,7 @@
 # EasyPanel / producción — NO publicar puertos en el host.
 # EasyPanel enruta el tráfico vía Traefik al puerto interno del contenedor.
-# Para probar en local con localhost:3000 / :4000 usa: docker compose -f docker-compose.yml -f docker-compose.local.yml up --build
+# Para probar en local con localhost:3000 (front) / :4000 (back):
+# docker compose -f docker-compose.yml -f docker-compose.local.yml up --build
 
 services:
   back:
@@ -43,7 +44,7 @@ services:
         VITE_SITE_URL: ${VITE_SITE_URL:-http://localhost:3000}
         VITE_VAPID_PUBLIC_KEY: ${VITE_VAPID_PUBLIC_KEY:-}
     expose:
-      - "3000"
+      - "80"
     restart: unless-stopped
     depends_on:
       - back

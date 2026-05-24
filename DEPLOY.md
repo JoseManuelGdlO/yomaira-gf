@@ -8,7 +8,7 @@ Guía para desplegar MedFlow (backend + frontend + MySQL) en [EasyPanel](https:/
 |----------|---------|--------|-----------------|
 | MySQL | (nativo EasyPanel) | 3306 | Solo red interna |
 | API | `back/` | 4000 | `api.tudominio.com` |
-| Frontend | `front/` | 3000 | `app.tudominio.com` |
+| Frontend | `front/` (nginx) | **80** | `app.tudominio.com` |
 
 ## Requisitos
 
@@ -73,7 +73,7 @@ Configura el proxy de cada servicio del compose:
 | Servicio compose | Proxy port | Dominio |
 |------------------|------------|---------|
 | `back` | `4000` | `api.tudominio.com` |
-| `front` | `3000` | `app.tudominio.com` |
+| `front` | **80** | `app.tudominio.com` |
 
 **No uses `ports:` en el compose en producción** — EasyPanel enruta con Traefik. Publicar `3000:3000` en el host provoca el error `port is already allocated`.
 
@@ -83,7 +83,7 @@ Configura el probe en cada dominio (pestaña **Details** o **Health**):
 
 | Servicio | Método | Path | Puerto |
 |----------|--------|------|--------|
-| `front` | `GET` | `/health` | `3000` |
+| `front` | `GET` | `/health` | **80** |
 | `back` | `GET` | `/health` | `4000` |
 
 Respuesta esperada (200):
@@ -160,7 +160,7 @@ npm run tenant:create -- \
 1. **Add Service** → **App**
 2. Source: **GitHub** → mismo repositorio
 3. **Root directory:** `front`
-4. **Proxy port:** `3000`
+4. **Proxy port:** **80** (nginx)
 5. **Dominio:** `app.tudominio.com`
 
 ### Variables de entorno (frontend — build-time)
@@ -234,6 +234,7 @@ back/
   .dockerignore
 front/
   Dockerfile
+  nginx.conf
   vite.config.docker.ts
   .dockerignore
 docker-compose.yml      # dev local
