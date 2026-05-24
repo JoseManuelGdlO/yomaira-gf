@@ -4,6 +4,7 @@ import { env } from '../config/env';
 export interface JwtPayload {
   sub: string;
   email: string;
+  brandingId: string;
   type?: 'access' | 'refresh';
 }
 

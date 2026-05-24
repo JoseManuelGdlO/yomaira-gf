@@ -6,6 +6,8 @@ declare global {
       id: string;
       email: string;
       name: string;
+      brandingId: string;
+      brandingSlug: string;
       roles: string[];
       permissions: string[];
     }

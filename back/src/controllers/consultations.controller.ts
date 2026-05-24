@@ -1,21 +1,37 @@
 import { Request, Response } from 'express';
 import { z } from 'zod';
 import { Consultation, Patient } from '../models';
+import { findTenantPatient } from '../middleware/tenant';
 import { NotFound } from '../utils/errors';
 
 export const querySchema = z.object({ patientId: z.string().uuid().optional() });
 
+async function findTenantConsultation(req: Request, id: string): Promise<Consultation> {
+  const item = await Consultation.findOne({
+    where: { id },
+    include: [{ model: Patient, as: 'patient', where: { brandingId: req.user!.brandingId }, required: true }],
+  });
+  if (!item) throw NotFound('Consultation not found');
+  return item;
+}
+
 export async function list(req: Request, res: Response): Promise<void> {
   const { patientId } = req.query as z.infer<typeof querySchema>;
   const where: Record<string, unknown> = {};
-  if (patientId) where.patientId = patientId;
-  const items = await Consultation.findAll({ where, order: [['date', 'DESC']] });
+  if (patientId) {
+    await findTenantPatient(req, patientId);
+    where.patientId = patientId;
+  }
+  const items = await Consultation.findAll({
+    where,
+    include: [{ model: Patient, as: 'patient', where: { brandingId: req.user!.brandingId }, required: true }],
+    order: [['date', 'DESC']],
+  });
   res.json({ data: items });
 }
 
 export async function get(req: Request, res: Response): Promise<void> {
-  const item = await Consultation.findByPk(req.params.id);
-  if (!item) throw NotFound('Consultation not found');
+  const item = await findTenantConsultation(req, req.params.id);
   res.json({ data: item });
 }
 
@@ -33,26 +49,20 @@ export const updateSchema = createSchema.partial();
 
 export async function create(req: Request, res: Response): Promise<void> {
   const body = req.body as z.infer<typeof createSchema>;
-  const patient = await Patient.findByPk(body.patientId);
-  if (!patient) throw NotFound('Patient not found');
+  await findTenantPatient(req, body.patientId);
   const item = await Consultation.create(body);
   res.status(201).json({ data: item });
 }
 
 export async function update(req: Request, res: Response): Promise<void> {
-  const item = await Consultation.findByPk(req.params.id);
-  if (!item) throw NotFound('Consultation not found');
-  if (req.body.patientId) {
-    const patient = await Patient.findByPk(req.body.patientId);
-    if (!patient) throw NotFound('Patient not found');
-  }
+  const item = await findTenantConsultation(req, req.params.id);
+  if (req.body.patientId) await findTenantPatient(req, req.body.patientId);
   await item.update(req.body);
   res.json({ data: item });
 }
 
 export async function remove(req: Request, res: Response): Promise<void> {
-  const item = await Consultation.findByPk(req.params.id);
-  if (!item) throw NotFound('Consultation not found');
+  const item = await findTenantConsultation(req, req.params.id);
   await item.destroy();
   res.status(204).end();
 }

@@ -48,7 +48,7 @@ async function runDispatch(
   const prefEvent =
     event === 'completed' ? 'confirmed' : event === 'created' ? 'created' : event === 'confirmed' ? 'confirmed' : 'cancelled';
 
-  const staff = await getStaffRecipients();
+  const staff = await getStaffRecipients(ctx.brandingId);
 
   for (const user of staff) {
     const prefs = await getPreferences(user.userId);

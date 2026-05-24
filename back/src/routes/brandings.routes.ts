@@ -11,26 +11,13 @@ router.use(authenticate);
 
 const idParam = z.object({ id: z.string().uuid() });
 
-router.get('/', requirePermission('branding.read'), asyncHandler(ctrl.list));
-router.get('/active', requirePermission('branding.read'), asyncHandler(ctrl.active));
+router.get('/me', requirePermission('branding.read'), asyncHandler(ctrl.me));
 router.get('/:id', requirePermission('branding.read'), validate({ params: idParam }), asyncHandler(ctrl.get));
-router.post(
-  '/',
-  requirePermission('branding.write'),
-  validate({ body: ctrl.createSchema }),
-  asyncHandler(ctrl.create),
-);
 router.patch(
   '/:id',
   requirePermission('branding.write'),
   validate({ params: idParam, body: ctrl.updateSchema }),
   asyncHandler(ctrl.update),
-);
-router.delete(
-  '/:id',
-  requirePermission('branding.write'),
-  validate({ params: idParam }),
-  asyncHandler(ctrl.remove),
 );
 
 export default router;

@@ -3,6 +3,7 @@ import { sequelize } from '../config/database';
 
 export interface UserAttrs {
   id: string;
+  brandingId: string;
   email: string;
   password: string;
   name: string;
@@ -15,6 +16,7 @@ export type UserCreationAttrs = Optional<UserAttrs, 'id' | 'active' | 'createdAt
 
 export class User extends Model<UserAttrs, UserCreationAttrs> implements UserAttrs {
   declare id: string;
+  declare brandingId: string;
   declare email: string;
   declare password: string;
   declare name: string;
@@ -28,6 +30,7 @@ export class User extends Model<UserAttrs, UserCreationAttrs> implements UserAtt
 User.init(
   {
     id: { type: DataTypes.UUID, defaultValue: DataTypes.UUIDV4, primaryKey: true },
+    brandingId: { type: DataTypes.UUID, allowNull: false, field: 'branding_id' },
     email: { type: DataTypes.STRING(190), allowNull: false, unique: true },
     password: { type: DataTypes.STRING(255), allowNull: false },
     name: { type: DataTypes.STRING(190), allowNull: false },

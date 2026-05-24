@@ -7,14 +7,24 @@ module.exports = {
   async up(queryInterface) {
     const now = new Date();
 
-    const roles = await queryInterface.sequelize.query(
-      "SELECT id, name FROM roles WHERE name IN ('admin', 'doctor')",
+    const brandings = await queryInterface.sequelize.query(
+      "SELECT id FROM brandings WHERE slug = 'yomaira' LIMIT 1",
       { type: queryInterface.sequelize.QueryTypes.SELECT },
+    );
+    const branding = brandings[0];
+    if (!branding) throw new Error('Run branding seeder first');
+
+    const roles = await queryInterface.sequelize.query(
+      "SELECT id, name FROM roles WHERE branding_id = :brandingId AND name IN ('admin', 'doctor')",
+      {
+        type: queryInterface.sequelize.QueryTypes.SELECT,
+        replacements: { brandingId: branding.id },
+      },
     );
     const adminRole = roles.find((r) => r.name === 'admin');
     const doctorRole = roles.find((r) => r.name === 'doctor');
     if (!adminRole || !doctorRole) {
-      throw new Error('Run permissions-roles seeder first');
+      throw new Error('Run tenant-roles seeder first');
     }
 
     const adminId = uuid();
@@ -23,6 +33,7 @@ module.exports = {
     await queryInterface.bulkInsert('users', [
       {
         id: adminId,
+        branding_id: branding.id,
         email: 'admin@medflow.local',
         password: await bcrypt.hash('Admin123!', 10),
         name: 'Administrador',
@@ -32,6 +43,7 @@ module.exports = {
       },
       {
         id: doctorId,
+        branding_id: branding.id,
         email: 'doctor@medflow.local',
         password: await bcrypt.hash('Doctor123!', 10),
         name: 'Dra. Yomaira García',

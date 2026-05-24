@@ -1,11 +1,10 @@
 import { Request, Response } from 'express';
 import { z } from 'zod';
-import { ClinicalAnswer, Patient, sequelize } from '../models';
-import { NotFound } from '../utils/errors';
+import { ClinicalAnswer, sequelize } from '../models';
+import { findTenantPatient } from '../middleware/tenant';
 
 export async function getForPatient(req: Request, res: Response): Promise<void> {
-  const patient = await Patient.findByPk(req.params.id);
-  if (!patient) throw NotFound('Patient not found');
+  const patient = await findTenantPatient(req, req.params.id);
   const items = await ClinicalAnswer.findAll({ where: { patientId: patient.id } });
   const answers: Record<string, string | string[] | null> = {};
   for (const it of items) answers[it.questionCode] = it.value;
@@ -17,8 +16,7 @@ export const upsertSchema = z.object({
 });
 
 export async function upsertForPatient(req: Request, res: Response): Promise<void> {
-  const patient = await Patient.findByPk(req.params.id);
-  if (!patient) throw NotFound('Patient not found');
+  const patient = await findTenantPatient(req, req.params.id);
   const { answers } = req.body as z.infer<typeof upsertSchema>;
 
   await sequelize.transaction(async (t) => {

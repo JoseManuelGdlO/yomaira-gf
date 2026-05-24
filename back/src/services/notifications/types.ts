@@ -12,4 +12,5 @@ export type AppointmentContext = {
   status: string;
   scheduledBy: 'staff' | 'patient';
   clinicName: string;
+  brandingId: string;
 };

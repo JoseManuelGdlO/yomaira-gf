@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { Op } from 'sequelize';
 import { z } from 'zod';
 import { Appointment, Branding, Patient } from '../models';
+import { requirePublicSlug, resolveBrandingBySlug } from '../middleware/tenant';
 import { dispatchAppointmentNotifications } from '../services/notifications/notificationDispatcher';
 import { env } from '../config/env';
 import { NotFound } from '../utils/errors';
@@ -26,36 +27,38 @@ export function verifyCancelToken(appointmentId: string, token: string): boolean
   }
 }
 
-async function defaultBranding(): Promise<Branding> {
-  const branding =
-    (await Branding.findOne({ where: { isDefault: true } })) ??
-    (await Branding.findOne({ order: [['createdAt', 'ASC']] }));
-  if (!branding) throw NotFound('Branding not configured');
-  return branding;
-}
-
-export async function getBrandingPublic(_req: Request, res: Response): Promise<void> {
-  const branding = await defaultBranding();
+export async function getBrandingPublic(req: Request, res: Response): Promise<void> {
+  const slug = requirePublicSlug(req);
+  const branding = await resolveBrandingBySlug(slug);
   res.json({
     data: {
+      slug: branding.slug,
       clinicName: branding.clinicName,
       specialty: branding.specialty,
       logoEmoji: branding.logoEmoji,
       phone: branding.phone,
       address: branding.address,
+      primary: branding.primary,
+      secondary: branding.secondary,
+      accent: branding.accent,
+      surface: branding.surface,
+      sidebar: branding.sidebar,
     },
   });
 }
 
 export const lookupPatientSchema = z.object({
+  slug: z.string().min(1),
   phone: z.string().min(8),
 });
 
 export async function lookupPatient(req: Request, res: Response): Promise<void> {
-  const { phone } = req.query as z.infer<typeof lookupPatientSchema>;
+  const { slug, phone } = req.query as z.infer<typeof lookupPatientSchema>;
+  const branding = await resolveBrandingBySlug(slug);
   const normalized = phone.replace(/\D/g, '');
   const patient = await Patient.findOne({
     where: {
+      brandingId: branding.id,
       [Op.or]: [
         { guardianPhone: phone },
         { guardianPhone: { [Op.like]: `%${normalized.slice(-10)}%` } },
@@ -77,13 +80,15 @@ export async function lookupPatient(req: Request, res: Response): Promise<void> 
 }
 
 export const slotsQuerySchema = z.object({
+  slug: z.string().min(1),
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
 });
 
 export async function availableSlots(req: Request, res: Response): Promise<void> {
-  const { date } = req.query as z.infer<typeof slotsQuerySchema>;
+  const { slug, date } = req.query as z.infer<typeof slotsQuerySchema>;
+  const branding = await resolveBrandingBySlug(slug);
   const taken = await Appointment.findAll({
-    where: { date, status: { [Op.ne]: 'cancelada' } },
+    where: { brandingId: branding.id, date, status: { [Op.ne]: 'cancelada' } },
     attributes: ['time'],
   });
   const takenSet = new Set(taken.map((a) => a.time));
@@ -99,6 +104,7 @@ export async function availableSlots(req: Request, res: Response): Promise<void>
 }
 
 export const bookSchema = z.object({
+  slug: z.string().min(1),
   patientId: z.string().uuid().optional(),
   name: z.string().min(1).optional(),
   guardian: z.string().min(1).optional(),
@@ -110,6 +116,7 @@ export const bookSchema = z.object({
 
 export async function bookAppointment(req: Request, res: Response): Promise<void> {
   const body = req.body as z.infer<typeof bookSchema>;
+  const branding = await resolveBrandingBySlug(body.slug);
 
   let patientId = body.patientId;
   if (!patientId) {
@@ -120,6 +127,7 @@ export async function bookAppointment(req: Request, res: Response): Promise<void
       return;
     }
     const patient = await Patient.create({
+      brandingId: branding.id,
       name: body.name,
       guardian: body.guardian,
       guardianPhone: body.phone,
@@ -135,12 +143,12 @@ export async function bookAppointment(req: Request, res: Response): Promise<void
     });
     patientId = patient.id;
   } else {
-    const patient = await Patient.findByPk(patientId);
+    const patient = await Patient.findOne({ where: { id: patientId, brandingId: branding.id } });
     if (!patient) throw NotFound('Patient not found');
   }
 
   const conflict = await Appointment.findOne({
-    where: { date: body.date, time: body.time, status: { [Op.ne]: 'cancelada' } },
+    where: { brandingId: branding.id, date: body.date, time: body.time, status: { [Op.ne]: 'cancelada' } },
   });
   if (conflict) {
     res.status(409).json({ error: { code: 'CONFLICT', message: 'Horario no disponible' } });
@@ -148,6 +156,7 @@ export async function bookAppointment(req: Request, res: Response): Promise<void
   }
 
   const appointment = await Appointment.create({
+    brandingId: branding.id,
     patientId,
     date: body.date,
     time: body.time,

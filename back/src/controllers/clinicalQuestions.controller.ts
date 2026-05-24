@@ -1,10 +1,18 @@
 import { Request, Response } from 'express';
 import { z } from 'zod';
 import { ClinicalQuestion } from '../models';
+import { tenantWhere } from '../middleware/tenant';
 import { Forbidden, NotFound } from '../utils/errors';
 
-export async function list(_req: Request, res: Response): Promise<void> {
+async function findTenantQuestion(req: Request, id: string): Promise<ClinicalQuestion> {
+  const item = await ClinicalQuestion.findOne({ where: { id, ...tenantWhere(req) } });
+  if (!item) throw NotFound('Clinical question not found');
+  return item;
+}
+
+export async function list(req: Request, res: Response): Promise<void> {
   const items = await ClinicalQuestion.findAll({
+    where: tenantWhere(req),
     order: [
       ['builtin', 'DESC'],
       ['position', 'ASC'],
@@ -32,6 +40,7 @@ function genCode(): string {
 export async function create(req: Request, res: Response): Promise<void> {
   const body = req.body as z.infer<typeof createSchema>;
   const item = await ClinicalQuestion.create({
+    brandingId: req.user!.brandingId,
     code: body.code ?? genCode(),
     section: body.section,
     label: body.label,
@@ -44,16 +53,14 @@ export async function create(req: Request, res: Response): Promise<void> {
 }
 
 export async function update(req: Request, res: Response): Promise<void> {
-  const item = await ClinicalQuestion.findByPk(req.params.id);
-  if (!item) throw NotFound('Clinical question not found');
+  const item = await findTenantQuestion(req, req.params.id);
   if (item.builtin) throw Forbidden('Builtin questions cannot be modified');
   await item.update(req.body);
   res.json({ data: item });
 }
 
 export async function remove(req: Request, res: Response): Promise<void> {
-  const item = await ClinicalQuestion.findByPk(req.params.id);
-  if (!item) throw NotFound('Clinical question not found');
+  const item = await findTenantQuestion(req, req.params.id);
   await item.destroy();
   res.status(204).end();
 }

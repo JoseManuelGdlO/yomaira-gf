@@ -13,6 +13,7 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as AgendarRouteImport } from './routes/agendar'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AgendarSlugRouteImport } from './routes/agendar.$slug'
 import { Route as AppRecetasRouteImport } from './routes/_app.recetas'
 import { Route as AppPacientesRouteImport } from './routes/_app.pacientes'
 import { Route as AppHistorialRouteImport } from './routes/_app.historial'
@@ -43,6 +44,11 @@ const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AgendarSlugRoute = AgendarSlugRouteImport.update({
+  id: '/$slug',
+  path: '/$slug',
+  getParentRoute: () => AgendarRoute,
 } as any)
 const AppRecetasRoute = AppRecetasRouteImport.update({
   id: '/recetas',
@@ -102,7 +108,7 @@ const AppPacientesIdRoute = AppPacientesIdRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/agendar': typeof AgendarRoute
+  '/agendar': typeof AgendarRouteWithChildren
   '/login': typeof LoginRoute
   '/administracion': typeof AppAdministracionRoute
   '/agenda': typeof AppAgendaRoute
@@ -113,12 +119,13 @@ export interface FileRoutesByFullPath {
   '/historial': typeof AppHistorialRoute
   '/pacientes': typeof AppPacientesRouteWithChildren
   '/recetas': typeof AppRecetasRouteWithChildren
+  '/agendar/$slug': typeof AgendarSlugRoute
   '/pacientes/$id': typeof AppPacientesIdRoute
   '/recetas/nueva': typeof AppRecetasNuevaRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/agendar': typeof AgendarRoute
+  '/agendar': typeof AgendarRouteWithChildren
   '/login': typeof LoginRoute
   '/administracion': typeof AppAdministracionRoute
   '/agenda': typeof AppAgendaRoute
@@ -129,6 +136,7 @@ export interface FileRoutesByTo {
   '/historial': typeof AppHistorialRoute
   '/pacientes': typeof AppPacientesRouteWithChildren
   '/recetas': typeof AppRecetasRouteWithChildren
+  '/agendar/$slug': typeof AgendarSlugRoute
   '/pacientes/$id': typeof AppPacientesIdRoute
   '/recetas/nueva': typeof AppRecetasNuevaRoute
 }
@@ -136,7 +144,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/_app': typeof AppRouteWithChildren
-  '/agendar': typeof AgendarRoute
+  '/agendar': typeof AgendarRouteWithChildren
   '/login': typeof LoginRoute
   '/_app/administracion': typeof AppAdministracionRoute
   '/_app/agenda': typeof AppAgendaRoute
@@ -147,6 +155,7 @@ export interface FileRoutesById {
   '/_app/historial': typeof AppHistorialRoute
   '/_app/pacientes': typeof AppPacientesRouteWithChildren
   '/_app/recetas': typeof AppRecetasRouteWithChildren
+  '/agendar/$slug': typeof AgendarSlugRoute
   '/_app/pacientes/$id': typeof AppPacientesIdRoute
   '/_app/recetas/nueva': typeof AppRecetasNuevaRoute
 }
@@ -165,6 +174,7 @@ export interface FileRouteTypes {
     | '/historial'
     | '/pacientes'
     | '/recetas'
+    | '/agendar/$slug'
     | '/pacientes/$id'
     | '/recetas/nueva'
   fileRoutesByTo: FileRoutesByTo
@@ -181,6 +191,7 @@ export interface FileRouteTypes {
     | '/historial'
     | '/pacientes'
     | '/recetas'
+    | '/agendar/$slug'
     | '/pacientes/$id'
     | '/recetas/nueva'
   id:
@@ -198,6 +209,7 @@ export interface FileRouteTypes {
     | '/_app/historial'
     | '/_app/pacientes'
     | '/_app/recetas'
+    | '/agendar/$slug'
     | '/_app/pacientes/$id'
     | '/_app/recetas/nueva'
   fileRoutesById: FileRoutesById
@@ -205,7 +217,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AppRoute: typeof AppRouteWithChildren
-  AgendarRoute: typeof AgendarRoute
+  AgendarRoute: typeof AgendarRouteWithChildren
   LoginRoute: typeof LoginRoute
 }
 
@@ -238,6 +250,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/agendar/$slug': {
+      id: '/agendar/$slug'
+      path: '/$slug'
+      fullPath: '/agendar/$slug'
+      preLoaderRoute: typeof AgendarSlugRouteImport
+      parentRoute: typeof AgendarRoute
     }
     '/_app/recetas': {
       id: '/_app/recetas'
@@ -369,10 +388,21 @@ const AppRouteChildren: AppRouteChildren = {
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
 
+interface AgendarRouteChildren {
+  AgendarSlugRoute: typeof AgendarSlugRoute
+}
+
+const AgendarRouteChildren: AgendarRouteChildren = {
+  AgendarSlugRoute: AgendarSlugRoute,
+}
+
+const AgendarRouteWithChildren =
+  AgendarRoute._addFileChildren(AgendarRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AppRoute: AppRouteWithChildren,
-  AgendarRoute: AgendarRoute,
+  AgendarRoute: AgendarRouteWithChildren,
   LoginRoute: LoginRoute,
 }
 export const routeTree = rootRouteImport

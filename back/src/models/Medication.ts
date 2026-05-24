@@ -3,6 +3,7 @@ import { sequelize } from '../config/database';
 
 export interface MedicationAttrs {
   id: string;
+  brandingId: string;
   name: string;
   presentation: string;
   createdAt?: Date;
@@ -13,6 +14,7 @@ export type MedicationCreationAttrs = Optional<MedicationAttrs, 'id' | 'createdA
 
 export class Medication extends Model<MedicationAttrs, MedicationCreationAttrs> implements MedicationAttrs {
   declare id: string;
+  declare brandingId: string;
   declare name: string;
   declare presentation: string;
   declare readonly createdAt: Date;
@@ -22,6 +24,7 @@ export class Medication extends Model<MedicationAttrs, MedicationCreationAttrs> 
 Medication.init(
   {
     id: { type: DataTypes.UUID, defaultValue: DataTypes.UUIDV4, primaryKey: true },
+    brandingId: { type: DataTypes.UUID, allowNull: false, field: 'branding_id' },
     name: { type: DataTypes.STRING(190), allowNull: false },
     presentation: { type: DataTypes.STRING(190), allowNull: false, defaultValue: '' },
   },

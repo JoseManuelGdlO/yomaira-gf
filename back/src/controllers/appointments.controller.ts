@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { Op } from 'sequelize';
 import { z } from 'zod';
 import { Appointment, Consultation, Patient, sequelize } from '../models';
+import { findTenantPatient, tenantWhere } from '../middleware/tenant';
 import { dispatchAppointmentNotifications } from '../services/notifications/notificationDispatcher';
 import { NotFound } from '../utils/errors';
 
@@ -13,9 +14,15 @@ export const querySchema = z.object({
   status: z.enum(['pendiente', 'confirmada', 'completada', 'cancelada']).optional(),
 });
 
+async function findTenantAppointment(req: Request, id: string): Promise<Appointment> {
+  const item = await Appointment.findOne({ where: { id, ...tenantWhere(req) } });
+  if (!item) throw NotFound('Appointment not found');
+  return item;
+}
+
 export async function list(req: Request, res: Response): Promise<void> {
   const q = req.query as z.infer<typeof querySchema>;
-  const where: Record<string, unknown> = {};
+  const where: Record<string, unknown> = { ...tenantWhere(req) };
   if (q.date) where.date = q.date;
   if (q.patientId) where.patientId = q.patientId;
   if (q.status) where.status = q.status;
@@ -37,8 +44,7 @@ export async function list(req: Request, res: Response): Promise<void> {
 }
 
 export async function get(req: Request, res: Response): Promise<void> {
-  const item = await Appointment.findByPk(req.params.id);
-  if (!item) throw NotFound('Appointment not found');
+  const item = await findTenantAppointment(req, req.params.id);
   res.json({ data: item });
 }
 
@@ -55,27 +61,21 @@ export const updateSchema = createSchema.partial();
 
 export async function create(req: Request, res: Response): Promise<void> {
   const body = req.body as z.infer<typeof createSchema>;
-  const patient = await Patient.findByPk(body.patientId);
-  if (!patient) throw NotFound('Patient not found');
-  const item = await Appointment.create(body);
+  await findTenantPatient(req, body.patientId);
+  const item = await Appointment.create({ ...body, brandingId: req.user!.brandingId });
   dispatchAppointmentNotifications(item, 'created');
   res.status(201).json({ data: item });
 }
 
 export async function update(req: Request, res: Response): Promise<void> {
-  const item = await Appointment.findByPk(req.params.id);
-  if (!item) throw NotFound('Appointment not found');
-  if (req.body.patientId) {
-    const patient = await Patient.findByPk(req.body.patientId);
-    if (!patient) throw NotFound('Patient not found');
-  }
+  const item = await findTenantAppointment(req, req.params.id);
+  if (req.body.patientId) await findTenantPatient(req, req.body.patientId);
   await item.update(req.body);
   res.json({ data: item });
 }
 
 export async function remove(req: Request, res: Response): Promise<void> {
-  const item = await Appointment.findByPk(req.params.id);
-  if (!item) throw NotFound('Appointment not found');
+  const item = await findTenantAppointment(req, req.params.id);
   dispatchAppointmentNotifications(item, 'cancelled', item.status);
   await item.destroy();
   res.status(204).end();
@@ -86,8 +86,7 @@ export const statusSchema = z.object({
 });
 
 export async function setStatus(req: Request, res: Response): Promise<void> {
-  const item = await Appointment.findByPk(req.params.id);
-  if (!item) throw NotFound('Appointment not found');
+  const item = await findTenantAppointment(req, req.params.id);
   const { status } = req.body as z.infer<typeof statusSchema>;
   const previousStatus = item.status;
   item.status = status;
@@ -110,8 +109,7 @@ export const completeSchema = z.object({
 });
 
 export async function complete(req: Request, res: Response): Promise<void> {
-  const appointment = await Appointment.findByPk(req.params.id);
-  if (!appointment) throw NotFound('Appointment not found');
+  const appointment = await findTenantAppointment(req, req.params.id);
   const body = req.body as z.infer<typeof completeSchema>;
 
   const result = await sequelize.transaction(async (t) => {
@@ -131,7 +129,7 @@ export async function complete(req: Request, res: Response): Promise<void> {
     await appointment.save({ transaction: t });
     await Patient.update(
       { lastVisit: appointment.date },
-      { where: { id: appointment.patientId }, transaction: t },
+      { where: { id: appointment.patientId, brandingId: req.user!.brandingId }, transaction: t },
     );
     return { consultation, appointment };
   });

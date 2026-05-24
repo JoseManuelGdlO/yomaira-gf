@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import type { Patient, Consultation, Appointment, Prescription } from "@/mocks/data";
 import { useAuth } from "@/lib/auth";
+import { tenantKey } from "@/lib/tenantQuery";
 
 type Store = {
   patients: Patient[];
@@ -35,30 +36,31 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const qc = useQueryClient();
   const { user, ready } = useAuth();
   const enabled = ready && !!user;
+  const brandingId = user?.brandingId;
 
   const patientsQ = useQuery({
-    queryKey: QK.patients,
+    queryKey: tenantKey(QK.patients, brandingId),
     queryFn: () => api.patients.list(),
     enabled,
     staleTime: 30_000,
     placeholderData: [],
   });
   const consultationsQ = useQuery({
-    queryKey: QK.consultations,
+    queryKey: tenantKey(QK.consultations, brandingId),
     queryFn: () => api.consultations.list(),
     enabled,
     staleTime: 30_000,
     placeholderData: [],
   });
   const appointmentsQ = useQuery({
-    queryKey: QK.appointments,
+    queryKey: tenantKey(QK.appointments, brandingId),
     queryFn: () => api.appointments.list(),
     enabled,
     staleTime: 30_000,
     placeholderData: [],
   });
   const prescriptionsQ = useQuery({
-    queryKey: QK.prescriptions,
+    queryKey: tenantKey(QK.prescriptions, brandingId),
     queryFn: () => api.prescriptions.list(),
     enabled,
     staleTime: 30_000,
@@ -67,7 +69,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const createPatient = useMutation({
     mutationFn: (p: Patient) => api.patients.create(stripLocalId(p)),
-    onSuccess: () => qc.invalidateQueries({ queryKey: QK.patients }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: tenantKey(QK.patients, brandingId) }),
   });
 
   const updatePatientM = useMutation({
@@ -77,32 +79,32 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       }
       return api.patients.update(id, patch);
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: QK.patients }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: tenantKey(QK.patients, brandingId) }),
   });
 
   const createAppointment = useMutation({
     mutationFn: (a: Appointment) => api.appointments.create(stripLocalId(a)),
-    onSuccess: () => qc.invalidateQueries({ queryKey: QK.appointments }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: tenantKey(QK.appointments, brandingId) }),
   });
 
   const setApptStatus = useMutation({
     mutationFn: ({ id, status }: { id: string; status: Appointment["status"] }) =>
       api.appointments.setStatus(id, status),
-    onSuccess: () => qc.invalidateQueries({ queryKey: QK.appointments }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: tenantKey(QK.appointments, brandingId) }),
   });
 
   const createConsultation = useMutation({
     mutationFn: (c: Consultation) => api.consultations.create(stripLocalId(c)),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: QK.consultations });
-      qc.invalidateQueries({ queryKey: QK.patients });
-      qc.invalidateQueries({ queryKey: QK.appointments });
+      qc.invalidateQueries({ queryKey: tenantKey(QK.consultations, brandingId) });
+      qc.invalidateQueries({ queryKey: tenantKey(QK.patients, brandingId) });
+      qc.invalidateQueries({ queryKey: tenantKey(QK.appointments, brandingId) });
     },
   });
 
   const createPrescription = useMutation({
     mutationFn: (rx: Prescription) => api.prescriptions.create(stripLocalId(rx)),
-    onSuccess: () => qc.invalidateQueries({ queryKey: QK.prescriptions }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: tenantKey(QK.prescriptions, brandingId) }),
   });
 
   const value: Store = {

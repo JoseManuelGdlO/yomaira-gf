@@ -1,7 +1,7 @@
 export const SITE_NAME = "MediFlow";
-export const SITE_TITLE = `${SITE_NAME} — Plataforma médica multi-consultorio`;
+export const SITE_TITLE = `${SITE_NAME} — Plataforma médica para consultorios`;
 export const SITE_DESCRIPTION =
-  "Gestión de pacientes, expediente clínico, agenda, recetas y personalización por consultorio para médicos independientes.";
+  "Gestión de pacientes, expediente clínico, agenda, recetas y personalización para consultorios médicos independientes.";
 export const SITE_LOCALE = "es_MX";
 export const SITE_THEME_COLOR = "#14B8A6";
 

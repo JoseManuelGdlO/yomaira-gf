@@ -1,4 +1,6 @@
+import { clearTenantQueries } from "@/lib/tenantQuery";
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   api,
   getToken,
@@ -24,6 +26,7 @@ type AuthCtx = {
 const Ctx = createContext<AuthCtx | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
+  const qc = useQueryClient();
   const [user, setUser] = useState<AuthUser | null>(null);
   const [tokenState, setTokenState] = useState<string | null>(null);
   const [ready, setReady] = useState(false);
@@ -72,6 +75,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     onUnauthorized(() => {
+      clearTenantQueries(qc);
       setUser(null);
       clearSession();
       setTokenState(null);
@@ -79,12 +83,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         window.location.replace("/login");
       }
     });
-  }, []);
+  }, [qc]);
 
   const login = useCallback(async (email: string, password: string) => {
     setLoading(true);
     try {
       clearSession();
+      clearTenantQueries(qc);
       const res = await api.auth.login(email, password);
       setToken(res.accessToken);
       setRefresh(res.refreshToken);
@@ -94,16 +99,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [qc]);
 
   const logout = useCallback(async () => {
     try {
       await api.auth.logout();
     } catch {}
     clearSession();
+    clearTenantQueries(qc);
     setTokenState(null);
     setUser(null);
-  }, []);
+  }, [qc]);
 
   const hasPermission = useCallback(
     (perm: string) => {

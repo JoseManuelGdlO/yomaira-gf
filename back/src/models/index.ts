@@ -64,6 +64,27 @@ PrescriptionItem.belongsTo(Prescription, { foreignKey: 'prescriptionId', as: 'pr
 Patient.hasMany(ClinicalAnswer, { foreignKey: 'patientId', as: 'clinicalAnswers', onDelete: 'CASCADE' });
 ClinicalAnswer.belongsTo(Patient, { foreignKey: 'patientId', as: 'patient' });
 
+Branding.hasMany(User, { foreignKey: 'brandingId', as: 'users', onDelete: 'RESTRICT' });
+User.belongsTo(Branding, { foreignKey: 'brandingId', as: 'branding' });
+
+Branding.hasMany(Role, { foreignKey: 'brandingId', as: 'roles', onDelete: 'CASCADE' });
+Role.belongsTo(Branding, { foreignKey: 'brandingId', as: 'branding' });
+
+Branding.hasMany(Patient, { foreignKey: 'brandingId', as: 'patients', onDelete: 'CASCADE' });
+Patient.belongsTo(Branding, { foreignKey: 'brandingId', as: 'branding' });
+
+Branding.hasMany(Appointment, { foreignKey: 'brandingId', as: 'appointments', onDelete: 'CASCADE' });
+Appointment.belongsTo(Branding, { foreignKey: 'brandingId', as: 'branding' });
+
+Branding.hasMany(Medication, { foreignKey: 'brandingId', as: 'medications', onDelete: 'CASCADE' });
+Medication.belongsTo(Branding, { foreignKey: 'brandingId', as: 'branding' });
+
+Branding.hasMany(ClinicalQuestion, { foreignKey: 'brandingId', as: 'clinicalQuestions', onDelete: 'CASCADE' });
+ClinicalQuestion.belongsTo(Branding, { foreignKey: 'brandingId', as: 'branding' });
+
+Branding.hasMany(NotificationLog, { foreignKey: 'brandingId', as: 'notificationLogs', onDelete: 'CASCADE' });
+NotificationLog.belongsTo(Branding, { foreignKey: 'brandingId', as: 'branding' });
+
 export {
   sequelize,
   User,

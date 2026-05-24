@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { z } from 'zod';
 import { Patient, Prescription, PrescriptionItem, sequelize } from '../models';
+import { findTenantPatient } from '../middleware/tenant';
 import { NotFound } from '../utils/errors';
 
 export const querySchema = z.object({ patientId: z.string().uuid().optional() });
@@ -29,24 +30,38 @@ function serialize(rx: Prescription): Record<string, unknown> {
   };
 }
 
+async function findTenantPrescription(req: Request, id: string): Promise<Prescription> {
+  const rx = await Prescription.findOne({
+    where: { id },
+    include: [
+      { model: PrescriptionItem, as: 'items' },
+      { model: Patient, as: 'patient', where: { brandingId: req.user!.brandingId }, required: true },
+    ],
+  });
+  if (!rx) throw NotFound('Prescription not found');
+  return rx;
+}
+
 export async function list(req: Request, res: Response): Promise<void> {
   const { patientId } = req.query as z.infer<typeof querySchema>;
   const where: Record<string, unknown> = {};
-  if (patientId) where.patientId = patientId;
+  if (patientId) {
+    await findTenantPatient(req, patientId);
+    where.patientId = patientId;
+  }
   const items = await Prescription.findAll({
     where,
-    ...includeItems,
+    include: [
+      { model: PrescriptionItem, as: 'items' },
+      { model: Patient, as: 'patient', where: { brandingId: req.user!.brandingId }, required: true },
+    ],
     order: [['date', 'DESC']],
   });
   res.json({ data: items.map(serialize) });
 }
 
 export async function get(req: Request, res: Response): Promise<void> {
-  const rx = await Prescription.findOne({
-    where: { id: req.params.id },
-    ...includeItems,
-  });
-  if (!rx) throw NotFound('Prescription not found');
+  const rx = await findTenantPrescription(req, req.params.id);
   res.json({ data: serialize(rx) });
 }
 
@@ -74,8 +89,7 @@ export const updateSchema = z.object({
 
 export async function create(req: Request, res: Response): Promise<void> {
   const body = req.body as z.infer<typeof createSchema>;
-  const patient = await Patient.findByPk(body.patientId);
-  if (!patient) throw NotFound('Patient not found');
+  await findTenantPatient(req, body.patientId);
   const rx = await sequelize.transaction(async (t) => {
     const created = await Prescription.create(
       {
@@ -99,8 +113,7 @@ export async function create(req: Request, res: Response): Promise<void> {
 }
 
 export async function update(req: Request, res: Response): Promise<void> {
-  const rx = await Prescription.findByPk(req.params.id);
-  if (!rx) throw NotFound('Prescription not found');
+  const rx = await findTenantPrescription(req, req.params.id);
   const body = req.body as z.infer<typeof updateSchema>;
   await sequelize.transaction(async (t) => {
     await rx.update(
@@ -126,8 +139,7 @@ export async function update(req: Request, res: Response): Promise<void> {
 }
 
 export async function remove(req: Request, res: Response): Promise<void> {
-  const rx = await Prescription.findByPk(req.params.id);
-  if (!rx) throw NotFound('Prescription not found');
+  const rx = await findTenantPrescription(req, req.params.id);
   await rx.destroy();
   res.status(204).end();
 }

@@ -5,6 +5,7 @@ export type QuestionType = 'text' | 'textarea' | 'yes_no' | 'checkbox_group';
 
 export interface ClinicalQuestionAttrs {
   id: string;
+  brandingId: string;
   code: string;
   section: string;
   label: string;
@@ -26,6 +27,7 @@ export class ClinicalQuestion
   implements ClinicalQuestionAttrs
 {
   declare id: string;
+  declare brandingId: string;
   declare code: string;
   declare section: string;
   declare label: string;
@@ -40,6 +42,7 @@ export class ClinicalQuestion
 ClinicalQuestion.init(
   {
     id: { type: DataTypes.UUID, defaultValue: DataTypes.UUIDV4, primaryKey: true },
+    brandingId: { type: DataTypes.UUID, allowNull: false, field: 'branding_id' },
     code: { type: DataTypes.STRING(80), allowNull: false },
     section: { type: DataTypes.STRING(120), allowNull: false },
     label: { type: DataTypes.STRING(500), allowNull: false },

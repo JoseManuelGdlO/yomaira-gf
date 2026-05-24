@@ -3,6 +3,7 @@ import { sequelize } from '../config/database';
 
 export interface NotificationLogAttrs {
   id: string;
+  brandingId: string;
   appointmentId: string | null;
   eventType: string;
   channel: string;
@@ -16,6 +17,7 @@ export type NotificationLogCreation = Optional<NotificationLogAttrs, 'id' | 'app
 
 export class NotificationLog extends Model<NotificationLogAttrs, NotificationLogCreation> implements NotificationLogAttrs {
   declare id: string;
+  declare brandingId: string;
   declare appointmentId: string | null;
   declare eventType: string;
   declare channel: string;
@@ -28,6 +30,7 @@ export class NotificationLog extends Model<NotificationLogAttrs, NotificationLog
 NotificationLog.init(
   {
     id: { type: DataTypes.UUID, defaultValue: DataTypes.UUIDV4, primaryKey: true },
+    brandingId: { type: DataTypes.UUID, allowNull: false, field: 'branding_id' },
     appointmentId: { type: DataTypes.UUID, allowNull: true },
     eventType: { type: DataTypes.STRING(40), allowNull: false },
     channel: { type: DataTypes.STRING(20), allowNull: false },

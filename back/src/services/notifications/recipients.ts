@@ -13,9 +13,9 @@ const STAFF_ROLES = ['admin', 'doctor'];
 
 export async function buildAppointmentContext(appointment: Appointment): Promise<AppointmentContext> {
   const patient = await Patient.findByPk(appointment.patientId);
-  const branding =
-    (await Branding.findOne({ where: { isDefault: true } })) ??
-    (await Branding.findOne({ order: [['createdAt', 'ASC']] }));
+  const branding = patient
+    ? await Branding.findByPk(patient.brandingId)
+    : await Branding.findByPk(appointment.brandingId);
 
   return {
     appointmentId: appointment.id,
@@ -29,6 +29,7 @@ export async function buildAppointmentContext(appointment: Appointment): Promise
     status: appointment.status,
     scheduledBy: appointment.scheduledBy,
     clinicName: branding?.clinicName ?? 'Consultorio',
+    brandingId: branding?.id ?? appointment.brandingId,
   };
 }
 
@@ -38,14 +39,14 @@ export type StaffRecipient = {
   name: string;
 };
 
-export async function getStaffRecipients(): Promise<StaffRecipient[]> {
+export async function getStaffRecipients(brandingId: string): Promise<StaffRecipient[]> {
   const users = await User.findAll({
-    where: { active: true },
+    where: { active: true, brandingId },
     include: [
       {
         model: Role,
         through: { attributes: [] },
-        where: { name: { [Op.in]: STAFF_ROLES } },
+        where: { name: { [Op.in]: STAFF_ROLES }, brandingId },
         required: true,
       },
     ],

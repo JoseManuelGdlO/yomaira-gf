@@ -120,6 +120,8 @@ export type AuthUser = {
   id: string;
   email: string;
   name: string;
+  brandingId: string;
+  brandingSlug: string;
   roles: string[];
   permissions: string[];
 };
@@ -246,8 +248,7 @@ export const api = {
     list: () => request<Medication[]>("/medications"),
   },
   brandings: {
-    active: () => request<Branding>("/brandings/active"),
-    list: () => request<Branding[]>("/brandings"),
+    me: () => request<Branding>("/brandings/me"),
     update: (id: string, body: Partial<Branding>) =>
       request<Branding>(`/brandings/${id}`, { method: "PATCH", body }),
   },
@@ -317,14 +318,15 @@ export const api = {
     googleDisconnect: () => request<void>("/integrations/google", { method: "DELETE" }),
   },
   publicBooking: {
-    branding: () => request<PublicBrandingDTO>("/public/branding", { noAuth: true }),
-    lookupPatient: (phone: string) =>
+    branding: (slug: string) =>
+      request<PublicBrandingDTO>("/public/branding", { noAuth: true, query: { slug } }),
+    lookupPatient: (slug: string, phone: string) =>
       request<PublicPatientDTO | null>("/public/patients/lookup", {
         noAuth: true,
-        query: { phone },
+        query: { slug, phone },
       }),
-    slots: (date: string) =>
-      request<string[]>("/public/appointment-slots", { noAuth: true, query: { date } }),
+    slots: (slug: string, date: string) =>
+      request<string[]>("/public/appointment-slots", { noAuth: true, query: { slug, date } }),
     book: (body: PublicBookBody) =>
       request<{ appointment: Appointment; cancelToken: string }>("/public/appointment-requests", {
         method: "POST",
@@ -357,6 +359,11 @@ export type PublicBrandingDTO = {
   phone?: string;
   address?: string;
   slug?: string;
+  primary?: string;
+  secondary?: string;
+  accent?: string;
+  surface?: string;
+  sidebar?: string;
 };
 
 export type PublicPatientDTO = {
@@ -367,6 +374,7 @@ export type PublicPatientDTO = {
 };
 
 export type PublicBookBody = {
+  slug: string;
   patientId?: string;
   name?: string;
   guardian?: string;

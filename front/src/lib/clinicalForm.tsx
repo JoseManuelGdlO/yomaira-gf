@@ -1,7 +1,8 @@
-import { createContext, useCallback, useContext, useMemo, useRef, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, type ReactNode } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
+import { tenantKey } from "@/lib/tenantQuery";
 import { toast } from "sonner";
 
 export type QuestionType = "text" | "textarea" | "yes_no" | "checkbox_group";
@@ -32,10 +33,21 @@ const qkAnswers = (patientId: string) => ["clinical", "answers", patientId] as c
 export function ClinicalFormProvider({ children }: { children: ReactNode }) {
   const { user, ready } = useAuth();
   const enabled = ready && !!user;
+  const brandingId = user?.brandingId;
   const qc = useQueryClient();
+  const questionsKey = tenantKey(QK_QUESTIONS, brandingId);
+  const answersRef = useRef<Record<string, Answers>>({});
+  const answersFetched = useRef<Set<string>>(new Set());
+  const answersLoading = useRef<Set<string>>(new Set());
+
+  useEffect(() => {
+    answersRef.current = {};
+    answersFetched.current = new Set();
+    answersLoading.current = new Set();
+  }, [brandingId]);
 
   const questionsQ = useQuery({
-    queryKey: QK_QUESTIONS,
+    queryKey: questionsKey,
     queryFn: () => api.clinicalQuestions.list(),
     enabled,
     staleTime: 60_000,
@@ -76,18 +88,13 @@ export function ClinicalFormProvider({ children }: { children: ReactNode }) {
         type: q.type,
         options: q.options ?? null,
       }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: QK_QUESTIONS }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: questionsKey }),
   });
 
   const removeM = useMutation({
     mutationFn: (id: string) => api.clinicalQuestions.remove(id),
-    onSuccess: () => qc.invalidateQueries({ queryKey: QK_QUESTIONS }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: questionsKey }),
   });
-
-  // Per-patient answers cache, fetched lazily on first read.
-  const answersRef = useRef<Record<string, Answers>>({});
-  const answersFetched = useRef<Set<string>>(new Set());
-  const answersLoading = useRef<Set<string>>(new Set());
 
   const ensureAnswers = useCallback(
     (patientId: string) => {

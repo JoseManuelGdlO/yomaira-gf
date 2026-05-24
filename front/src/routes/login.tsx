@@ -121,7 +121,7 @@ function LoginPage() {
           </form>
 
           <p className="text-center text-xs text-muted-foreground">
-            {MEDIFLOW_PLATFORM.name} · Multi-consultorio
+            {MEDIFLOW_PLATFORM.name} · Plataforma para consultorios
           </p>
         </div>
       </div>

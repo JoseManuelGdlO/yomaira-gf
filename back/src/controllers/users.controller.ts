@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { Op } from 'sequelize';
 import { z } from 'zod';
 import { Permission, Role, User, UserRole } from '../models';
+import { tenantWhere } from '../middleware/tenant';
 import { hashPassword } from '../utils/password';
 import { Conflict, Forbidden, NotFound } from '../utils/errors';
 
@@ -23,14 +24,26 @@ function serialize(user: User): Record<string, unknown> {
   };
 }
 
-export async function list(_req: Request, res: Response): Promise<void> {
-  const users = await User.findAll({ ...includeRoles, order: [['name', 'ASC']] });
+async function findTenantUser(req: Request, id: string): Promise<User> {
+  const user = await User.findOne({ where: { id, ...tenantWhere(req) }, ...includeRoles });
+  if (!user) throw NotFound('User not found');
+  return user;
+}
+
+async function assertTenantRoles(req: Request, roleIds: string[]): Promise<Role[]> {
+  if (!roleIds.length) return [];
+  const roles = await Role.findAll({ where: { id: { [Op.in]: roleIds }, ...tenantWhere(req) } });
+  if (roles.length !== roleIds.length) throw Forbidden('Invalid role');
+  return roles;
+}
+
+export async function list(req: Request, res: Response): Promise<void> {
+  const users = await User.findAll({ where: tenantWhere(req), ...includeRoles, order: [['name', 'ASC']] });
   res.json({ data: users.map(serialize) });
 }
 
 export async function get(req: Request, res: Response): Promise<void> {
-  const user = await User.findByPk(req.params.id, includeRoles);
-  if (!user) throw NotFound('User not found');
+  const user = await findTenantUser(req, req.params.id);
   res.json({ data: serialize(user) });
 }
 
@@ -48,6 +61,7 @@ export async function create(req: Request, res: Response): Promise<void> {
   if (exists) throw Conflict('Email already in use');
 
   const user = await User.create({
+    brandingId: req.user!.brandingId,
     email: body.email.toLowerCase(),
     password: await hashPassword(body.password),
     name: body.name,
@@ -55,8 +69,7 @@ export async function create(req: Request, res: Response): Promise<void> {
   });
 
   if (body.roleIds?.length) {
-    const roles = await Role.findAll({ where: { id: { [Op.in]: body.roleIds } } });
-    if (roles.length !== body.roleIds.length) throw Forbidden('Invalid role');
+    const roles = await assertTenantRoles(req, body.roleIds);
     await UserRole.bulkCreate(roles.map((r) => ({ userId: user.id, roleId: r.id })));
   }
 
@@ -72,10 +85,13 @@ export const updateSchema = z.object({
 });
 
 export async function update(req: Request, res: Response): Promise<void> {
-  const user = await User.findByPk(req.params.id);
-  if (!user) throw NotFound('User not found');
+  const user = await findTenantUser(req, req.params.id);
   const body = req.body as z.infer<typeof updateSchema>;
-  if (body.email) user.email = body.email.toLowerCase();
+  if (body.email && body.email.toLowerCase() !== user.email) {
+    const exists = await User.findOne({ where: { email: body.email.toLowerCase() } });
+    if (exists) throw Conflict('Email already in use');
+    user.email = body.email.toLowerCase();
+  }
   if (body.password) user.password = await hashPassword(body.password);
   if (body.name) user.name = body.name;
   if (typeof body.active === 'boolean') user.active = body.active;
@@ -85,8 +101,7 @@ export async function update(req: Request, res: Response): Promise<void> {
 }
 
 export async function remove(req: Request, res: Response): Promise<void> {
-  const user = await User.findByPk(req.params.id);
-  if (!user) throw NotFound('User not found');
+  const user = await findTenantUser(req, req.params.id);
   await UserRole.destroy({ where: { userId: user.id } });
   await user.destroy();
   res.status(204).end();
@@ -95,11 +110,9 @@ export async function remove(req: Request, res: Response): Promise<void> {
 export const setRolesSchema = z.object({ roleIds: z.array(z.string().uuid()) });
 
 export async function setRoles(req: Request, res: Response): Promise<void> {
-  const user = await User.findByPk(req.params.id);
-  if (!user) throw NotFound('User not found');
+  const user = await findTenantUser(req, req.params.id);
   const { roleIds } = req.body as z.infer<typeof setRolesSchema>;
-  const roles = await Role.findAll({ where: { id: { [Op.in]: roleIds } } });
-  if (roles.length !== roleIds.length) throw Forbidden('Invalid role');
+  await assertTenantRoles(req, roleIds);
   await UserRole.destroy({ where: { userId: user.id } });
   if (roleIds.length) {
     await UserRole.bulkCreate(roleIds.map((roleId) => ({ userId: user.id, roleId })));
@@ -110,6 +123,9 @@ export async function setRoles(req: Request, res: Response): Promise<void> {
 
 export async function removeRole(req: Request, res: Response): Promise<void> {
   const { id, roleId } = req.params;
+  await findTenantUser(req, id);
+  const role = await Role.findOne({ where: { id: roleId, ...tenantWhere(req) } });
+  if (!role) throw Forbidden('Invalid role');
   await UserRole.destroy({ where: { userId: id, roleId } });
   const fresh = await User.findByPk(id, includeRoles);
   if (!fresh) throw NotFound('User not found');

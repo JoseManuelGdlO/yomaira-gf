@@ -16,10 +16,18 @@ const ITEMS = [
 module.exports = {
   async up(queryInterface) {
     const now = new Date();
+    const brandings = await queryInterface.sequelize.query(
+      "SELECT id FROM brandings WHERE slug = 'yomaira' LIMIT 1",
+      { type: queryInterface.sequelize.QueryTypes.SELECT },
+    );
+    const branding = brandings[0];
+    if (!branding) throw new Error('Run branding seeder first');
+
     await queryInterface.bulkInsert(
       'medications',
       ITEMS.map(([name, presentation]) => ({
         id: uuid(),
+        branding_id: branding.id,
         name,
         presentation,
         created_at: now,

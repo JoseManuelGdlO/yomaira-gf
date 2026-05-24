@@ -3,6 +3,7 @@ import { sequelize } from '../config/database';
 
 export interface PatientAttrs {
   id: string;
+  brandingId: string;
   name: string;
   age: number;
   birthDate: string;
@@ -27,6 +28,7 @@ export type PatientCreationAttrs = Optional<
 
 export class Patient extends Model<PatientAttrs, PatientCreationAttrs> implements PatientAttrs {
   declare id: string;
+  declare brandingId: string;
   declare name: string;
   declare age: number;
   declare birthDate: string;
@@ -47,6 +49,7 @@ export class Patient extends Model<PatientAttrs, PatientCreationAttrs> implement
 Patient.init(
   {
     id: { type: DataTypes.UUID, defaultValue: DataTypes.UUIDV4, primaryKey: true },
+    brandingId: { type: DataTypes.UUID, allowNull: false, field: 'branding_id' },
     name: { type: DataTypes.STRING(190), allowNull: false },
     age: { type: DataTypes.INTEGER.UNSIGNED, allowNull: false, defaultValue: 0 },
     birthDate: { type: DataTypes.DATEONLY, allowNull: false },

@@ -3,6 +3,7 @@ import { sequelize } from '../config/database';
 
 export interface RoleAttrs {
   id: string;
+  brandingId: string;
   name: string;
   description: string | null;
   createdAt?: Date;
@@ -13,6 +14,7 @@ export type RoleCreationAttrs = Optional<RoleAttrs, 'id' | 'description' | 'crea
 
 export class Role extends Model<RoleAttrs, RoleCreationAttrs> implements RoleAttrs {
   declare id: string;
+  declare brandingId: string;
   declare name: string;
   declare description: string | null;
   declare readonly createdAt: Date;
@@ -24,7 +26,8 @@ export class Role extends Model<RoleAttrs, RoleCreationAttrs> implements RoleAtt
 Role.init(
   {
     id: { type: DataTypes.UUID, defaultValue: DataTypes.UUIDV4, primaryKey: true },
-    name: { type: DataTypes.STRING(60), allowNull: false, unique: true },
+    brandingId: { type: DataTypes.UUID, allowNull: false, field: 'branding_id' },
+    name: { type: DataTypes.STRING(60), allowNull: false },
     description: { type: DataTypes.STRING(190), allowNull: true },
   },
   {

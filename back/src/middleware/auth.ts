@@ -1,9 +1,9 @@
 import { NextFunction, Request, Response } from 'express';
-import { Permission, Role, User, UserRole } from '../models';
+import { Branding, Permission, Role, User, UserRole } from '../models';
 import { Unauthorized } from '../utils/errors';
 import { verifyToken } from '../utils/jwt';
 
-async function loadRolesForUser(userId: string): Promise<{ roles: string[]; permissions: string[] }> {
+async function loadRolesForUser(userId: string, brandingId: string): Promise<{ roles: string[]; permissions: string[] }> {
   const userRoles = await UserRole.findAll({
     where: { userId },
     include: [
@@ -11,6 +11,7 @@ async function loadRolesForUser(userId: string): Promise<{ roles: string[]; perm
         model: Role,
         as: 'role',
         required: true,
+        where: { brandingId },
         include: [{ model: Permission, through: { attributes: [] } }],
       },
     ],
@@ -30,10 +31,24 @@ async function loadRolesForUser(userId: string): Promise<{ roles: string[]; perm
 }
 
 export async function loadUserWithPermissions(userId: string): Promise<Express.AuthUser | null> {
-  const user = await User.findByPk(userId);
+  const user = await User.findByPk(userId, {
+    include: [{ model: Branding, as: 'branding', required: true }],
+  });
   if (!user || !user.active) return null;
-  const { roles, permissions } = await loadRolesForUser(userId);
-  return { id: user.id, email: user.email, name: user.name, roles, permissions };
+
+  const branding = user.get('branding') as Branding | undefined;
+  if (!branding) return null;
+
+  const { roles, permissions } = await loadRolesForUser(userId, user.brandingId);
+  return {
+    id: user.id,
+    email: user.email,
+    name: user.name,
+    brandingId: user.brandingId,
+    brandingSlug: branding.slug,
+    roles,
+    permissions,
+  };
 }
 
 export async function authenticate(req: Request, _res: Response, next: NextFunction): Promise<void> {
@@ -55,6 +70,9 @@ export async function authenticate(req: Request, _res: Response, next: NextFunct
 
     const authUser = await loadUserWithPermissions(payload.sub);
     if (!authUser) throw Unauthorized('User not found or inactive');
+    if (authUser.brandingId !== payload.brandingId) {
+      throw Unauthorized('Tenant context mismatch');
+    }
     req.user = authUser;
     next();
   } catch (err) {

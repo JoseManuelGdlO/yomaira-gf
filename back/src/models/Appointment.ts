@@ -6,6 +6,7 @@ export type AppointmentScheduledBy = 'staff' | 'patient';
 
 export interface AppointmentAttrs {
   id: string;
+  brandingId: string;
   patientId: string;
   date: string;
   time: string;
@@ -20,6 +21,7 @@ export type AppointmentCreationAttrs = Optional<AppointmentAttrs, 'id' | 'status
 
 export class Appointment extends Model<AppointmentAttrs, AppointmentCreationAttrs> implements AppointmentAttrs {
   declare id: string;
+  declare brandingId: string;
   declare patientId: string;
   declare date: string;
   declare time: string;
@@ -33,6 +35,7 @@ export class Appointment extends Model<AppointmentAttrs, AppointmentCreationAttr
 Appointment.init(
   {
     id: { type: DataTypes.UUID, defaultValue: DataTypes.UUIDV4, primaryKey: true },
+    brandingId: { type: DataTypes.UUID, allowNull: false, field: 'branding_id' },
     patientId: { type: DataTypes.UUID, allowNull: false, field: 'patient_id' },
     date: { type: DataTypes.DATEONLY, allowNull: false },
     time: { type: DataTypes.STRING(8), allowNull: false },

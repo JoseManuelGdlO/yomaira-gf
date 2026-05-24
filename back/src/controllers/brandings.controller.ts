@@ -11,22 +11,20 @@ const consentPointSchema = z.object({
   italic: z.boolean().optional(),
 });
 
-export async function list(_req: Request, res: Response): Promise<void> {
-  const items = await Branding.findAll({ order: [['clinicName', 'ASC']] });
-  res.json({ data: items });
+async function findOwnBranding(req: Request): Promise<Branding> {
+  const item = await Branding.findByPk(req.user!.brandingId);
+  if (!item) throw NotFound('Branding not found');
+  return item;
 }
 
-export async function active(_req: Request, res: Response): Promise<void> {
-  const item =
-    (await Branding.findOne({ where: { isDefault: true } })) ??
-    (await Branding.findOne({ order: [['createdAt', 'ASC']] }));
-  if (!item) throw NotFound('No branding configured');
+export async function me(req: Request, res: Response): Promise<void> {
+  const item = await findOwnBranding(req);
   res.json({ data: item });
 }
 
 export async function get(req: Request, res: Response): Promise<void> {
-  const item = await Branding.findByPk(req.params.id);
-  if (!item) throw NotFound('Branding not found');
+  const item = await findOwnBranding(req);
+  if (item.id !== req.params.id) throw NotFound('Branding not found');
   res.json({ data: item });
 }
 
@@ -53,27 +51,15 @@ const fields = {
   rxFooter: z.string().default(''),
   consentTitle: z.string().min(1).max(500).optional(),
   consentPoints: z.array(consentPointSchema).optional(),
-  isDefault: z.boolean().optional(),
 };
 
-export const createSchema = z.object(fields);
 export const updateSchema = z.object(fields).partial();
 
-export async function create(req: Request, res: Response): Promise<void> {
-  const item = await Branding.create(req.body);
-  res.status(201).json({ data: item });
-}
-
 export async function update(req: Request, res: Response): Promise<void> {
-  const item = await Branding.findByPk(req.params.id);
-  if (!item) throw NotFound('Branding not found');
-  await item.update(req.body);
+  const item = await findOwnBranding(req);
+  if (item.id !== req.params.id) throw NotFound('Branding not found');
+  const body = req.body as z.infer<typeof updateSchema>;
+  if (body.slug !== undefined) delete body.slug;
+  await item.update(body);
   res.json({ data: item });
-}
-
-export async function remove(req: Request, res: Response): Promise<void> {
-  const item = await Branding.findByPk(req.params.id);
-  if (!item) throw NotFound('Branding not found');
-  await item.destroy();
-  res.status(204).end();
 }

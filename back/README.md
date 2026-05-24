@@ -100,7 +100,7 @@ back/
 - `GET/POST/PATCH/DELETE /consultations[/...]`
 - `GET/POST/PATCH/DELETE /prescriptions[/...]` (items embebidos en `body.items[]`)
 - `GET/POST/PATCH/DELETE /medications[/...]`
-- `GET/POST/PATCH/DELETE /brandings[/...]`, `GET /brandings/active`
+- `GET/PATCH /brandings/me`, `GET/PATCH /brandings/:id` (solo el consultorio del usuario)
 - `GET/POST/PATCH/DELETE /clinical-questions[/...]`
 - `GET /dashboard/stats`, `GET /dashboard/upcoming`
 
@@ -112,9 +112,9 @@ back/
 - `GET /integrations/google/status`, `DELETE /integrations/google`
 
 ### Portal público (paciente)
-- `GET /public/branding`, `GET /public/patients/lookup?phone=`
-- `GET /public/appointment-slots?date=YYYY-MM-DD`
-- `POST /public/appointment-requests` → cita `pendiente` + `cancelToken`
+- `GET /public/branding?slug=`, `GET /public/patients/lookup?slug=&phone=`
+- `GET /public/appointment-slots?slug=&date=YYYY-MM-DD`
+- `POST /public/appointment-requests` `{ slug, ... }` → cita `pendiente` + `cancelToken`
 - `POST /public/appointments/:id/cancel` `{ token }`
 
 Al crear/confirmar/cancelar citas (staff o paciente) se disparan correo, push y sincronización con Google Calendar (si está configurado).
@@ -122,5 +122,24 @@ Al crear/confirmar/cancelar citas (staff o paciente) se disparan correo, push y 
 **Variables opcionales** (ver `.env.example`): `SMTP_*`, `VAPID_*`, `GOOGLE_*`, `FRONTEND_URL`, `PUBLIC_BOOKING_SECRET`.
 
 Generar claves VAPID: `npm run keys:vapid`
+
+## Multi-tenant (un consultorio por cliente)
+
+Cada fila en `brandings` es un consultorio aislado: usuarios, roles, pacientes, citas y branding propios.
+
+**Alta de un nuevo consultorio:**
+
+```bash
+npm run tenant:create -- \
+  --slug drgarcia \
+  --clinic "Consultorio Dr. García" \
+  --doctor "Dr. García" \
+  --admin-email admin@drgarcia.com \
+  --admin-password 'Secret123!'
+```
+
+- Login único en `/login` (el tenant se resuelve desde el usuario).
+- Agenda pública: `{FRONTEND_URL}/agendar/{slug}`.
+- Emails de usuarios son únicos en toda la plataforma.
 
 Todas las respuestas son `{ data, meta? }` o `{ error: { code, message, details? } }`.

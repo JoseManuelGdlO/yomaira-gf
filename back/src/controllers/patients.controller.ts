@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { Op } from 'sequelize';
 import { z } from 'zod';
 import { Patient } from '../models';
+import { findTenantPatient, tenantWhere } from '../middleware/tenant';
 import { NotFound } from '../utils/errors';
 
 export const querySchema = z.object({
@@ -12,7 +13,7 @@ export const querySchema = z.object({
 
 export async function list(req: Request, res: Response): Promise<void> {
   const { q, limit, offset } = req.query as z.infer<typeof querySchema>;
-  const where: Record<string, unknown> = {};
+  const where: Record<string, unknown> = { ...tenantWhere(req) };
   if (q) {
     Object.assign(where, {
       [Op.or]: [
@@ -26,8 +27,7 @@ export async function list(req: Request, res: Response): Promise<void> {
 }
 
 export async function get(req: Request, res: Response): Promise<void> {
-  const item = await Patient.findByPk(req.params.id);
-  if (!item) throw NotFound('Patient not found');
+  const item = await findTenantPatient(req, req.params.id);
   res.json({ data: item });
 }
 
@@ -52,20 +52,18 @@ export const updateSchema = z.object(baseSchema).partial();
 
 export async function create(req: Request, res: Response): Promise<void> {
   const body = req.body as z.infer<typeof createSchema>;
-  const item = await Patient.create(body);
+  const item = await Patient.create({ ...body, brandingId: req.user!.brandingId });
   res.status(201).json({ data: item });
 }
 
 export async function update(req: Request, res: Response): Promise<void> {
-  const item = await Patient.findByPk(req.params.id);
-  if (!item) throw NotFound('Patient not found');
+  const item = await findTenantPatient(req, req.params.id);
   await item.update(req.body);
   res.json({ data: item });
 }
 
 export async function remove(req: Request, res: Response): Promise<void> {
-  const item = await Patient.findByPk(req.params.id);
-  if (!item) throw NotFound('Patient not found');
+  const item = await findTenantPatient(req, req.params.id);
   await item.destroy();
   res.status(204).end();
 }
@@ -73,8 +71,7 @@ export async function remove(req: Request, res: Response): Promise<void> {
 export const consentPhotoSchema = z.object({ consentPhoto: z.string().nullable() });
 
 export async function setConsentPhoto(req: Request, res: Response): Promise<void> {
-  const item = await Patient.findByPk(req.params.id);
-  if (!item) throw NotFound('Patient not found');
+  const item = await findTenantPatient(req, req.params.id);
   const { consentPhoto } = req.body as z.infer<typeof consentPhotoSchema>;
   item.consentPhoto = consentPhoto;
   await item.save();

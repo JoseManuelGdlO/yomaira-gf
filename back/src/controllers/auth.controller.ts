@@ -12,7 +12,7 @@ export const loginSchema = z.object({
 });
 
 function tokenPayload(user: Express.AuthUser) {
-  return { sub: user.id, email: user.email };
+  return { sub: user.id, email: user.email, brandingId: user.brandingId };
 }
 
 export async function login(req: Request, res: Response): Promise<void> {
@@ -26,7 +26,7 @@ export async function login(req: Request, res: Response): Promise<void> {
   if (!authUser) throw Unauthorized('Cannot load user');
 
   const accessToken = signAccessToken(tokenPayload(authUser));
-  const refreshToken = signRefreshToken({ sub: user.id, email: user.email });
+  const refreshToken = signRefreshToken({ sub: user.id, email: user.email, brandingId: user.brandingId });
 
   res.json({
     data: {
@@ -55,12 +55,13 @@ export async function refresh(req: Request, res: Response): Promise<void> {
 
   const user = await User.findByPk(payload.sub);
   if (!user || !user.active) throw Unauthorized('User not found or inactive');
+  if (user.brandingId !== payload.brandingId) throw Unauthorized('Tenant context mismatch');
 
   const authUser = await loadUserWithPermissions(user.id);
   if (!authUser) throw Unauthorized('Cannot load user');
 
   const newAccess = signAccessToken(tokenPayload(authUser));
-  const newRefresh = signRefreshToken({ sub: user.id, email: user.email });
+  const newRefresh = signRefreshToken({ sub: user.id, email: user.email, brandingId: user.brandingId });
   res.json({ data: { accessToken: newAccess, refreshToken: newRefresh, user: authUser } });
 }
 
