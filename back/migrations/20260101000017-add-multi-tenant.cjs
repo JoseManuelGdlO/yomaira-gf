@@ -1,5 +1,7 @@
 'use strict';
 
+const { v4: uuid } = require('uuid');
+
 const TABLES = ['users', 'roles', 'patients', 'appointments', 'medications', 'clinical_questions', 'notification_logs'];
 
 module.exports = {
@@ -15,7 +17,29 @@ module.exports = {
       defaultBrandingId = any[0]?.id;
     }
     if (!defaultBrandingId) {
-      throw new Error('No branding row found for multi-tenant backfill');
+      const now = new Date();
+      defaultBrandingId = uuid();
+      await queryInterface.bulkInsert('brandings', [
+        {
+          id: defaultBrandingId,
+          slug: 'default',
+          clinic_name: 'MedFlow',
+          doctor_name: 'Administrador',
+          specialty: 'Medicina general',
+          primary: '0.55 0.25 320',
+          secondary: '0.85 0.09 320',
+          accent: '0.45 0.13 265',
+          surface: '0.985 0.008 320',
+          sidebar: '0.99 0.005 320',
+          primary_hex: '#B100D4',
+          secondary_hex: '#DDB7E8',
+          accent_hex: '#2D4D8F',
+          rx_footer: 'MedFlow',
+          is_default: true,
+          created_at: now,
+          updated_at: now,
+        },
+      ]);
     }
 
     for (const table of TABLES) {

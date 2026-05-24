@@ -30,7 +30,10 @@ cp .env.example .env
 2. Levanta solo back + front:
 
 ```bash
-docker compose up --build
+# Local (con puertos 3000/4000)
+docker compose -f docker-compose.yml -f docker-compose.local.yml up --build
+
+# EasyPanel usa solo docker-compose.yml (sin publicar puertos en el host)
 ```
 
 Verificar:
@@ -43,6 +46,38 @@ open http://localhost:3000
 ## 2. Crear proyecto en EasyPanel
 
 1. EasyPanel → **New Project** → nombre: `medflow`
+2. **Add Service** → **Compose** → conectar este repositorio (usa `docker-compose.yml` de la raíz)
+3. En el proyecto → **Environment** → agregar todas las variables (ver abajo). EasyPanel las inyecta al compose.
+
+### Variables obligatorias en EasyPanel (Environment del proyecto)
+
+| Variable | Ejemplo |
+|----------|---------|
+| `DB_HOST` | `mysql` (nombre del servicio MySQL) |
+| `DB_USER` | usuario MySQL |
+| `DB_PASSWORD` | contraseña MySQL |
+| `DB_NAME` | `medflow` |
+| `JWT_SECRET` | string aleatorio ≥ 16 caracteres |
+| `CORS_ORIGIN` | `https://app.tudominio.com` |
+| `FRONTEND_URL` | `https://app.tudominio.com` |
+| `PUBLIC_BOOKING_SECRET` | string aleatorio |
+| `VITE_API_URL` | `https://api.tudominio.com/api/v1` |
+| `VITE_SITE_URL` | `https://app.tudominio.com` |
+
+> Sin estas variables verás warnings en el build y el backend puede fallar al arrancar.
+
+### Dominios en EasyPanel (Compose)
+
+Configura el proxy de cada servicio del compose:
+
+| Servicio compose | Proxy port | Dominio |
+|------------------|------------|---------|
+| `back` | `4000` | `api.tudominio.com` |
+| `front` | `3000` | `app.tudominio.com` |
+
+**No uses `ports:` en el compose en producción** — EasyPanel enruta con Traefik. Publicar `3000:3000` en el host provoca el error `port is already allocated`.
+
+## 2b. Alternativa: servicios App separados (sin Compose)
 
 ## 3. Servicio MySQL (nativo)
 

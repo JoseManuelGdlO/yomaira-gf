@@ -1,24 +1,27 @@
+# EasyPanel / producción — NO publicar puertos en el host.
+# EasyPanel enruta el tráfico vía Traefik al puerto interno del contenedor.
+# Para probar en local con localhost:3000 / :4000 usa: docker compose -f docker-compose.yml -f docker-compose.local.yml up --build
+
 services:
   back:
     build: ./back
-    ports:
-      - "4000:4000"
-    env_file:
-      - .env
+    expose:
+      - "4000"
+    restart: unless-stopped
     environment:
       NODE_ENV: ${NODE_ENV:-production}
       PORT: ${PORT:-4000}
-      DB_HOST: ${DB_HOST}
+      DB_HOST: ${DB_HOST:-mysql}
       DB_PORT: ${DB_PORT:-3306}
-      DB_USER: ${DB_USER}
-      DB_PASSWORD: ${DB_PASSWORD}
+      DB_USER: ${DB_USER:-medflow}
+      DB_PASSWORD: ${DB_PASSWORD:-}
       DB_NAME: ${DB_NAME:-medflow}
-      JWT_SECRET: ${JWT_SECRET}
+      JWT_SECRET: ${JWT_SECRET:-}
       JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-1d}
       JWT_REFRESH_EXPIRES_IN: ${JWT_REFRESH_EXPIRES_IN:-7d}
-      CORS_ORIGIN: ${CORS_ORIGIN}
-      FRONTEND_URL: ${FRONTEND_URL}
-      PUBLIC_BOOKING_SECRET: ${PUBLIC_BOOKING_SECRET}
+      CORS_ORIGIN: ${CORS_ORIGIN:-}
+      FRONTEND_URL: ${FRONTEND_URL:-}
+      PUBLIC_BOOKING_SECRET: ${PUBLIC_BOOKING_SECRET:-}
       SMTP_HOST: ${SMTP_HOST:-}
       SMTP_PORT: ${SMTP_PORT:-587}
       SMTP_USER: ${SMTP_USER:-}
@@ -39,7 +42,8 @@ services:
         VITE_API_URL: ${VITE_API_URL:-http://localhost:4000/api/v1}
         VITE_SITE_URL: ${VITE_SITE_URL:-http://localhost:3000}
         VITE_VAPID_PUBLIC_KEY: ${VITE_VAPID_PUBLIC_KEY:-}
-    ports:
-      - "3000:3000"
+    expose:
+      - "3000"
+    restart: unless-stopped
     depends_on:
       - back
