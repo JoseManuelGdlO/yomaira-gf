@@ -75,7 +75,8 @@ function Dashboard() {
           </div>
           <div className="divide-y">
             {upcoming.map((a) => {
-              const p = patients.find((x) => x.id === a.patientId)!;
+              const p = patients.find((x) => x.id === a.patientId);
+              if (!p) return null;
               return (
                 <Link key={a.id} to="/pacientes/$id" params={{ id: p.id }} className="flex items-center gap-4 py-3 hover:bg-surface -mx-2 px-2 rounded-lg transition-colors">
                   <div className="text-center w-14 shrink-0">

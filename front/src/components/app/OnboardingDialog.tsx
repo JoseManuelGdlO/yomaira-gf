@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { useBranding } from "@/lib/theme/ThemeProvider";
 import {
   Users, Calendar, FileText, Pill, Stethoscope, Palette, Sparkles, ArrowRight, ArrowLeft, Check,
@@ -101,8 +101,8 @@ export function OnboardingDialog({ open, onOpenChange }: { open: boolean; onOpen
               Paso {step + 1} de {STEPS.length}
             </div>
           </div>
-          <h2 className="font-display text-2xl font-semibold leading-tight">{s.title}</h2>
-          <p className="text-sm opacity-90 mt-2">{s.body}</p>
+          <DialogTitle className="font-display text-2xl font-semibold leading-tight">{s.title}</DialogTitle>
+          <DialogDescription className="text-sm opacity-90 mt-2">{s.body}</DialogDescription>
           <div className="absolute -right-6 -bottom-6 text-[8rem] opacity-15 select-none">
             {branding.logoEmoji}
           </div>
