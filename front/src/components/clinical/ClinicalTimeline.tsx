@@ -20,10 +20,18 @@ export function ClinicalTimeline({ items }: { items: Consultation[] }) {
             <div className="text-sm font-medium mt-0.5">{c.diagnosis}</div>
             <div className="text-xs text-muted-foreground uppercase tracking-wide mt-3">Tratamiento</div>
             <div className="text-sm mt-0.5">{c.treatment}</div>
-            {c.notes && (<>
-              <div className="text-xs text-muted-foreground uppercase tracking-wide mt-3">Notas</div>
-              <div className="text-sm mt-0.5 italic text-muted-foreground">{c.notes}</div>
-            </>)}
+            {c.nextTreatment && (
+              <>
+                <div className="text-xs text-muted-foreground uppercase tracking-wide mt-3">Próximo tratamiento</div>
+                <div className="text-sm mt-0.5">{c.nextTreatment}</div>
+              </>
+            )}
+            {(c.evolutionNote || c.notes) && (
+              <>
+                <div className="text-xs text-muted-foreground uppercase tracking-wide mt-3">Nota de evolución</div>
+                <div className="text-sm mt-0.5 italic text-muted-foreground">{c.evolutionNote || c.notes}</div>
+              </>
+            )}
             <div className="text-xs text-muted-foreground mt-3">— {c.doctor}</div>
           </div>
         </div>

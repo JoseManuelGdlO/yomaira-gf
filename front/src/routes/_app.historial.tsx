@@ -28,8 +28,14 @@ function HistorialPage() {
                   <span className="text-muted-foreground">·</span>
                   <span className="text-muted-foreground">{fmtLong(c.date)}</span>
                 </div>
-                <div className="text-sm mt-1"><span className="text-muted-foreground">Diagnóstico:</span> {c.diagnosis}</div>
-                <div className="text-sm"><span className="text-muted-foreground">Tratamiento:</span> {c.treatment}</div>
+                <div className="text-sm mt-1"><span className="text-muted-foreground">Tratamiento realizado:</span> {c.treatment}</div>
+                {c.nextTreatment && (
+                  <div className="text-sm"><span className="text-muted-foreground">Próximo:</span> {c.nextTreatment}</div>
+                )}
+                {c.paymentAndNextAppointment && (
+                  <div className="text-sm"><span className="text-muted-foreground">Pago / cita:</span> {c.paymentAndNextAppointment}</div>
+                )}
+                <div className="text-sm"><span className="text-muted-foreground">Diagnóstico:</span> {c.diagnosis}</div>
               </div>
             );
           })}

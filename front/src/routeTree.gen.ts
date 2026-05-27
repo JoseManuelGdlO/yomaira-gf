@@ -25,6 +25,7 @@ import { Route as AppAgendaRouteImport } from './routes/_app.agenda'
 import { Route as AppAdministracionRouteImport } from './routes/_app.administracion'
 import { Route as AppRecetasNuevaRouteImport } from './routes/_app.recetas.nueva'
 import { Route as AppPacientesIdRouteImport } from './routes/_app.pacientes.$id'
+import { Route as AppPacientesIdHojaRouteImport } from './routes/_app.pacientes.$id.hoja'
 
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
@@ -105,6 +106,11 @@ const AppPacientesIdRoute = AppPacientesIdRouteImport.update({
   path: '/$id',
   getParentRoute: () => AppPacientesRoute,
 } as any)
+const AppPacientesIdHojaRoute = AppPacientesIdHojaRouteImport.update({
+  id: '/hoja',
+  path: '/hoja',
+  getParentRoute: () => AppPacientesIdRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -120,8 +126,9 @@ export interface FileRoutesByFullPath {
   '/pacientes': typeof AppPacientesRouteWithChildren
   '/recetas': typeof AppRecetasRouteWithChildren
   '/agendar/$slug': typeof AgendarSlugRoute
-  '/pacientes/$id': typeof AppPacientesIdRoute
+  '/pacientes/$id': typeof AppPacientesIdRouteWithChildren
   '/recetas/nueva': typeof AppRecetasNuevaRoute
+  '/pacientes/$id/hoja': typeof AppPacientesIdHojaRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -137,8 +144,9 @@ export interface FileRoutesByTo {
   '/pacientes': typeof AppPacientesRouteWithChildren
   '/recetas': typeof AppRecetasRouteWithChildren
   '/agendar/$slug': typeof AgendarSlugRoute
-  '/pacientes/$id': typeof AppPacientesIdRoute
+  '/pacientes/$id': typeof AppPacientesIdRouteWithChildren
   '/recetas/nueva': typeof AppRecetasNuevaRoute
+  '/pacientes/$id/hoja': typeof AppPacientesIdHojaRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -156,8 +164,9 @@ export interface FileRoutesById {
   '/_app/pacientes': typeof AppPacientesRouteWithChildren
   '/_app/recetas': typeof AppRecetasRouteWithChildren
   '/agendar/$slug': typeof AgendarSlugRoute
-  '/_app/pacientes/$id': typeof AppPacientesIdRoute
+  '/_app/pacientes/$id': typeof AppPacientesIdRouteWithChildren
   '/_app/recetas/nueva': typeof AppRecetasNuevaRoute
+  '/_app/pacientes/$id/hoja': typeof AppPacientesIdHojaRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -177,6 +186,7 @@ export interface FileRouteTypes {
     | '/agendar/$slug'
     | '/pacientes/$id'
     | '/recetas/nueva'
+    | '/pacientes/$id/hoja'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -194,6 +204,7 @@ export interface FileRouteTypes {
     | '/agendar/$slug'
     | '/pacientes/$id'
     | '/recetas/nueva'
+    | '/pacientes/$id/hoja'
   id:
     | '__root__'
     | '/'
@@ -212,6 +223,7 @@ export interface FileRouteTypes {
     | '/agendar/$slug'
     | '/_app/pacientes/$id'
     | '/_app/recetas/nueva'
+    | '/_app/pacientes/$id/hoja'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -335,15 +347,34 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppPacientesIdRouteImport
       parentRoute: typeof AppPacientesRoute
     }
+    '/_app/pacientes/$id/hoja': {
+      id: '/_app/pacientes/$id/hoja'
+      path: '/hoja'
+      fullPath: '/pacientes/$id/hoja'
+      preLoaderRoute: typeof AppPacientesIdHojaRouteImport
+      parentRoute: typeof AppPacientesIdRoute
+    }
   }
 }
 
+interface AppPacientesIdRouteChildren {
+  AppPacientesIdHojaRoute: typeof AppPacientesIdHojaRoute
+}
+
+const AppPacientesIdRouteChildren: AppPacientesIdRouteChildren = {
+  AppPacientesIdHojaRoute: AppPacientesIdHojaRoute,
+}
+
+const AppPacientesIdRouteWithChildren = AppPacientesIdRoute._addFileChildren(
+  AppPacientesIdRouteChildren,
+)
+
 interface AppPacientesRouteChildren {
-  AppPacientesIdRoute: typeof AppPacientesIdRoute
+  AppPacientesIdRoute: typeof AppPacientesIdRouteWithChildren
 }
 
 const AppPacientesRouteChildren: AppPacientesRouteChildren = {
-  AppPacientesIdRoute: AppPacientesIdRoute,
+  AppPacientesIdRoute: AppPacientesIdRouteWithChildren,
 }
 
 const AppPacientesRouteWithChildren = AppPacientesRoute._addFileChildren(

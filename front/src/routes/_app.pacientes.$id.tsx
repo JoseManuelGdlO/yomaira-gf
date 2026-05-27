@@ -3,8 +3,8 @@ import { fmtShort } from "@/lib/format";
 import { useState } from "react";
 import { useStore } from "@/lib/store";
 import { PatientAvatar } from "@/components/clinical/PatientAvatar";
-import { ClinicalTimeline } from "@/components/clinical/ClinicalTimeline";
-import { Phone, Mail, Cake, Droplet, AlertCircle, FileText, Pill, Plus, Upload, Edit2, Save, ClipboardList, FileSignature, Camera, Trash2, Eye, Printer } from "lucide-react";
+import { ClinicalSheetTab } from "@/components/clinical/ClinicalSheetTab";
+import { Phone, Mail, Cake, Droplet, AlertCircle, FileText, Pill, Plus, Upload, ClipboardList, FileSignature, Camera, Trash2, Eye, Printer } from "lucide-react";
 import { toast } from "sonner";
 import { useClinicalForm, type Question } from "@/lib/clinicalForm";
 import { ViewPrescriptionDialog } from "@/components/prescription/ViewPrescriptionDialog";
@@ -16,7 +16,7 @@ export const Route = createFileRoute("/_app/pacientes/$id")({
   notFoundComponent: () => <div className="p-8">Paciente no encontrado.</div>,
 });
 
-const TABS = ["Resumen", "Historia clínica", "Historial", "Diagnósticos", "Medicamentos", "Estudios", "Notas", "Recetas"] as const;
+const TABS = ["Hoja clínica", "Resumen", "Historia clínica", "Medicamentos", "Recetas"] as const;
 type Tab = typeof TABS[number];
 
 function PatientDetail() {
@@ -25,9 +25,7 @@ function PatientDetail() {
   const patient = patients.find((p) => p.id === id);
   if (!patient) throw notFound();
 
-  const [tab, setTab] = useState<Tab>("Resumen");
-  const [editing, setEditing] = useState(false);
-  const [notes, setNotes] = useState("");
+  const [tab, setTab] = useState<Tab>("Hoja clínica");
   const [viewRx, setViewRx] = useState<Prescription | null>(null);
   const [rxAutoPrint, setRxAutoPrint] = useState(false);
   const patientConsults = consultations.filter((c) => c.patientId === id);
@@ -80,6 +78,10 @@ function PatientDetail() {
       </div>
 
       <div>
+        {tab === "Hoja clínica" && (
+          <ClinicalSheetTab patientId={patient.id} consultations={patientConsults} />
+        )}
+
         {tab === "Resumen" && (
           <div className="grid lg:grid-cols-2 gap-6">
             <Section title="Datos generales">
@@ -101,23 +103,6 @@ function PatientDetail() {
 
         {tab === "Historia clínica" && <HistoriaClinica patientId={patient.id} />}
 
-        {tab === "Historial" && <ClinicalTimeline items={patientConsults} />}
-
-        {tab === "Diagnósticos" && (
-          <div className="space-y-3">
-            {patientConsults.length === 0 ? <div className="text-sm text-muted-foreground">Sin diagnósticos.</div> :
-              patientConsults.map((c) => (
-                <div key={c.id} className="bg-card border rounded-xl p-4">
-                  <div className="flex items-center justify-between">
-                    <div className="font-medium">{c.diagnosis}</div>
-                    <div className="text-xs text-muted-foreground">{fmtShort(c.date)}</div>
-                  </div>
-                  <div className="text-sm text-muted-foreground mt-1">Tratamiento: {c.treatment}</div>
-                </div>
-              ))}
-          </div>
-        )}
-
         {tab === "Medicamentos" && (
           <div className="space-y-3">
             {patientRx.length === 0 ? <div className="text-sm text-muted-foreground">Sin medicamentos activos.</div> :
@@ -131,27 +116,6 @@ function PatientDetail() {
                   <div className="text-xs text-muted-foreground">{fmtShort(r.date)}</div>
                 </div>
               )))}
-          </div>
-        )}
-
-        {tab === "Estudios" && (
-          <div className="border-2 border-dashed rounded-2xl p-12 text-center">
-            <Upload className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
-            <div className="font-medium">Sube estudios médicos</div>
-            <div className="text-sm text-muted-foreground mt-1">Radiografías, panorámicas, fotos clínicas (demo)</div>
-            <button onClick={() => toast.success("Archivo cargado (demo)")} className="mt-4 inline-flex bg-primary text-primary-foreground px-4 py-2 rounded-lg text-sm font-medium">Seleccionar archivo</button>
-          </div>
-        )}
-
-        {tab === "Notas" && (
-          <div className="bg-card border rounded-2xl p-6">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="font-display text-lg font-semibold">Notas del doctor</h3>
-              <button onClick={() => { if (editing) { toast.success("Notas guardadas"); } setEditing(!editing); }} className="inline-flex items-center gap-1.5 text-sm text-primary font-medium">
-                {editing ? <><Save className="h-4 w-4" /> Guardar</> : <><Edit2 className="h-4 w-4" /> Editar</>}
-              </button>
-            </div>
-            <textarea value={notes} onChange={(e) => setNotes(e.target.value)} disabled={!editing} placeholder="Escribe tus notas clínicas aquí..." className="w-full min-h-[200px] p-4 rounded-xl bg-surface border text-sm outline-none focus:ring-2 focus:ring-ring resize-y disabled:opacity-70" />
           </div>
         )}
 

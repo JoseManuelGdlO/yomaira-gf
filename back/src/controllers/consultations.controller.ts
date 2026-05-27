@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { z } from 'zod';
-import { Consultation, Patient } from '../models';
+import { Consultation, Patient, sequelize } from '../models';
 import { findTenantPatient } from '../middleware/tenant';
 import { NotFound } from '../utils/errors';
 
@@ -42,6 +42,9 @@ export const createSchema = z.object({
   diagnosis: z.string().default(''),
   treatment: z.string().default(''),
   notes: z.string().default(''),
+  nextTreatment: z.string().default(''),
+  paymentAndNextAppointment: z.string().default(''),
+  evolutionNote: z.string().default(''),
   doctor: z.string().default(''),
 });
 
@@ -49,15 +52,36 @@ export const updateSchema = createSchema.partial();
 
 export async function create(req: Request, res: Response): Promise<void> {
   const body = req.body as z.infer<typeof createSchema>;
-  await findTenantPatient(req, body.patientId);
-  const item = await Consultation.create(body);
+  const patient = await findTenantPatient(req, body.patientId);
+
+  const item = await sequelize.transaction(async (t) => {
+    const consultation = await Consultation.create(body, { transaction: t });
+    if (body.date >= patient.lastVisit) {
+      patient.lastVisit = body.date;
+      await patient.save({ transaction: t });
+    }
+    return consultation;
+  });
+
   res.status(201).json({ data: item });
 }
 
 export async function update(req: Request, res: Response): Promise<void> {
   const item = await findTenantConsultation(req, req.params.id);
-  if (req.body.patientId) await findTenantPatient(req, req.body.patientId);
-  await item.update(req.body);
+  const body = req.body as z.infer<typeof updateSchema>;
+  if (body.patientId) await findTenantPatient(req, body.patientId);
+
+  await sequelize.transaction(async (t) => {
+    await item.update(body, { transaction: t });
+    if (body.date) {
+      const patient = await Patient.findByPk(item.patientId, { transaction: t });
+      if (patient && body.date >= patient.lastVisit) {
+        patient.lastVisit = body.date;
+        await patient.save({ transaction: t });
+      }
+    }
+  });
+
   res.json({ data: item });
 }
 

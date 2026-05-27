@@ -67,7 +67,12 @@ function AgendaPage() {
       </div>
 
       <NewAppointmentDialog open={newOpen} onOpenChange={setNewOpen} defaultDate={selected || todayISO()} />
-      <CompleteAppointmentDialog appointment={completeAppt} open={!!completeAppt} onOpenChange={(o) => !o && setCompleteAppt(null)} />
+      <CompleteAppointmentDialog
+        appointment={completeAppt}
+        patient={completeAppt ? patients.find((p) => p.id === completeAppt.patientId) : undefined}
+        open={!!completeAppt}
+        onOpenChange={(o) => !o && setCompleteAppt(null)}
+      />
 
       <div className="flex flex-wrap items-center gap-x-5 gap-y-2 rounded-xl border bg-card px-4 py-3 text-sm">
         <span className="text-muted-foreground font-medium">Leyenda:</span>

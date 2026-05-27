@@ -105,6 +105,9 @@ export const completeSchema = z.object({
   diagnosis: z.string().min(1),
   treatment: z.string().min(1),
   notes: z.string().default(''),
+  nextTreatment: z.string().default(''),
+  paymentAndNextAppointment: z.string().default(''),
+  evolutionNote: z.string().default(''),
   doctor: z.string().default(''),
 });
 
@@ -121,6 +124,9 @@ export async function complete(req: Request, res: Response): Promise<void> {
         diagnosis: body.diagnosis,
         treatment: body.treatment,
         notes: body.notes,
+        nextTreatment: body.nextTreatment,
+        paymentAndNextAppointment: body.paymentAndNextAppointment,
+        evolutionNote: body.evolutionNote,
         doctor: body.doctor,
       },
       { transaction: t },

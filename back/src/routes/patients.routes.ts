@@ -6,6 +6,8 @@ import { validate } from '../middleware/validate';
 import { asyncHandler } from '../utils/asyncHandler';
 import * as ctrl from '../controllers/patients.controller';
 import * as answers from '../controllers/clinicalAnswers.controller';
+import * as dentalChart from '../controllers/dentalChart.controller';
+import * as treatmentBudget from '../controllers/treatmentBudget.controller';
 
 const router = Router();
 router.use(authenticate);
@@ -55,6 +57,32 @@ router.put(
   requirePermission('patients.write'),
   validate({ params: idParam, body: answers.upsertSchema }),
   asyncHandler(answers.upsertForPatient),
+);
+
+router.get(
+  '/:id/dental-chart',
+  requirePermission('patients.read'),
+  validate({ params: idParam }),
+  asyncHandler(dentalChart.getForPatient),
+);
+router.put(
+  '/:id/dental-chart',
+  requirePermission('patients.write'),
+  validate({ params: idParam, body: dentalChart.upsertSchema }),
+  asyncHandler(dentalChart.upsertForPatient),
+);
+
+router.get(
+  '/:id/budget',
+  requirePermission('patients.read'),
+  validate({ params: idParam }),
+  asyncHandler(treatmentBudget.getForPatient),
+);
+router.put(
+  '/:id/budget',
+  requirePermission('patients.write'),
+  validate({ params: idParam, body: treatmentBudget.upsertSchema }),
+  asyncHandler(treatmentBudget.upsertForPatient),
 );
 
 export default router;

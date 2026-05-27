@@ -1,7 +1,32 @@
-import type { Patient, Consultation, Appointment, Medication, Prescription, PrescriptionItem } from "@/mocks/data";
+import type {
+  Patient,
+  Consultation,
+  Appointment,
+  Medication,
+  Prescription,
+  PrescriptionItem,
+  PatientDentalChart,
+  TreatmentBudget,
+  BudgetItem,
+  FranklScale,
+  DentitionType,
+} from "@/mocks/data";
 import type { Branding } from "@/mocks/brandings";
 
-export type { Patient, Consultation, Appointment, Medication, Prescription, PrescriptionItem, Branding };
+export type {
+  Patient,
+  Consultation,
+  Appointment,
+  Medication,
+  Prescription,
+  PrescriptionItem,
+  Branding,
+  PatientDentalChart,
+  TreatmentBudget,
+  BudgetItem,
+  FranklScale,
+  DentitionType,
+};
 
 const TOKEN_KEY = "med:token";
 const REFRESH_KEY = "med:refresh";
@@ -226,7 +251,15 @@ export const api = {
     remove: (id: string) => request<void>(`/appointments/${id}`, { method: "DELETE" }),
     complete: (
       id: string,
-      body: { diagnosis: string; treatment: string; notes?: string; doctor?: string },
+      body: {
+        diagnosis: string;
+        treatment: string;
+        notes?: string;
+        nextTreatment?: string;
+        paymentAndNextAppointment?: string;
+        evolutionNote?: string;
+        doctor?: string;
+      },
     ) =>
       request<{ appointment: Appointment; consultation: Consultation }>(`/appointments/${id}/complete`, {
         method: "POST",
@@ -237,6 +270,8 @@ export const api = {
     list: (q?: { patientId?: string }) => request<Consultation[]>("/consultations", { query: q }),
     create: (body: Omit<Consultation, "id">) =>
       request<Consultation>("/consultations", { method: "POST", body }),
+    update: (id: string, body: Partial<Consultation>) =>
+      request<Consultation>(`/consultations/${id}`, { method: "PATCH", body }),
   },
   prescriptions: {
     list: (q?: { patientId?: string }) => request<Prescription[]>("/prescriptions", { query: q }),
@@ -265,6 +300,16 @@ export const api = {
         method: "PUT",
         body: { answers },
       }),
+  },
+  dentalChart: {
+    get: (patientId: string) => request<PatientDentalChart>(`/patients/${patientId}/dental-chart`),
+    upsert: (patientId: string, body: Partial<PatientDentalChart>) =>
+      request<PatientDentalChart>(`/patients/${patientId}/dental-chart`, { method: "PUT", body }),
+  },
+  budget: {
+    get: (patientId: string) => request<TreatmentBudget>(`/patients/${patientId}/budget`),
+    upsert: (patientId: string, body: { items: BudgetItem[]; notes?: string }) =>
+      request<TreatmentBudget>(`/patients/${patientId}/budget`, { method: "PUT", body }),
   },
   dashboard: {
     stats: () => request<DashboardStats>("/dashboard/stats"),

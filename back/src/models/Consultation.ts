@@ -9,6 +9,9 @@ export interface ConsultationAttrs {
   diagnosis: string;
   treatment: string;
   notes: string;
+  nextTreatment: string;
+  paymentAndNextAppointment: string;
+  evolutionNote: string;
   doctor: string;
   createdAt?: Date;
   updatedAt?: Date;
@@ -24,6 +27,9 @@ export class Consultation extends Model<ConsultationAttrs, ConsultationCreationA
   declare diagnosis: string;
   declare treatment: string;
   declare notes: string;
+  declare nextTreatment: string;
+  declare paymentAndNextAppointment: string;
+  declare evolutionNote: string;
   declare doctor: string;
   declare readonly createdAt: Date;
   declare readonly updatedAt: Date;
@@ -38,6 +44,14 @@ Consultation.init(
     diagnosis: { type: DataTypes.TEXT, allowNull: false, defaultValue: '' },
     treatment: { type: DataTypes.TEXT, allowNull: false, defaultValue: '' },
     notes: { type: DataTypes.TEXT, allowNull: false, defaultValue: '' },
+    nextTreatment: { type: DataTypes.TEXT, allowNull: false, defaultValue: '', field: 'next_treatment' },
+    paymentAndNextAppointment: {
+      type: DataTypes.TEXT,
+      allowNull: false,
+      defaultValue: '',
+      field: 'payment_and_next_appointment',
+    },
+    evolutionNote: { type: DataTypes.TEXT, allowNull: false, defaultValue: '', field: 'evolution_note' },
     doctor: { type: DataTypes.STRING(190), allowNull: false, defaultValue: '' },
   },
   {

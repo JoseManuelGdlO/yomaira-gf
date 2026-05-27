@@ -23,7 +23,41 @@ export type Consultation = {
   diagnosis: string;
   treatment: string;
   notes: string;
+  nextTreatment: string;
+  paymentAndNextAppointment: string;
+  evolutionNote: string;
   doctor: string;
+};
+
+export type FranklScale = "na" | "I" | "II" | "III" | "IV";
+export type DentitionType = "temporal" | "mixta" | "permanente";
+
+export type PatientDentalChart = {
+  id: string;
+  patientId: string;
+  toothTreatments: Record<string, string>;
+  frankl: FranklScale;
+  dentition: DentitionType[];
+  atm: string;
+  ganglios: string;
+  softTissues: string;
+  frenula: string;
+};
+
+export type BudgetItem = {
+  description: string;
+  tooth?: string;
+  amount: number;
+};
+
+export type TreatmentBudget = {
+  id: string;
+  patientId: string;
+  status: string;
+  items: BudgetItem[];
+  notes: string;
+  subtotal: number;
+  total: number;
 };
 
 export type Appointment = {
