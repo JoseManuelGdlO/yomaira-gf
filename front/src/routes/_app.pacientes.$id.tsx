@@ -1,7 +1,9 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { fmtShort } from "@/lib/format";
 import { useState } from "react";
+import { useAuth } from "@/lib/auth";
 import { useStore } from "@/lib/store";
+import { DeletePatientDialog } from "@/components/clinical/DeletePatientDialog";
 import { PatientAvatar } from "@/components/clinical/PatientAvatar";
 import { ClinicalSheetTab } from "@/components/clinical/ClinicalSheetTab";
 import { Phone, Mail, Cake, Droplet, AlertCircle, FileText, Pill, Plus, Upload, ClipboardList, FileSignature, Camera, Trash2, Eye, Printer } from "lucide-react";
@@ -21,13 +23,16 @@ type Tab = typeof TABS[number];
 
 function PatientDetail() {
   const { id } = Route.useParams();
+  const { hasPermission } = useAuth();
   const { patients, consultations, prescriptions, updatePatient } = useStore();
   const patient = patients.find((p) => p.id === id);
   if (!patient) throw notFound();
 
+  const canDelete = hasPermission("patients.delete");
   const [tab, setTab] = useState<Tab>("Hoja clínica");
   const [viewRx, setViewRx] = useState<Prescription | null>(null);
   const [rxAutoPrint, setRxAutoPrint] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
   const patientConsults = consultations.filter((c) => c.patientId === id);
   const patientRx = [...prescriptions.filter((r) => r.patientId === id)].sort((a, b) =>
     b.date.localeCompare(a.date),
@@ -65,6 +70,15 @@ function PatientDetail() {
           <Link to="/consentimiento" search={{ patientId: patient.id }} className="inline-flex items-center gap-2 border rounded-xl px-4 py-2.5 text-sm font-medium hover:bg-accent/10 shrink-0">
             <FileSignature className="h-4 w-4" /> Consentimiento
           </Link>
+          {canDelete && (
+            <button
+              type="button"
+              onClick={() => setDeleteOpen(true)}
+              className="inline-flex items-center gap-2 border border-destructive/30 text-destructive rounded-xl px-4 py-2.5 text-sm font-medium hover:bg-destructive/10 shrink-0"
+            >
+              <Trash2 className="h-4 w-4" /> Eliminar paciente
+            </button>
+          )}
         </div>
       </div>
 
@@ -163,6 +177,12 @@ function PatientDetail() {
           }
         }}
         autoPrint={rxAutoPrint}
+      />
+
+      <DeletePatientDialog
+        patient={patient}
+        open={deleteOpen}
+        onOpenChange={setDeleteOpen}
       />
     </div>
   );

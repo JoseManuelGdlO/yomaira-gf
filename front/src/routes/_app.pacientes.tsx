@@ -2,12 +2,13 @@ import { createFileRoute, Link, Outlet, useLocation } from "@tanstack/react-rout
 import { useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { useStore } from "@/lib/store";
-import { Search, Plus, AlertCircle, Eye, Pill } from "lucide-react";
+import { Search, Plus, AlertCircle, Eye, Pill, Trash2 } from "lucide-react";
 import { PatientAvatar } from "@/components/clinical/PatientAvatar";
 import { fmtShort } from "@/lib/format";
 import { NewPatientDialog } from "@/components/clinical/NewPatientDialog";
 import { PatientQuickViewDialog } from "@/components/clinical/PatientQuickViewDialog";
 import { QuickPrescriptionDialog } from "@/components/prescription/QuickPrescriptionDialog";
+import { DeletePatientDialog } from "@/components/clinical/DeletePatientDialog";
 
 export const Route = createFileRoute("/_app/pacientes")({
   head: () => ({ meta: [{ title: "Pacientes — MediFlow" }] }),
@@ -27,11 +28,14 @@ function PatientsRoute() {
 function PatientsPage() {
   const { hasPermission } = useAuth();
   const { patients } = useStore();
+  const canDelete = hasPermission("patients.delete");
   const [q, setQ] = useState("");
   const [newOpen, setNewOpen] = useState(false);
   const [quickId, setQuickId] = useState<string | null>(null);
   const [rxId, setRxId] = useState<string | null>(null);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
   const filtered = patients.filter((p) => p.name.toLowerCase().includes(q.toLowerCase()) || p.guardian.toLowerCase().includes(q.toLowerCase()));
+  const deletePatient = patients.find((p) => p.id === deleteId) ?? null;
 
   return (
     <div className="space-y-6">
@@ -105,6 +109,16 @@ function PatientsPage() {
                       <button onClick={() => setRxId(p.id)} title="Nueva receta" className="p-2 rounded-lg hover:bg-primary/10 text-muted-foreground hover:text-primary">
                         <Pill className="h-4 w-4" />
                       </button>
+                      {canDelete && (
+                        <button
+                          type="button"
+                          onClick={() => setDeleteId(p.id)}
+                          title="Eliminar paciente"
+                          className="p-2 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>
@@ -120,6 +134,12 @@ function PatientsPage() {
       <NewPatientDialog open={newOpen} onOpenChange={setNewOpen} />
       <PatientQuickViewDialog patientId={quickId} open={!!quickId} onOpenChange={(o) => !o && setQuickId(null)} />
       <QuickPrescriptionDialog patientId={rxId} open={!!rxId} onOpenChange={(o) => !o && setRxId(null)} />
+      <DeletePatientDialog
+        patient={deletePatient}
+        open={!!deleteId}
+        onOpenChange={(o) => !o && setDeleteId(null)}
+        onDeleted={() => setDeleteId(null)}
+      />
     </div>
   );
 }

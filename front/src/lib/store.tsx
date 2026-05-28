@@ -16,6 +16,7 @@ type Store = {
   setAppointmentStatus: (id: string, status: Appointment["status"]) => void;
   addAppointment: (a: Appointment) => void;
   addPatient: (p: Patient) => void;
+  deletePatient: (id: string) => Promise<void>;
 };
 
 const Ctx = createContext<Store | null>(null);
@@ -107,6 +108,19 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     onSuccess: () => qc.invalidateQueries({ queryKey: tenantKey(QK.prescriptions, brandingId) }),
   });
 
+  const deletePatientM = useMutation({
+    mutationFn: (id: string) => api.patients.remove(id),
+    onSuccess: (_data, id) => {
+      qc.invalidateQueries({ queryKey: tenantKey(QK.patients, brandingId) });
+      qc.invalidateQueries({ queryKey: tenantKey(QK.consultations, brandingId) });
+      qc.invalidateQueries({ queryKey: tenantKey(QK.appointments, brandingId) });
+      qc.invalidateQueries({ queryKey: tenantKey(QK.prescriptions, brandingId) });
+      qc.removeQueries({ queryKey: tenantKey(["clinical", "answers", id], brandingId) });
+      qc.removeQueries({ queryKey: tenantKey(["dental-chart", id], brandingId) });
+      qc.removeQueries({ queryKey: tenantKey(["budget", id], brandingId) });
+    },
+  });
+
   const value: Store = {
     patients: patientsQ.data ?? [],
     consultations: consultationsQ.data ?? [],
@@ -118,6 +132,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     setAppointmentStatus: (id, status) => { setApptStatus.mutate({ id, status }); },
     addConsultation: (c) => { createConsultation.mutate(c); },
     addPrescription: (rx) => { createPrescription.mutate(rx); },
+    deletePatient: (id) => deletePatientM.mutateAsync(id),
   };
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
