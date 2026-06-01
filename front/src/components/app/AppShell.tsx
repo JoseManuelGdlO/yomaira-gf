@@ -1,10 +1,12 @@
 import { Link, useNavigate, useRouterState, Outlet } from "@tanstack/react-router";
-import { LayoutDashboard, Users, Calendar, Pill, History, Palette, Settings, Search, FileSignature, ShieldCheck, LogOut } from "lucide-react";
+import { LayoutDashboard, Users, Calendar, Pill, History, Palette, Settings, Search, FileSignature, ShieldCheck, LogOut, Menu } from "lucide-react";
 import { useBranding } from "@/lib/theme/ThemeProvider";
 import { useAuth } from "@/lib/auth";
 import { canAccessNav } from "@/lib/permissions";
 import { useMemo, useState } from "react";
 import { useStore } from "@/lib/store";
+import { Button } from "@/components/ui/button";
+import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet";
 
 const BASE_NAV = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -49,60 +51,87 @@ export function AppShell() {
     return items;
   }, [hasPermission]);
   const [q, setQ] = useState("");
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { patients } = useStore();
   const results = q.length > 1 ? patients.filter((p) => p.name.toLowerCase().includes(q.toLowerCase())).slice(0, 6) : [];
 
+  const closeMobileMenu = () => setMobileMenuOpen(false);
+
+  const sidebarContent = (onNavigate?: () => void) => (
+    <>
+      <div className="px-5 py-5 flex items-center gap-3">
+        <div className="h-10 w-10 rounded-xl bg-primary text-primary-foreground grid place-items-center text-xl shadow-sm">
+          {branding.logoEmoji}
+        </div>
+        <div className="min-w-0">
+          <div className="font-display text-base font-semibold truncate">{branding.clinicName}</div>
+          <div className="text-xs text-muted-foreground truncate">{branding.specialty}</div>
+        </div>
+      </div>
+      <nav className="flex-1 px-3 py-2 space-y-0.5 overflow-y-auto">
+        {nav.map((item) => {
+          const Icon = item.icon;
+          const active = path.startsWith(item.to);
+          return (
+            <Link
+              key={item.to}
+              to={item.to}
+              onClick={onNavigate}
+              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors ${active ? "bg-primary text-primary-foreground shadow-sm" : "text-sidebar-foreground hover:bg-sidebar-accent"}`}
+            >
+              <Icon className="h-4 w-4" />
+              <span className="font-medium">{item.label}</span>
+            </Link>
+          );
+        })}
+      </nav>
+      <div className="p-4 border-t border-sidebar-border space-y-3">
+        <div>
+          <div className="text-xs text-muted-foreground mb-2">Sesión</div>
+          <div className="text-sm font-medium truncate">{displayName}</div>
+          {displayEmail && (
+            <div className="text-xs text-muted-foreground truncate">{displayEmail}</div>
+          )}
+        </div>
+        <button
+          type="button"
+          onClick={() => {
+            onNavigate?.();
+            void handleLogout();
+          }}
+          className="w-full inline-flex items-center justify-center gap-2 rounded-lg border border-sidebar-border px-3 py-2 text-sm font-medium text-sidebar-foreground hover:bg-sidebar-accent transition-colors"
+        >
+          <LogOut className="h-4 w-4" />
+          Cerrar sesión
+        </button>
+      </div>
+    </>
+  );
+
   return (
     <div className="flex min-h-screen w-full bg-surface">
-      {/* Sidebar */}
+      {/* Sidebar desktop */}
       <aside className="hidden lg:flex w-64 flex-col border-r border-sidebar-border bg-sidebar">
-        <div className="px-5 py-5 flex items-center gap-3">
-          <div className="h-10 w-10 rounded-xl bg-primary text-primary-foreground grid place-items-center text-xl shadow-sm">
-            {branding.logoEmoji}
-          </div>
-          <div className="min-w-0">
-            <div className="font-display text-base font-semibold truncate">{branding.clinicName}</div>
-            <div className="text-xs text-muted-foreground truncate">{branding.specialty}</div>
-          </div>
-        </div>
-        <nav className="flex-1 px-3 py-2 space-y-0.5">
-          {nav.map((item) => {
-            const Icon = item.icon;
-            const active = path.startsWith(item.to);
-            return (
-              <Link key={item.to} to={item.to} className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors ${active ? "bg-primary text-primary-foreground shadow-sm" : "text-sidebar-foreground hover:bg-sidebar-accent"}`}>
-                <Icon className="h-4 w-4" />
-                <span className="font-medium">{item.label}</span>
-              </Link>
-            );
-          })}
-        </nav>
-        <div className="p-4 border-t border-sidebar-border space-y-3">
-          <div>
-            <div className="text-xs text-muted-foreground mb-2">Sesión</div>
-            <div className="text-sm font-medium truncate">{displayName}</div>
-            {displayEmail && (
-              <div className="text-xs text-muted-foreground truncate">{displayEmail}</div>
-            )}
-          </div>
-          <button
-            type="button"
-            onClick={handleLogout}
-            className="w-full inline-flex items-center justify-center gap-2 rounded-lg border border-sidebar-border px-3 py-2 text-sm font-medium text-sidebar-foreground hover:bg-sidebar-accent transition-colors"
-          >
-            <LogOut className="h-4 w-4" />
-            Cerrar sesión
-          </button>
-        </div>
+        {sidebarContent()}
       </aside>
 
       {/* Main */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Topbar */}
-        <header className="h-16 border-b bg-card flex items-center px-4 lg:px-8 gap-4 sticky top-0 z-30">
-          <div className="lg:hidden flex items-center gap-2">
-            <div className="h-9 w-9 rounded-lg bg-primary text-primary-foreground grid place-items-center">{branding.logoEmoji}</div>
-            <span className="font-display font-semibold">{branding.clinicName}</span>
+        <header className="h-16 border-b bg-card flex items-center px-4 lg:px-8 gap-3 sticky top-0 z-30">
+          <Button
+            type="button"
+            variant="outline"
+            size="icon"
+            className="lg:hidden shrink-0"
+            onClick={() => setMobileMenuOpen(true)}
+            aria-label="Abrir menú de navegación"
+          >
+            <Menu className="h-5 w-5" />
+          </Button>
+          <div className="lg:hidden flex items-center gap-2 min-w-0">
+            <div className="h-9 w-9 shrink-0 rounded-lg bg-primary text-primary-foreground grid place-items-center">{branding.logoEmoji}</div>
+            <span className="font-display font-semibold truncate">{branding.clinicName}</span>
           </div>
           <div className="flex-1 max-w-xl relative">
             <div className="relative">
@@ -157,6 +186,15 @@ export function AppShell() {
           <Outlet />
         </main>
       </div>
+
+      {/* Menú móvil */}
+      <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+        <SheetContent side="left" className="w-64 p-0 bg-sidebar text-sidebar-foreground border-sidebar-border">
+          <SheetTitle className="sr-only">Menú de navegación</SheetTitle>
+          <SheetDescription className="sr-only">Navegación principal de la aplicación</SheetDescription>
+          <div className="flex h-full flex-col">{sidebarContent(closeMobileMenu)}</div>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }
