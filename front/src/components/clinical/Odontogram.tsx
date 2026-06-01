@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api, type PatientDentalChart, type FranklScale, type DentitionType } from "@/lib/api";
 import { ODONTO_QUADRANTS, FRANKL_OPTIONS, DENTITION_OPTIONS } from "@/lib/dental";
@@ -16,12 +16,34 @@ const defaultChart: Omit<PatientDentalChart, "id" | "patientId"> = {
   frenula: "",
 };
 
-export function Odontogram({ patientId, readOnly = false }: { patientId: string; readOnly?: boolean }) {
+function chartFromData(data: PatientDentalChart): typeof defaultChart {
+  return {
+    toothTreatments: data.toothTreatments ?? {},
+    frankl: data.frankl ?? "na",
+    dentition: data.dentition ?? [],
+    atm: data.atm ?? "",
+    ganglios: data.ganglios ?? "",
+    softTissues: data.softTissues ?? "",
+    frenula: data.frenula ?? "",
+  };
+}
+
+export function Odontogram({
+  patientId,
+  readOnly = false,
+  onDirtyChange,
+  onRegisterSave,
+}: {
+  patientId: string;
+  readOnly?: boolean;
+  onDirtyChange?: (dirty: boolean) => void;
+  onRegisterSave?: (save: () => Promise<unknown>) => void;
+}) {
   const qc = useQueryClient();
   const { user } = useAuth();
   const brandingId = user?.brandingId;
   const [local, setLocal] = useState(defaultChart);
-  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [dirty, setDirty] = useState(false);
 
   const chartQ = useQuery({
     queryKey: tenantKey(["dental-chart", patientId], brandingId),
@@ -30,42 +52,43 @@ export function Odontogram({ patientId, readOnly = false }: { patientId: string;
   });
 
   useEffect(() => {
-    if (chartQ.data) {
-      setLocal({
-        toothTreatments: chartQ.data.toothTreatments ?? {},
-        frankl: chartQ.data.frankl ?? "na",
-        dentition: chartQ.data.dentition ?? [],
-        atm: chartQ.data.atm ?? "",
-        ganglios: chartQ.data.ganglios ?? "",
-        softTissues: chartQ.data.softTissues ?? "",
-        frenula: chartQ.data.frenula ?? "",
-      });
+    setDirty(false);
+    onDirtyChange?.(false);
+  }, [patientId, onDirtyChange]);
+
+  useEffect(() => {
+    if (chartQ.data && !dirty) {
+      setLocal(chartFromData(chartQ.data));
     }
-  }, [chartQ.data]);
+  }, [chartQ.data, dirty]);
 
   const saveM = useMutation({
     mutationFn: (body: Partial<PatientDentalChart>) => api.dentalChart.upsert(patientId, body),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: tenantKey(["dental-chart", patientId], brandingId) });
+      setDirty(false);
+      onDirtyChange?.(false);
+      toast.success("Odontograma guardado");
     },
     onError: () => toast.error("No se pudo guardar el odontograma"),
   });
 
-  const scheduleSave = useCallback(
-    (next: typeof local) => {
-      if (readOnly) return;
-      if (saveTimer.current) clearTimeout(saveTimer.current);
-      saveTimer.current = setTimeout(() => {
-        saveM.mutate(next);
-      }, 600);
-    },
-    [readOnly, saveM],
-  );
+  useEffect(() => {
+    if (readOnly) return;
+    onRegisterSave?.(() => saveM.mutateAsync(local));
+  }, [local, readOnly, onRegisterSave, saveM]);
+
+  const markDirty = () => {
+    if (!dirty) {
+      setDirty(true);
+      onDirtyChange?.(true);
+    }
+  };
 
   const update = (patch: Partial<typeof local>) => {
-    const next = { ...local, ...patch };
-    setLocal(next);
-    scheduleSave(next);
+    if (readOnly) return;
+    setLocal((prev) => ({ ...prev, ...patch }));
+    markDirty();
   };
 
   const setTooth = (tooth: string, treatment: string) => {
@@ -209,9 +232,6 @@ export function Odontogram({ patientId, readOnly = false }: { patientId: string;
             </div>
           ))}
         </div>
-        {!readOnly && saveM.isPending && (
-          <p className="text-xs text-muted-foreground">Guardando…</p>
-        )}
       </div>
     </div>
   );

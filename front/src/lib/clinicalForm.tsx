@@ -22,7 +22,7 @@ type Ctx = {
   addQuestion: (q: Omit<Question, "id" | "builtin">) => void;
   removeQuestion: (id: string, onSuccess?: () => void) => void;
   getAnswers: (patientId: string) => Answers;
-  setAnswer: (patientId: string, qid: string, value: string | string[]) => void;
+  saveAnswers: (patientId: string, answers: Answers) => Promise<void>;
   hasHistory: (patientId: string) => boolean;
 };
 
@@ -135,16 +135,14 @@ export function ClinicalFormProvider({ children }: { children: ReactNode }) {
     [ensureAnswers, qc],
   );
 
-  const setAnswer = useCallback(
-    (patientId: string, qid: string, value: string | string[]) => {
-      const code = idToCode.get(qid) ?? qid;
-      const current = answersRef.current[patientId] ?? qc.getQueryData<Answers>(qkAnswers(patientId)) ?? {};
-      const next: Answers = { ...current, [code]: value };
-      answersRef.current[patientId] = next;
-      qc.setQueryData(qkAnswers(patientId), next);
-      upsertM.mutate({ patientId, answers: { [code]: value } });
+  const saveAnswers = useCallback(
+    async (patientId: string, answers: Answers) => {
+      await upsertM.mutateAsync({ patientId, answers });
+      answersRef.current[patientId] = answers;
+      qc.setQueryData(qkAnswers(patientId), answers);
+      answersFetched.current.add(patientId);
     },
-    [idToCode, qc, upsertM],
+    [qc, upsertM],
   );
 
   const hasHistory = useCallback(
@@ -181,7 +179,7 @@ export function ClinicalFormProvider({ children }: { children: ReactNode }) {
     addQuestion,
     removeQuestion,
     getAnswers,
-    setAnswer,
+    saveAnswers,
     hasHistory,
   };
 
@@ -192,4 +190,22 @@ export function useClinicalForm() {
   const ctx = useContext(ClinicalCtx);
   if (!ctx) throw new Error("useClinicalForm must be used within ClinicalFormProvider");
   return ctx;
+}
+
+export function usePatientClinicalAnswers(patientId: string) {
+  const { user, ready } = useAuth();
+  const brandingId = user?.brandingId;
+  return useQuery({
+    queryKey: tenantKey(qkAnswers(patientId), brandingId),
+    queryFn: async (): Promise<Answers> => {
+      const res = await api.clinicalAnswers.get(patientId);
+      const map: Answers = {};
+      for (const [code, value] of Object.entries(res.answers ?? {})) {
+        if (value === null || value === undefined) continue;
+        map[code] = value as string | string[];
+      }
+      return map;
+    },
+    enabled: ready && !!user && !!patientId,
+  });
 }

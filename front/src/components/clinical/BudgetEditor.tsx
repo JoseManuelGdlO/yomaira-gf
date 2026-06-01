@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api, type BudgetItem } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
@@ -14,21 +14,21 @@ export function BudgetEditor({
   patientId,
   toothTreatments,
   readOnly = false,
+  onDirtyChange,
+  onRegisterSave,
 }: {
   patientId: string;
   toothTreatments?: Record<string, string>;
   readOnly?: boolean;
+  onDirtyChange?: (dirty: boolean) => void;
+  onRegisterSave?: (save: () => Promise<unknown>) => void;
 }) {
   const qc = useQueryClient();
   const { user } = useAuth();
   const brandingId = user?.brandingId;
   const [items, setItems] = useState<BudgetItem[]>([]);
   const [notes, setNotes] = useState("");
-  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const itemsRef = useRef(items);
-  const notesRef = useRef(notes);
-  itemsRef.current = items;
-  notesRef.current = notes;
+  const [dirty, setDirty] = useState(false);
 
   const budgetQ = useQuery({
     queryKey: tenantKey(["budget", patientId], brandingId),
@@ -37,31 +37,45 @@ export function BudgetEditor({
   });
 
   useEffect(() => {
-    if (budgetQ.data) {
+    setDirty(false);
+    onDirtyChange?.(false);
+  }, [patientId, onDirtyChange]);
+
+  useEffect(() => {
+    if (budgetQ.data && !dirty) {
       setItems(budgetQ.data.items ?? []);
       setNotes(budgetQ.data.notes ?? "");
     }
-  }, [budgetQ.data]);
+  }, [budgetQ.data, dirty]);
 
   const saveM = useMutation({
-    mutationFn: () => api.budget.upsert(patientId, { items: itemsRef.current, notes: notesRef.current }),
+    mutationFn: (payload: { items: BudgetItem[]; notes: string }) =>
+      api.budget.upsert(patientId, payload),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: tenantKey(["budget", patientId], brandingId) });
+      setDirty(false);
+      onDirtyChange?.(false);
+      toast.success("Presupuesto guardado");
     },
     onError: () => toast.error("No se pudo guardar el presupuesto"),
   });
 
-  const scheduleSave = (nextItems: BudgetItem[], nextNotes: string) => {
+  useEffect(() => {
     if (readOnly) return;
-    if (saveTimer.current) clearTimeout(saveTimer.current);
-    saveTimer.current = setTimeout(() => {
-      saveM.mutate();
-    }, 600);
+    onRegisterSave?.(() => saveM.mutateAsync({ items, notes }));
+  }, [items, notes, readOnly, onRegisterSave, saveM]);
+
+  const markDirty = () => {
+    if (readOnly) return;
+    if (!dirty) {
+      setDirty(true);
+      onDirtyChange?.(true);
+    }
   };
 
   const updateItems = (next: BudgetItem[]) => {
     setItems(next);
-    scheduleSave(next, notes);
+    markDirty();
   };
 
   const total = items.reduce((s, it) => s + (Number(it.amount) || 0), 0);
@@ -195,8 +209,7 @@ export function BudgetEditor({
             value={notes}
             onChange={(e) => {
               setNotes(e.target.value);
-              if (saveTimer.current) clearTimeout(saveTimer.current);
-              saveTimer.current = setTimeout(() => saveM.mutate(), 600);
+              markDirty();
             }}
             rows={2}
             className="mt-1 w-full p-3 rounded-lg bg-surface border text-sm outline-none focus:ring-2 focus:ring-ring resize-y"

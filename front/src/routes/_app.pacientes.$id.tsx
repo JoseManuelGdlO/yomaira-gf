@@ -1,6 +1,6 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { fmtShort } from "@/lib/format";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { useStore } from "@/lib/store";
 import { DeletePatientDialog } from "@/components/clinical/DeletePatientDialog";
@@ -8,7 +8,8 @@ import { PatientAvatar } from "@/components/clinical/PatientAvatar";
 import { ClinicalSheetTab } from "@/components/clinical/ClinicalSheetTab";
 import { Phone, Mail, Cake, Droplet, AlertCircle, FileText, Pill, Plus, Upload, ClipboardList, FileSignature, Camera, Trash2, Eye, Printer } from "lucide-react";
 import { toast } from "sonner";
-import { useClinicalForm, type Question } from "@/lib/clinicalForm";
+import { useClinicalForm, usePatientClinicalAnswers, type Answers, type Question } from "@/lib/clinicalForm";
+import { FloatingSaveButton } from "@/components/clinical/FloatingSaveButton";
 import { ViewPrescriptionDialog } from "@/components/prescription/ViewPrescriptionDialog";
 import type { Prescription } from "@/mocks/data";
 
@@ -206,16 +207,53 @@ function Field({ label, value }: { label: string; value: string }) {
 }
 
 function HistoriaClinica({ patientId }: { patientId: string }) {
-  const { questions, getAnswers, setAnswer } = useClinicalForm();
-  const answers = getAnswers(patientId);
+  const { questions, saveAnswers } = useClinicalForm();
+  const answersQ = usePatientClinicalAnswers(patientId);
+  const [draft, setDraft] = useState<Answers>({});
+  const [dirty, setDirty] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const syncedPatient = useRef<string | null>(null);
   const sections = Array.from(new Set(questions.map((q) => q.section)));
 
+  useEffect(() => {
+    syncedPatient.current = null;
+    setDirty(false);
+  }, [patientId]);
+
+  useEffect(() => {
+    if (!answersQ.data || dirty) return;
+    if (syncedPatient.current !== patientId) {
+      syncedPatient.current = patientId;
+      setDraft({ ...answersQ.data });
+      return;
+    }
+    setDraft({ ...answersQ.data });
+  }, [patientId, answersQ.data, dirty]);
+
+  const setAnswer = (qid: string, value: string | string[]) => {
+    setDraft((prev) => ({ ...prev, [qid]: value }));
+    setDirty(true);
+  };
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      await saveAnswers(patientId, draft);
+      setDirty(false);
+      toast.success("Historia clínica guardada");
+    } catch {
+      toast.error("No se pudo guardar la historia clínica");
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-20">
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
           <h3 className="font-display text-lg font-semibold inline-flex items-center gap-2"><ClipboardList className="h-5 w-5 text-primary" /> Historia clínica</h3>
-          <p className="text-sm text-muted-foreground mt-1">Las respuestas se guardan automáticamente.</p>
+          <p className="text-sm text-muted-foreground mt-1">Edita los campos y pulsa Guardar cuando termines.</p>
         </div>
         <Link to="/configuracion" className="text-sm text-primary font-medium hover:underline">+ Editar preguntas</Link>
       </div>
@@ -224,11 +262,12 @@ function HistoriaClinica({ patientId }: { patientId: string }) {
           <div className="font-display font-semibold">{s}</div>
           <div className="grid md:grid-cols-2 gap-4">
             {questions.filter((q) => q.section === s).map((q) => (
-              <QuestionField key={q.id} q={q} value={answers[q.id]} onChange={(v) => setAnswer(patientId, q.id, v)} />
+              <QuestionField key={q.id} q={q} value={draft[q.id]} onChange={(v) => setAnswer(q.id, v)} />
             ))}
           </div>
         </div>
       ))}
+      <FloatingSaveButton visible={dirty} saving={saving} onClick={handleSave} />
     </div>
   );
 }

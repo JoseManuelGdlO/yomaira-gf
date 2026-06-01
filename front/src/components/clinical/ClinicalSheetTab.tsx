@@ -1,6 +1,8 @@
 import { Link } from "@tanstack/react-router";
 import { Printer } from "lucide-react";
+import { useCallback, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { FloatingSaveButton } from "./FloatingSaveButton";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { tenantKey } from "@/lib/tenantQuery";
@@ -17,14 +19,42 @@ export function ClinicalSheetTab({
   consultations: Consultation[];
 }) {
   const { user } = useAuth();
+  const [odontoDirty, setOdontoDirty] = useState(false);
+  const [budgetDirty, setBudgetDirty] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const odontoSave = useRef<() => Promise<unknown>>(() => Promise.resolve());
+  const budgetSave = useRef<() => Promise<unknown>>(() => Promise.resolve());
+
   const chartQ = useQuery({
     queryKey: tenantKey(["dental-chart", patientId], user?.brandingId),
     queryFn: () => api.dentalChart.get(patientId),
     enabled: !!patientId,
   });
 
+  const registerOdontoSave = useCallback((save: () => Promise<unknown>) => {
+    odontoSave.current = save;
+  }, []);
+
+  const registerBudgetSave = useCallback((save: () => Promise<unknown>) => {
+    budgetSave.current = save;
+  }, []);
+
+  const sheetDirty = odontoDirty || budgetDirty;
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      await Promise.all([
+        odontoDirty ? odontoSave.current() : Promise.resolve(),
+        budgetDirty ? budgetSave.current() : Promise.resolve(),
+      ]);
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 pb-20">
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div>
           <h2 className="font-display text-xl font-semibold">Hoja clínica</h2>
@@ -42,19 +72,27 @@ export function ClinicalSheetTab({
       </div>
 
       <section>
-        <Odontogram patientId={patientId} />
+        <Odontogram
+          patientId={patientId}
+          onDirtyChange={setOdontoDirty}
+          onRegisterSave={registerOdontoSave}
+        />
       </section>
 
       <section>
         <BudgetEditor
           patientId={patientId}
           toothTreatments={chartQ.data?.toothTreatments}
+          onDirtyChange={setBudgetDirty}
+          onRegisterSave={registerBudgetSave}
         />
       </section>
 
       <section>
         <EvolutionTable patientId={patientId} consultations={consultations} />
       </section>
+
+      <FloatingSaveButton visible={sheetDirty} saving={saving} onClick={handleSave} />
     </div>
   );
 }

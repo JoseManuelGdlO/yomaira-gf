@@ -18,7 +18,7 @@ export const ODONTO_QUADRANTS = [
   {
     label: "Inferior derecho",
     primary: ["81", "82", "83", "84", "85"],
-    permanent: ["48", "47", "46", "45", "44", "43", "42", "41"],
+    permanent: ["41", "42", "43", "44", "45", "46", "47", "48"],
   },
 ] as const;
 
