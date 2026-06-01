@@ -102,7 +102,7 @@ export function OnboardingDialog({ open, onOpenChange }: { open: boolean; onOpen
             </div>
           </div>
           <DialogTitle className="font-display text-2xl font-semibold leading-tight">{s.title}</DialogTitle>
-          <DialogDescription className="text-sm opacity-90 mt-2">{s.body}</DialogDescription>
+          <DialogDescription className="text-sm opacity-90 mt-2 text-white/80">{s.body}</DialogDescription>
           <div className="absolute -right-6 -bottom-6 text-[8rem] opacity-15 select-none">
             {branding.logoEmoji}
           </div>
