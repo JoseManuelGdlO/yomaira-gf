@@ -13,7 +13,7 @@ export function clearSession(): void {
  */
 export async function ensureAuthenticated(): Promise<void> {
   if (typeof window === "undefined") {
-    throw redirect({ to: "/login" });
+    return;
   }
 
   const token = getToken();
@@ -32,7 +32,7 @@ export async function ensureAuthenticated(): Promise<void> {
 /** Exige al menos uno de los permisos indicados (admin siempre pasa). */
 export async function ensureAnyPermission(...perms: string[]): Promise<void> {
   if (typeof window === "undefined") {
-    throw redirect({ to: "/login" });
+    return;
   }
 
   const token = getToken();
