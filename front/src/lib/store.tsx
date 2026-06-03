@@ -2,6 +2,7 @@ import { createContext, useContext, type ReactNode } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import type { Patient, Consultation, Appointment, Prescription } from "@/mocks/data";
+import type { ClinicalSafetyAlert } from "@/lib/clinicalSafety";
 import { useAuth } from "@/lib/auth";
 import { tenantKey } from "@/lib/tenantQuery";
 
@@ -10,7 +11,7 @@ type Store = {
   consultations: Consultation[];
   appointments: Appointment[];
   prescriptions: Prescription[];
-  addPrescription: (rx: Prescription) => void;
+  addPrescription: (rx: Prescription) => Promise<{ prescription: Prescription; warnings: ClinicalSafetyAlert[] }>;
   addConsultation: (c: Consultation) => void;
   updatePatient: (id: string, patch: Partial<Patient>) => Promise<Patient>;
   setAppointmentStatus: (id: string, status: Appointment["status"]) => void;
@@ -137,7 +138,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     addAppointment: (a) => { createAppointment.mutate(a); },
     setAppointmentStatus: (id, status) => { setApptStatus.mutate({ id, status }); },
     addConsultation: (c) => { createConsultation.mutate(c); },
-    addPrescription: (rx) => { createPrescription.mutate(rx); },
+    addPrescription: (rx) => createPrescription.mutateAsync(rx),
     deletePatient: (id) => deletePatientM.mutateAsync(id),
   };
 

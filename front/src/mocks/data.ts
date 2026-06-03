@@ -10,6 +10,7 @@ export type Patient = {
   allergies: string[];
   conditions: string[];
   bloodType: string;
+  weightKg?: number | null;
   lastVisit: string;
   avatarColor: string;
   consentPhoto?: string;

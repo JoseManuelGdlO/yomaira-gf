@@ -8,6 +8,8 @@ import * as ctrl from '../controllers/patients.controller';
 import * as answers from '../controllers/clinicalAnswers.controller';
 import * as dentalChart from '../controllers/dentalChart.controller';
 import * as treatmentBudget from '../controllers/treatmentBudget.controller';
+import * as frankl from '../controllers/frankl.controller';
+import * as clinicalSafety from '../controllers/clinicalSafety.controller';
 
 const router = Router();
 router.use(authenticate);
@@ -83,6 +85,32 @@ router.put(
   requirePermission('patients.write'),
   validate({ params: idParam, body: treatmentBudget.upsertSchema }),
   asyncHandler(treatmentBudget.upsertForPatient),
+);
+
+router.get(
+  '/:id/frankl-readings',
+  requirePermission('patients.read'),
+  validate({ params: idParam }),
+  asyncHandler(frankl.listForPatient),
+);
+router.get(
+  '/:id/frankl-summary',
+  requirePermission('patients.read'),
+  validate({ params: idParam }),
+  asyncHandler(frankl.summaryForPatient),
+);
+
+router.get(
+  '/:id/clinical-safety',
+  requirePermission('patients.read'),
+  validate({ params: idParam }),
+  asyncHandler(clinicalSafety.getForPatient),
+);
+router.post(
+  '/:id/clinical-safety/check',
+  requirePermission('patients.read'),
+  validate({ params: idParam, body: clinicalSafety.checkBodySchema }),
+  asyncHandler(clinicalSafety.checkForPatient),
 );
 
 export default router;

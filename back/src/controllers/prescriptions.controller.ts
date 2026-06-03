@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { z } from 'zod';
 import { Patient, Prescription, PrescriptionItem, sequelize } from '../models';
 import { findTenantPatient } from '../middleware/tenant';
+import { buildPrescriptionSafetyReport } from './clinicalSafety.controller';
 import { NotFound } from '../utils/errors';
 
 export const querySchema = z.object({ patientId: z.string().uuid().optional() });
@@ -89,7 +90,7 @@ export const updateSchema = z.object({
 
 export async function create(req: Request, res: Response): Promise<void> {
   const body = req.body as z.infer<typeof createSchema>;
-  await findTenantPatient(req, body.patientId);
+  const patient = await findTenantPatient(req, body.patientId);
   const rx = await sequelize.transaction(async (t) => {
     const created = await Prescription.create(
       {
@@ -109,12 +110,14 @@ export async function create(req: Request, res: Response): Promise<void> {
     return created;
   });
   const fresh = await Prescription.findByPk(rx.id, includeItems);
-  res.status(201).json({ data: serialize(fresh!) });
+  const warnings = await buildPrescriptionSafetyReport(patient, body.items);
+  res.status(201).json({ data: serialize(fresh!), warnings: warnings.alerts });
 }
 
 export async function update(req: Request, res: Response): Promise<void> {
   const rx = await findTenantPrescription(req, req.params.id);
   const body = req.body as z.infer<typeof updateSchema>;
+  const patient = await findTenantPatient(req, rx.patientId);
   await sequelize.transaction(async (t) => {
     await rx.update(
       {
@@ -135,7 +138,14 @@ export async function update(req: Request, res: Response): Promise<void> {
     }
   });
   const fresh = await Prescription.findByPk(rx.id, includeItems);
-  res.json({ data: serialize(fresh!) });
+  const items = body.items ?? ((fresh as any).items ?? []).map((it: PrescriptionItem) => ({
+    medication: it.medication,
+    dose: it.dose,
+    frequency: it.frequency,
+    duration: it.duration,
+  }));
+  const warnings = await buildPrescriptionSafetyReport(patient, items);
+  res.json({ data: serialize(fresh!), warnings: warnings.alerts });
 }
 
 export async function remove(req: Request, res: Response): Promise<void> {

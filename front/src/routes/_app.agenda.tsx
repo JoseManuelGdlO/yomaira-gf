@@ -1,14 +1,17 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { useStore } from "@/lib/store";
 import { PatientAvatar } from "@/components/clinical/PatientAvatar";
 import { StatusBadge } from "@/components/clinical/StatusBadge";
+import { FranklBadge } from "@/components/clinical/FranklBadge";
 import { ChevronLeft, ChevronRight, Plus, CheckCircle2 } from "lucide-react";
 import { fmtMonthLong, fmtWeekdayShort, todayISO } from "@/lib/format";
 import { NewAppointmentDialog } from "@/components/clinical/NewAppointmentDialog";
 import { CompleteAppointmentDialog } from "@/components/clinical/CompleteAppointmentDialog";
 import type { Appointment } from "@/mocks/data";
+import { useFranklSummariesMap } from "@/lib/useFranklSummaries";
+import { shouldShowFranklBadge } from "@/lib/frankl";
 import {
   AGENDA_LEGEND_STATUSES,
   APPOINTMENT_STATUS_LABELS,
@@ -31,6 +34,8 @@ function AgendaPage() {
   const [selected, setSelected] = useState<string>("");
   const [newOpen, setNewOpen] = useState(false);
   const [completeAppt, setCompleteAppt] = useState<Appointment | null>(null);
+  const patientIds = useMemo(() => appointments.map((a) => a.patientId), [appointments]);
+  const franklMap = useFranklSummariesMap(patientIds);
   useEffect(() => { setCursor(new Date()); setSelected(todayISO()); }, []);
   if (!cursor) return <div className="h-96" />;
 
@@ -111,6 +116,7 @@ function AgendaPage() {
                   <div className="p-2 space-y-1.5">
                     {list.map((a) => {
                       const p = patients.find((x) => x.id === a.patientId)!;
+                      const franklSummary = franklMap.get(a.patientId);
                       return (
                         <div
                           key={a.id}
@@ -118,8 +124,11 @@ function AgendaPage() {
                           className={`cursor-pointer p-2 rounded-lg border ${appointmentStatusCardClass(a.status)}`}
                         >
                           <div className={`text-xs font-semibold ${appointmentStatusTimeClass(a.status)}`}>{a.time}</div>
-                          <div className="text-xs font-medium truncate mt-0.5 flex items-center gap-1">
+                          <div className="text-xs font-medium truncate mt-0.5 flex items-center gap-1 flex-wrap">
                             {p.name}
+                            {shouldShowFranklBadge(franklSummary) && franklSummary?.latestFrankl && (
+                              <FranklBadge frankl={franklSummary.latestFrankl} summary={franklSummary} className="text-[10px] px-1.5 py-0" />
+                            )}
                             {a.scheduledBy === "patient" && (
                               <span className="text-[9px] bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-200 px-1 rounded">
                                 Paciente
@@ -142,6 +151,7 @@ function AgendaPage() {
               {apptsByDay(selected).length === 0 && <div className="text-sm text-muted-foreground py-8 text-center">Sin citas este día.</div>}
               {apptsByDay(selected).map((a) => {
                 const p = patients.find((x) => x.id === a.patientId)!;
+                const franklSummary = franklMap.get(a.patientId);
                 return (
                   <div
                     key={a.id}
@@ -152,6 +162,9 @@ function AgendaPage() {
                     <div className="flex-1">
                       <div className="font-medium flex items-center gap-2 flex-wrap">
                         {p.name}
+                        {shouldShowFranklBadge(franklSummary) && franklSummary?.latestFrankl && (
+                          <FranklBadge frankl={franklSummary.latestFrankl} summary={franklSummary} />
+                        )}
                         {a.scheduledBy === "patient" && (
                           <span className="text-[10px] font-normal bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-200 px-1.5 py-0.5 rounded">
                             Solicitud del paciente

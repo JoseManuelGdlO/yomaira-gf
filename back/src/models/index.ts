@@ -15,8 +15,10 @@ import { ClinicalQuestion } from './ClinicalQuestion';
 import { ClinicalAnswer } from './ClinicalAnswer';
 import { PatientDentalChart } from './PatientDentalChart';
 import { TreatmentBudget } from './TreatmentBudget';
+import { PatientFranklReading } from './PatientFranklReading';
 
 export type { FranklScale, DentitionType } from './PatientDentalChart';
+export type { FranklReadingScale } from './PatientFranklReading';
 export type { BudgetItem } from './TreatmentBudget';
 import { NotificationPreference } from './NotificationPreference';
 import { PushSubscription } from './PushSubscription';
@@ -77,6 +79,12 @@ Patient.hasMany(TreatmentBudget, { foreignKey: 'patientId', as: 'treatmentBudget
 TreatmentBudget.belongsTo(Patient, { foreignKey: 'patientId', as: 'patient' });
 TreatmentBudget.belongsTo(Branding, { foreignKey: 'brandingId', as: 'branding' });
 
+Patient.hasMany(PatientFranklReading, { foreignKey: 'patientId', as: 'franklReadings', onDelete: 'CASCADE' });
+PatientFranklReading.belongsTo(Patient, { foreignKey: 'patientId', as: 'patient' });
+PatientFranklReading.belongsTo(Branding, { foreignKey: 'brandingId', as: 'branding' });
+PatientFranklReading.belongsTo(Consultation, { foreignKey: 'consultationId', as: 'consultation' });
+PatientFranklReading.belongsTo(Appointment, { foreignKey: 'appointmentId', as: 'appointment' });
+
 Branding.hasMany(User, { foreignKey: 'brandingId', as: 'users', onDelete: 'RESTRICT' });
 User.belongsTo(Branding, { foreignKey: 'brandingId', as: 'branding' });
 
@@ -116,6 +124,7 @@ export {
   ClinicalAnswer,
   PatientDentalChart,
   TreatmentBudget,
+  PatientFranklReading,
   NotificationPreference,
   PushSubscription,
   GoogleCalendarConnection,

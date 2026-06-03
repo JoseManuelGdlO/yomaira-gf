@@ -1,11 +1,14 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { useStore } from "@/lib/store";
 import { useMedications } from "@/lib/hooks";
+import { useClinicalSafety } from "@/lib/useClinicalSafety";
 import { type PrescriptionItem } from "@/mocks/data";
 import { PrintPrescriptionPortal } from "./PrintPrescriptionPortal";
 import { PrescriptionPreview } from "./PrescriptionPreview";
 import { PatientAvatar } from "@/components/clinical/PatientAvatar";
+import { ClinicalSafetyAlerts } from "@/components/clinical/ClinicalSafetyAlerts";
+import { PediatricDoseHint } from "@/components/clinical/PediatricDoseHint";
 import { Pill, Plus, Printer, Trash2, Eye, ArrowLeft, Search } from "lucide-react";
 import { toast } from "sonner";
 import { todayISO } from "@/lib/format";
@@ -15,11 +18,20 @@ export function QuickPrescriptionDialog({ patientId, open, onOpenChange }: { pat
   const MEDICATIONS = useMedications();
   const [pickedId, setPickedId] = useState<string | null>(patientId);
   const [pickerQ, setPickerQ] = useState("");
-  const patient = patients.find((p) => p.id === (patientId ?? pickedId));
   const [items, setItems] = useState<PrescriptionItem[]>([]);
   const [diagnosis, setDiagnosis] = useState("");
   const [indications, setIndications] = useState("");
   const [preview, setPreview] = useState(false);
+  const patient = patients.find((p) => p.id === (patientId ?? pickedId));
+  const safetyItems = useMemo(
+    () => items.map(({ medication, dose, frequency, duration }) => ({ medication, dose, frequency, duration })),
+    [items],
+  );
+  const { report: safetyReport, isLoading: safetyLoading } = useClinicalSafety(
+    patient?.id,
+    "prescription",
+    patient ? safetyItems : undefined,
+  );
 
   useEffect(() => {
     if (open) {
@@ -32,15 +44,27 @@ export function QuickPrescriptionDialog({ patientId, open, onOpenChange }: { pat
   const updateItem = (i: number, patch: Partial<PrescriptionItem>) => setItems(items.map((x, idx) => idx === i ? { ...x, ...patch } : x));
   const removeItem = (i: number) => setItems(items.filter((_, idx) => idx !== i));
 
-  const save = () => {
+  const save = async () => {
     if (!patient) return;
     if (items.length === 0) return toast.error("Agrega al menos un medicamento");
-    addPrescription({
-      id: "rx" + Date.now(), patientId: patient.id, date: todayISO(),
-      items, indications, diagnosis,
-    });
-    toast.success("Receta guardada");
-    onOpenChange(false);
+    try {
+      const { warnings } = await addPrescription({
+        id: "rx" + Date.now(),
+        patientId: patient.id,
+        date: todayISO(),
+        items,
+        indications,
+        diagnosis,
+      });
+      toast.success("Receta guardada");
+      const critical = warnings.filter((w) => w.severity === "critical");
+      if (critical.length > 0) {
+        toast.warning(critical[0]!.message, { duration: 8000 });
+      }
+      onOpenChange(false);
+    } catch {
+      toast.error("No se pudo guardar la receta");
+    }
   };
 
   const filteredPatients = patients.filter((p) => p.name.toLowerCase().includes(pickerQ.toLowerCase()));
@@ -94,13 +118,18 @@ export function QuickPrescriptionDialog({ patientId, open, onOpenChange }: { pat
           <div className="flex-1 min-w-0">
             <div className="font-medium truncate">{patient.name}</div>
             <div className="text-xs text-muted-foreground">
-              {patient.age} años · {patient.allergies.length > 0 ? `Alergias: ${patient.allergies.join(", ")}` : "Sin alergias"}
+              {patient.age} años
+              {patient.weightKg != null ? ` · ${patient.weightKg} kg` : ""}
+              {" · "}
+              {patient.allergies.length > 0 ? `Alergias: ${patient.allergies.join(", ")}` : "Sin alergias"}
             </div>
           </div>
           {!patientId && (
             <button onClick={() => setPickedId(null)} className="text-xs text-primary font-medium hover:underline">Cambiar</button>
           )}
         </div>
+
+        <ClinicalSafetyAlerts report={safetyReport} loading={safetyLoading} />
 
         {!preview ? (
           <div className="space-y-4">
@@ -122,6 +151,7 @@ export function QuickPrescriptionDialog({ patientId, open, onOpenChange }: { pat
                     <input value={it.frequency} onChange={(e) => updateItem(i, { frequency: e.target.value })} placeholder="Frecuencia" className="sm:col-span-3 h-9 px-2 rounded-lg bg-card border text-sm" />
                     <input value={it.duration} onChange={(e) => updateItem(i, { duration: e.target.value })} placeholder="Duración" className="sm:col-span-2 h-9 px-2 rounded-lg bg-card border text-sm" />
                     <button onClick={() => removeItem(i)} className="sm:col-span-1 p-2 text-destructive hover:bg-destructive/10 rounded-lg justify-self-end"><Trash2 className="h-4 w-4" /></button>
+                    <PediatricDoseHint medication={it.medication} report={safetyReport} />
                   </div>
                 ))}
                 <datalist id="med-list">

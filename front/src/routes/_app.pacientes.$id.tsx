@@ -7,8 +7,10 @@ import { DeletePatientDialog } from "@/components/clinical/DeletePatientDialog";
 import { EditPatientDialog } from "@/components/clinical/EditPatientDialog";
 import { PatientAvatar } from "@/components/clinical/PatientAvatar";
 import { ClinicalSheetTab } from "@/components/clinical/ClinicalSheetTab";
-import { Phone, Mail, Cake, Droplet, AlertCircle, FileText, Pill, Plus, Upload, ClipboardList, FileSignature, Camera, Trash2, Eye, Printer, Pencil } from "lucide-react";
+import { Phone, Mail, Cake, Droplet, Scale, AlertCircle, FileText, Pill, Plus, Upload, ClipboardList, FileSignature, Camera, Trash2, Eye, Printer, Pencil } from "lucide-react";
 import { toast } from "sonner";
+import { ClinicalSafetyAlerts } from "@/components/clinical/ClinicalSafetyAlerts";
+import { useClinicalSafety } from "@/lib/useClinicalSafety";
 import { useClinicalForm, usePatientClinicalAnswers, type Answers, type Question } from "@/lib/clinicalForm";
 import { FloatingSaveButton } from "@/components/clinical/FloatingSaveButton";
 import { ViewPrescriptionDialog } from "@/components/prescription/ViewPrescriptionDialog";
@@ -41,6 +43,7 @@ function PatientDetail() {
   const patientRx = [...prescriptions.filter((r) => r.patientId === id)].sort((a, b) =>
     b.date.localeCompare(a.date),
   );
+  const { report: safetyReport, isLoading: safetyLoading } = useClinicalSafety(patient.id, "procedure");
 
   return (
     <div className="space-y-6">
@@ -54,6 +57,9 @@ function PatientDetail() {
             <h1 className="font-display text-2xl lg:text-3xl font-semibold">{patient.name}</h1>
             <div className="flex flex-wrap gap-x-6 gap-y-1 text-sm text-muted-foreground mt-2">
               <span className="inline-flex items-center gap-1.5"><Cake className="h-4 w-4" /> {patient.age} años · {fmtShort(patient.birthDate)}</span>
+              {patient.weightKg != null && (
+                <span className="inline-flex items-center gap-1.5"><Scale className="h-4 w-4" /> {patient.weightKg} kg</span>
+              )}
               <span className="inline-flex items-center gap-1.5"><Droplet className="h-4 w-4" /> {patient.bloodType}</span>
               <span className="inline-flex items-center gap-1.5"><Phone className="h-4 w-4" /> {patient.guardianPhone}</span>
               <span className="inline-flex items-center gap-1.5"><Mail className="h-4 w-4" /> {patient.email}</span>
@@ -95,6 +101,8 @@ function PatientDetail() {
         </div>
       </div>
 
+      <ClinicalSafetyAlerts report={safetyReport} loading={safetyLoading} title="Alertas clínicas del paciente" />
+
       {/* Tabs */}
       <div className="flex gap-1 border-b overflow-x-auto">
         {TABS.map((t) => (
@@ -126,6 +134,7 @@ function PatientDetail() {
               <Field label="Tutor" value={patient.guardian} />
               <Field label="Género" value={patient.gender === "F" ? "Femenino" : "Masculino"} />
               <Field label="Fecha de nacimiento" value={fmtShort(patient.birthDate)} />
+              <Field label="Peso" value={patient.weightKg != null ? `${patient.weightKg} kg` : "No registrado"} />
               <Field label="Tipo de sangre" value={patient.bloodType} />
             </Section>
             <Section title="Antecedentes médicos">

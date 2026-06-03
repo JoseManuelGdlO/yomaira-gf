@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { PatientDentalChart } from '../models/PatientDentalChart';
 import type { DentitionType, FranklScale } from '../models/PatientDentalChart';
 import { findTenantPatient } from '../middleware/tenant';
+import { isRecordableFrankl, recordFranklReading, todayISO } from '../services/frankl/recordFranklReading';
 
 const franklEnum = z.enum(['na', 'I', 'II', 'III', 'IV']);
 const dentitionEnum = z.enum(['temporal', 'mixta', 'permanente']);
@@ -52,8 +53,29 @@ export async function upsertForPatient(req: Request, res: Response): Promise<voi
       ...defaultChart,
       ...body,
     });
+    if (body.frankl !== undefined && isRecordableFrankl(body.frankl)) {
+      await recordFranklReading({
+        patientId: patient.id,
+        brandingId: req.user!.brandingId,
+        frankl: body.frankl,
+        recordedOn: todayISO(),
+      });
+    }
   } else {
+    const previousFrankl = chart.frankl;
     await chart.update(body);
+    if (
+      body.frankl !== undefined &&
+      body.frankl !== previousFrankl &&
+      isRecordableFrankl(body.frankl)
+    ) {
+      await recordFranklReading({
+        patientId: patient.id,
+        brandingId: req.user!.brandingId,
+        frankl: body.frankl,
+        recordedOn: todayISO(),
+      });
+    }
   }
   res.json({ data: chart });
 }

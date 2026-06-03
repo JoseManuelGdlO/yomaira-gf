@@ -4,7 +4,9 @@ import { useStore } from "@/lib/store";
 import { PatientAvatar } from "./PatientAvatar";
 import { ClinicalTimeline } from "./ClinicalTimeline";
 import { fmtShort } from "@/lib/format";
-import { Phone, Mail, Cake, Droplet, AlertCircle, FileText, ArrowRight, Pill } from "lucide-react";
+import { Phone, Mail, Cake, Droplet, AlertCircle, FileText, ArrowRight, Pill, ShieldAlert } from "lucide-react";
+import { useClinicalSafety } from "@/lib/useClinicalSafety";
+import { ClinicalSafetyAlerts } from "./ClinicalSafetyAlerts";
 
 export function PatientQuickViewDialog({ patientId, open, onOpenChange }: { patientId: string | null; open: boolean; onOpenChange: (o: boolean) => void }) {
   const { patients, consultations, prescriptions } = useStore();
@@ -13,6 +15,10 @@ export function PatientQuickViewDialog({ patientId, open, onOpenChange }: { pati
   if (!patient) return null;
   const patientConsults = consultations.filter((c) => c.patientId === patient.id);
   const patientRx = prescriptions.filter((r) => r.patientId === patient.id);
+  const { report: safetyReport, isLoading: safetyLoading } = useClinicalSafety(
+    open ? patient.id : undefined,
+    "procedure",
+  );
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -26,7 +32,14 @@ export function PatientQuickViewDialog({ patientId, open, onOpenChange }: { pati
         <div className="flex items-start gap-4 pb-4 border-b">
           <PatientAvatar patient={patient} size={64} />
           <div className="flex-1 min-w-0">
-            <div className="font-display text-2xl font-semibold">{patient.name}</div>
+            <div className="font-display text-2xl font-semibold flex items-center gap-2 flex-wrap">
+              {patient.name}
+              {safetyReport?.hasCritical && (
+                <span className="inline-flex items-center gap-1 text-xs bg-destructive/10 text-destructive px-2 py-1 rounded-full font-medium">
+                  <ShieldAlert className="h-3 w-3" /> Alerta crítica
+                </span>
+              )}
+            </div>
             <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground mt-1">
               <span className="inline-flex items-center gap-1.5"><Cake className="h-4 w-4" /> {patient.age} años</span>
               <span className="inline-flex items-center gap-1.5"><Droplet className="h-4 w-4" /> {patient.bloodType}</span>
@@ -44,6 +57,8 @@ export function PatientQuickViewDialog({ patientId, open, onOpenChange }: { pati
             )}
           </div>
         </div>
+
+        <ClinicalSafetyAlerts report={safetyReport} loading={safetyLoading} collapsible={false} />
 
         {/* Quick stats */}
         <div className="grid grid-cols-3 gap-3">

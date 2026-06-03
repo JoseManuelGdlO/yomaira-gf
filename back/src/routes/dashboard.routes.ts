@@ -5,6 +5,8 @@ import { requireAnyPermission } from '../middleware/authorize';
 import { tenantWhere } from '../middleware/tenant';
 import { asyncHandler } from '../utils/asyncHandler';
 import { Appointment, Consultation, Patient, Prescription } from '../models';
+import * as franklCtrl from '../controllers/frankl.controller';
+import * as analyticsCtrl from '../controllers/analytics.controller';
 
 const router = Router();
 router.use(authenticate);
@@ -62,8 +64,33 @@ router.get(
       ],
       limit: 10,
     });
-    res.json({ data: items });
+
+    const patientIds = [...new Set(items.map((a) => a.patientId))];
+    const summaries = await franklCtrl.franklSummariesForPatients(req.user!.brandingId, patientIds);
+
+    const enriched = items.map((a) => {
+      const plain = { ...a.toJSON() } as Record<string, unknown>;
+      const summary = summaries.get(a.patientId);
+      if (summary) {
+        plain.franklSummary = summary;
+      }
+      return plain;
+    });
+
+    res.json({ data: enriched });
   }),
+);
+
+router.get(
+  '/frankl',
+  requireAnyPermission('patients.read'),
+  asyncHandler(franklCtrl.dashboardFrankl),
+);
+
+router.get(
+  '/analytics',
+  requireAnyPermission('patients.read', 'appointments.read', 'consultations.read', 'prescriptions.read'),
+  asyncHandler(analyticsCtrl.dashboardAnalytics),
 );
 
 export default router;

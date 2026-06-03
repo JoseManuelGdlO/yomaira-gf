@@ -1,14 +1,17 @@
 import { useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { api } from "@/lib/api";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { api, type FranklReadingScale } from "@/lib/api";
 import { useBranding } from "@/lib/theme/ThemeProvider";
 import { useAuth } from "@/lib/auth";
 import { tenantKey } from "@/lib/tenantQuery";
 import { PatientAvatar } from "./PatientAvatar";
 import { Stethoscope } from "lucide-react";
 import { toast } from "sonner";
+import { FRANKL_READING_OPTIONS } from "@/lib/frankl";
+import { useClinicalSafety } from "@/lib/useClinicalSafety";
+import { ClinicalSafetyAlerts } from "@/components/clinical/ClinicalSafetyAlerts";
 import type { Appointment, Patient } from "@/mocks/data";
 
 export function CompleteAppointmentDialog({
@@ -34,6 +37,13 @@ export function CompleteAppointmentDialog({
   const [paymentMethod, setPaymentMethod] = useState("");
   const [nextAppointment, setNextAppointment] = useState("");
   const [evolutionNote, setEvolutionNote] = useState("");
+  const [frankl, setFrankl] = useState<FranklReadingScale | "">("");
+
+  const chartQ = useQuery({
+    queryKey: tenantKey(["dental-chart", patient?.id ?? ""], brandingId),
+    queryFn: () => api.dentalChart.get(patient!.id),
+    enabled: open && !!patient?.id,
+  });
 
   useEffect(() => {
     if (open && appointment) {
@@ -44,8 +54,10 @@ export function CompleteAppointmentDialog({
       setPaymentMethod("");
       setNextAppointment("");
       setEvolutionNote("");
+      const current = chartQ.data?.frankl;
+      setFrankl(current && current !== "na" ? current : "");
     }
-  }, [open, appointment]);
+  }, [open, appointment, chartQ.data?.frankl]);
 
   const completeM = useMutation({
     mutationFn: () => {
@@ -65,12 +77,18 @@ export function CompleteAppointmentDialog({
         evolutionNote: evolutionNote.trim(),
         notes: evolutionNote.trim(),
         doctor: branding.doctorName,
+        ...(frankl ? { frankl } : {}),
       });
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: tenantKey(["consultations"], brandingId) });
       qc.invalidateQueries({ queryKey: tenantKey(["appointments"], brandingId) });
       qc.invalidateQueries({ queryKey: tenantKey(["patients"], brandingId) });
+      if (patient) {
+        qc.invalidateQueries({ queryKey: tenantKey(["dental-chart", patient.id], brandingId) });
+        qc.invalidateQueries({ queryKey: tenantKey(["frankl-readings", patient.id], brandingId) });
+        qc.invalidateQueries({ queryKey: tenantKey(["frankl-summary", patient.id], brandingId) });
+      }
       toast.success("Consulta registrada en la hoja clínica");
       onOpenChange(false);
     },
@@ -78,6 +96,11 @@ export function CompleteAppointmentDialog({
   });
 
   if (!appointment || !patient) return null;
+
+  const { report: safetyReport, isLoading: safetyLoading } = useClinicalSafety(
+    open ? patient.id : undefined,
+    "procedure",
+  );
 
   const submit = () => {
     if (!diagnosis.trim() || !treatment.trim()) {
@@ -113,6 +136,8 @@ export function CompleteAppointmentDialog({
           </div>
         </div>
 
+        <ClinicalSafetyAlerts report={safetyReport} loading={safetyLoading} title="Precauciones antes del procedimiento" />
+
         <div className="space-y-3 mt-2">
           <Field label="Tratamiento realizado *" value={treatment} onChange={setTreatment} placeholder="Ej. Resina compuesta, fluorización" />
           <Field label="Próximo tratamiento" value={nextTreatment} onChange={setNextTreatment} placeholder="Ej. Corona en 64" />
@@ -132,6 +157,29 @@ export function CompleteAppointmentDialog({
             />
           </div>
           <Field label="Diagnóstico *" value={diagnosis} onChange={setDiagnosis} placeholder="Ej. Caries en molar 64" />
+          <div>
+            <label className="text-xs font-medium text-muted-foreground block mb-2">Escala Frankl</label>
+            <div className="flex flex-wrap gap-2">
+              {FRANKL_READING_OPTIONS.map((opt) => (
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() => setFrankl(opt.value)}
+                  title={opt.description}
+                  className={`min-w-[3rem] px-3 py-2 rounded-lg border text-sm font-semibold transition-colors ${
+                    frankl === opt.value
+                      ? "bg-primary text-primary-foreground border-primary"
+                      : "bg-surface hover:bg-accent/10"
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+            <p className="text-xs text-muted-foreground mt-2">
+              Registra el comportamiento del paciente en esta visita para la evolución clínica.
+            </p>
+          </div>
         </div>
 
         <DialogFooter className="gap-2 sm:gap-2 flex-col sm:flex-row sm:items-center">

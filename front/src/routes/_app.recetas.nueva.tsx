@@ -1,12 +1,15 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { ensureAnyPermission } from "@/lib/auth-guard";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { z } from "zod";
 import { useStore } from "@/lib/store";
 import { useMedications } from "@/lib/hooks";
+import { useClinicalSafety } from "@/lib/useClinicalSafety";
 import { type PrescriptionItem } from "@/mocks/data";
 import { PatientAvatar } from "@/components/clinical/PatientAvatar";
 import { PrescriptionPreview } from "@/components/prescription/PrescriptionPreview";
+import { ClinicalSafetyAlerts } from "@/components/clinical/ClinicalSafetyAlerts";
+import { PediatricDoseHint } from "@/components/clinical/PediatricDoseHint";
 import { Check, Plus, Printer, Trash2, ArrowLeft, ArrowRight } from "lucide-react";
 import { toast } from "sonner";
 
@@ -31,21 +34,40 @@ function NuevaReceta() {
   const [indications, setIndications] = useState("");
 
   const patient = patients.find((p) => p.id === patientId);
+  const safetyItems = useMemo(
+    () => items.map(({ medication, dose, frequency, duration }) => ({ medication, dose, frequency, duration })),
+    [items],
+  );
+  const { report: safetyReport, isLoading: safetyLoading } = useClinicalSafety(
+    patient?.id,
+    "prescription",
+    patient && step >= 2 ? safetyItems : undefined,
+  );
 
   const addItem = () => setItems([...items, { medication: "", dose: "", frequency: "", duration: "" }]);
   const updateItem = (i: number, patch: Partial<PrescriptionItem>) => setItems(items.map((x, idx) => idx === i ? { ...x, ...patch } : x));
   const removeItem = (i: number) => setItems(items.filter((_, idx) => idx !== i));
 
-  const finalize = () => {
+  const finalize = async () => {
     if (!patient) return;
-    addPrescription({
-      id: "rx" + Date.now(),
-      patientId: patient.id,
-      date: new Date().toISOString().slice(0, 10),
-      items, indications, diagnosis,
-    });
-    toast.success("Receta guardada");
-    navigate({ to: "/recetas" });
+    try {
+      const { warnings } = await addPrescription({
+        id: "rx" + Date.now(),
+        patientId: patient.id,
+        date: new Date().toISOString().slice(0, 10),
+        items,
+        indications,
+        diagnosis,
+      });
+      toast.success("Receta guardada");
+      const critical = warnings.filter((w) => w.severity === "critical");
+      if (critical.length > 0) {
+        toast.warning(critical[0]!.message, { duration: 8000 });
+      }
+      navigate({ to: "/recetas" });
+    } catch {
+      toast.error("No se pudo guardar la receta");
+    }
   };
 
   return (
@@ -95,9 +117,17 @@ function NuevaReceta() {
             <PatientAvatar patient={patient} />
             <div>
               <div className="font-medium">{patient.name}</div>
-              <div className="text-xs text-muted-foreground">{patient.age} años · {patient.allergies.length > 0 ? `Alergias: ${patient.allergies.join(", ")}` : "Sin alergias"}</div>
+              <div className="text-xs text-muted-foreground">
+                {patient.age} años
+                {patient.weightKg != null ? ` · ${patient.weightKg} kg` : ""}
+                {" · "}
+                {patient.allergies.length > 0 ? `Alergias: ${patient.allergies.join(", ")}` : "Sin alergias"}
+              </div>
             </div>
           </div>
+
+          <ClinicalSafetyAlerts report={safetyReport} loading={safetyLoading} />
+
           <div>
             <label className="text-sm font-medium">Diagnóstico</label>
             <input value={diagnosis} onChange={(e) => setDiagnosis(e.target.value)} placeholder="Ej. Faringoamigdalitis aguda" className="mt-1 w-full h-10 px-3 rounded-lg bg-surface border text-sm outline-none focus:ring-2 focus:ring-ring" />
@@ -116,6 +146,7 @@ function NuevaReceta() {
                   <input value={it.frequency} onChange={(e) => updateItem(i, { frequency: e.target.value })} placeholder="Frecuencia" className="sm:col-span-3 h-9 px-2 rounded-lg bg-card border text-sm" />
                   <input value={it.duration} onChange={(e) => updateItem(i, { duration: e.target.value })} placeholder="Duración" className="sm:col-span-2 h-9 px-2 rounded-lg bg-card border text-sm" />
                   <button onClick={() => removeItem(i)} className="sm:col-span-1 p-2 text-destructive hover:bg-destructive/10 rounded-lg"><Trash2 className="h-4 w-4" /></button>
+                  <PediatricDoseHint medication={it.medication} report={safetyReport} />
                 </div>
               ))}
               <datalist id="med-list-page">

@@ -18,9 +18,11 @@ import { Route as AgendarSlugRouteImport } from './routes/agendar.$slug'
 import { Route as AppRecetasRouteImport } from './routes/_app.recetas'
 import { Route as AppPacientesRouteImport } from './routes/_app.pacientes'
 import { Route as AppHistorialRouteImport } from './routes/_app.historial'
+import { Route as AppEstadisticasRouteImport } from './routes/_app.estadisticas'
 import { Route as AppDashboardRouteImport } from './routes/_app.dashboard'
 import { Route as AppConsentimientoRouteImport } from './routes/_app.consentimiento'
 import { Route as AppConfiguracionRouteImport } from './routes/_app.configuracion'
+import { Route as AppComportamientoRouteImport } from './routes/_app.comportamiento'
 import { Route as AppBrandingRouteImport } from './routes/_app.branding'
 import { Route as AppAgendaRouteImport } from './routes/_app.agenda'
 import { Route as AppAdministracionRouteImport } from './routes/_app.administracion'
@@ -72,6 +74,11 @@ const AppHistorialRoute = AppHistorialRouteImport.update({
   path: '/historial',
   getParentRoute: () => AppRoute,
 } as any)
+const AppEstadisticasRoute = AppEstadisticasRouteImport.update({
+  id: '/estadisticas',
+  path: '/estadisticas',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppDashboardRoute = AppDashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
@@ -85,6 +92,11 @@ const AppConsentimientoRoute = AppConsentimientoRouteImport.update({
 const AppConfiguracionRoute = AppConfiguracionRouteImport.update({
   id: '/configuracion',
   path: '/configuracion',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppComportamientoRoute = AppComportamientoRouteImport.update({
+  id: '/comportamiento',
+  path: '/comportamiento',
   getParentRoute: () => AppRoute,
 } as any)
 const AppBrandingRoute = AppBrandingRouteImport.update({
@@ -125,9 +137,11 @@ export interface FileRoutesByFullPath {
   '/administracion': typeof AppAdministracionRoute
   '/agenda': typeof AppAgendaRoute
   '/branding': typeof AppBrandingRoute
+  '/comportamiento': typeof AppComportamientoRoute
   '/configuracion': typeof AppConfiguracionRoute
   '/consentimiento': typeof AppConsentimientoRoute
   '/dashboard': typeof AppDashboardRoute
+  '/estadisticas': typeof AppEstadisticasRoute
   '/historial': typeof AppHistorialRoute
   '/pacientes': typeof AppPacientesRouteWithChildren
   '/recetas': typeof AppRecetasRouteWithChildren
@@ -144,9 +158,11 @@ export interface FileRoutesByTo {
   '/administracion': typeof AppAdministracionRoute
   '/agenda': typeof AppAgendaRoute
   '/branding': typeof AppBrandingRoute
+  '/comportamiento': typeof AppComportamientoRoute
   '/configuracion': typeof AppConfiguracionRoute
   '/consentimiento': typeof AppConsentimientoRoute
   '/dashboard': typeof AppDashboardRoute
+  '/estadisticas': typeof AppEstadisticasRoute
   '/historial': typeof AppHistorialRoute
   '/pacientes': typeof AppPacientesRouteWithChildren
   '/recetas': typeof AppRecetasRouteWithChildren
@@ -165,9 +181,11 @@ export interface FileRoutesById {
   '/_app/administracion': typeof AppAdministracionRoute
   '/_app/agenda': typeof AppAgendaRoute
   '/_app/branding': typeof AppBrandingRoute
+  '/_app/comportamiento': typeof AppComportamientoRoute
   '/_app/configuracion': typeof AppConfiguracionRoute
   '/_app/consentimiento': typeof AppConsentimientoRoute
   '/_app/dashboard': typeof AppDashboardRoute
+  '/_app/estadisticas': typeof AppEstadisticasRoute
   '/_app/historial': typeof AppHistorialRoute
   '/_app/pacientes': typeof AppPacientesRouteWithChildren
   '/_app/recetas': typeof AppRecetasRouteWithChildren
@@ -186,9 +204,11 @@ export interface FileRouteTypes {
     | '/administracion'
     | '/agenda'
     | '/branding'
+    | '/comportamiento'
     | '/configuracion'
     | '/consentimiento'
     | '/dashboard'
+    | '/estadisticas'
     | '/historial'
     | '/pacientes'
     | '/recetas'
@@ -205,9 +225,11 @@ export interface FileRouteTypes {
     | '/administracion'
     | '/agenda'
     | '/branding'
+    | '/comportamiento'
     | '/configuracion'
     | '/consentimiento'
     | '/dashboard'
+    | '/estadisticas'
     | '/historial'
     | '/pacientes'
     | '/recetas'
@@ -225,9 +247,11 @@ export interface FileRouteTypes {
     | '/_app/administracion'
     | '/_app/agenda'
     | '/_app/branding'
+    | '/_app/comportamiento'
     | '/_app/configuracion'
     | '/_app/consentimiento'
     | '/_app/dashboard'
+    | '/_app/estadisticas'
     | '/_app/historial'
     | '/_app/pacientes'
     | '/_app/recetas'
@@ -311,6 +335,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppHistorialRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/estadisticas': {
+      id: '/_app/estadisticas'
+      path: '/estadisticas'
+      fullPath: '/estadisticas'
+      preLoaderRoute: typeof AppEstadisticasRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/dashboard': {
       id: '/_app/dashboard'
       path: '/dashboard'
@@ -330,6 +361,13 @@ declare module '@tanstack/react-router' {
       path: '/configuracion'
       fullPath: '/configuracion'
       preLoaderRoute: typeof AppConfiguracionRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/comportamiento': {
+      id: '/_app/comportamiento'
+      path: '/comportamiento'
+      fullPath: '/comportamiento'
+      preLoaderRoute: typeof AppComportamientoRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/branding': {
@@ -417,9 +455,11 @@ interface AppRouteChildren {
   AppAdministracionRoute: typeof AppAdministracionRoute
   AppAgendaRoute: typeof AppAgendaRoute
   AppBrandingRoute: typeof AppBrandingRoute
+  AppComportamientoRoute: typeof AppComportamientoRoute
   AppConfiguracionRoute: typeof AppConfiguracionRoute
   AppConsentimientoRoute: typeof AppConsentimientoRoute
   AppDashboardRoute: typeof AppDashboardRoute
+  AppEstadisticasRoute: typeof AppEstadisticasRoute
   AppHistorialRoute: typeof AppHistorialRoute
   AppPacientesRoute: typeof AppPacientesRouteWithChildren
   AppRecetasRoute: typeof AppRecetasRouteWithChildren
@@ -429,9 +469,11 @@ const AppRouteChildren: AppRouteChildren = {
   AppAdministracionRoute: AppAdministracionRoute,
   AppAgendaRoute: AppAgendaRoute,
   AppBrandingRoute: AppBrandingRoute,
+  AppComportamientoRoute: AppComportamientoRoute,
   AppConfiguracionRoute: AppConfiguracionRoute,
   AppConsentimientoRoute: AppConsentimientoRoute,
   AppDashboardRoute: AppDashboardRoute,
+  AppEstadisticasRoute: AppEstadisticasRoute,
   AppHistorialRoute: AppHistorialRoute,
   AppPacientesRoute: AppPacientesRouteWithChildren,
   AppRecetasRoute: AppRecetasRouteWithChildren,

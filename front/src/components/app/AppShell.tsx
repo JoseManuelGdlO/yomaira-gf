@@ -1,5 +1,5 @@
 import { Link, useNavigate, useRouterState, Outlet } from "@tanstack/react-router";
-import { LayoutDashboard, Users, Calendar, Pill, History, Palette, Settings, Search, FileSignature, ShieldCheck, LogOut, Menu } from "lucide-react";
+import { LayoutDashboard, Users, Calendar, Pill, History, Palette, Settings, Search, FileSignature, ShieldCheck, LogOut, Menu, Brain, BarChart3 } from "lucide-react";
 import { useBranding } from "@/lib/theme/ThemeProvider";
 import { useAuth } from "@/lib/auth";
 import { canAccessNav } from "@/lib/permissions";
@@ -12,6 +12,8 @@ const BASE_NAV = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { to: "/pacientes", label: "Pacientes", icon: Users },
   { to: "/agenda", label: "Agenda", icon: Calendar },
+  { to: "/comportamiento", label: "Comportamiento", icon: Brain },
+  { to: "/estadisticas", label: "Estadísticas", icon: BarChart3 },
   { to: "/recetas", label: "Recetas", icon: Pill },
   { to: "/historial", label: "Historial", icon: History },
   { to: "/consentimiento", label: "Consentimiento", icon: FileSignature },

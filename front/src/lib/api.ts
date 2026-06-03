@@ -11,6 +11,7 @@ import type {
   FranklScale,
   DentitionType,
 } from "@/mocks/data";
+import type { ClinicalAnalytics, AnalyticsPeriod } from "@/lib/analytics";
 import type { Branding } from "@/mocks/brandings";
 
 export type {
@@ -171,6 +172,20 @@ export type DashboardStats = {
   consultations: number;
 };
 
+export type { FranklSummary, FranklAlert, FranklTrend, PatientFranklReading, DashboardFranklData, DashboardFranklPatient, FranklReadingScale } from "@/lib/frankl";
+export type {
+  ClinicalSafetyAlert,
+  ClinicalSafetyReport,
+  ClinicalSafetyContext,
+  PrescriptionItemInput,
+} from "@/lib/clinicalSafety";
+import type { FranklSummary, PatientFranklReading, DashboardFranklData, FranklReadingScale } from "@/lib/frankl";
+import type { ClinicalSafetyReport, ClinicalSafetyContext, PrescriptionItemInput, ClinicalSafetyAlert } from "@/lib/clinicalSafety";
+
+export type AppointmentWithFrankl = Appointment & {
+  franklSummary?: FranklSummary;
+};
+
 export type ClinicalQuestionDTO = {
   id: string;
   code: string;
@@ -266,6 +281,7 @@ export const api = {
         paymentAndNextAppointment?: string;
         evolutionNote?: string;
         doctor?: string;
+        frankl?: FranklReadingScale;
       },
     ) =>
       request<{ appointment: Appointment; consultation: Consultation }>(`/appointments/${id}/complete`, {
@@ -282,8 +298,13 @@ export const api = {
   },
   prescriptions: {
     list: (q?: { patientId?: string }) => request<Prescription[]>("/prescriptions", { query: q }),
-    create: (body: Omit<Prescription, "id">) =>
-      request<Prescription>("/prescriptions", { method: "POST", body }),
+    create: async (body: Omit<Prescription, "id">) => {
+      const payload = await request<{ data: Prescription; warnings?: ClinicalSafetyAlert[] }>(
+        "/prescriptions",
+        { method: "POST", body, raw: true },
+      );
+      return { prescription: payload.data, warnings: payload.warnings ?? [] };
+    },
     remove: (id: string) => request<void>(`/prescriptions/${id}`, { method: "DELETE" }),
   },
   medications: {
@@ -318,8 +339,29 @@ export const api = {
     upsert: (patientId: string, body: { items: BudgetItem[]; notes?: string }) =>
       request<TreatmentBudget>(`/patients/${patientId}/budget`, { method: "PUT", body }),
   },
+  frankl: {
+    list: (patientId: string) => request<PatientFranklReading[]>(`/patients/${patientId}/frankl-readings`),
+    summary: (patientId: string) => request<FranklSummary>(`/patients/${patientId}/frankl-summary`),
+  },
+  clinicalSafety: {
+    get: (patientId: string, context: ClinicalSafetyContext = "prescription") =>
+      request<ClinicalSafetyReport>(`/patients/${patientId}/clinical-safety`, { query: { context } }),
+    check: (
+      patientId: string,
+      body: { context?: ClinicalSafetyContext; items: PrescriptionItemInput[] },
+    ) =>
+      request<ClinicalSafetyReport>(`/patients/${patientId}/clinical-safety/check`, {
+        method: "POST",
+        body,
+      }),
+  },
   dashboard: {
     stats: () => request<DashboardStats>("/dashboard/stats"),
+    upcoming: () => request<AppointmentWithFrankl[]>("/dashboard/upcoming"),
+    frankl: (scope?: "all" | "today") =>
+      request<DashboardFranklData>("/dashboard/frankl", { query: scope ? { scope } : undefined }),
+    analytics: (period: AnalyticsPeriod = "90d") =>
+      request<ClinicalAnalytics>("/dashboard/analytics", { query: { period } }),
   },
   users: {
     list: () => request<UserDTO[]>("/users"),

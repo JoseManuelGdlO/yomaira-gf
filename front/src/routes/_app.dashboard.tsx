@@ -1,14 +1,22 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Users, Calendar, Pill, Activity, Plus, ArrowUpRight, Sparkles } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { Users, Calendar, Pill, Activity, Plus, ArrowUpRight, Sparkles, Brain, BarChart3, Lightbulb } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { useBranding } from "@/lib/theme/ThemeProvider";
+import { useAuth } from "@/lib/auth";
+import { api } from "@/lib/api";
+import { tenantKey } from "@/lib/tenantQuery";
 import { StatCard } from "@/components/clinical/StatCard";
 import { PatientAvatar } from "@/components/clinical/PatientAvatar";
 import { StatusBadge } from "@/components/clinical/StatusBadge";
+import { FranklBadge } from "@/components/clinical/FranklBadge";
 import { fmtShort, fmtMonthShort, fmtDay, fmtWeekdayLong, fmtMonthLong, todayISO } from "@/lib/format";
 import { QuickPrescriptionDialog } from "@/components/prescription/QuickPrescriptionDialog";
 import { OnboardingDialog } from "@/components/app/OnboardingDialog";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useFranklSummariesMap } from "@/lib/useFranklSummaries";
+import { shouldShowFranklBadge } from "@/lib/frankl";
+import { ConsultationsTrendChart, RankedBarChart } from "@/components/analytics/AnalyticsCharts";
 
 export const Route = createFileRoute("/_app/dashboard")({
   head: () => ({ meta: [{ title: "Dashboard — MediFlow" }] }),
@@ -17,6 +25,7 @@ export const Route = createFileRoute("/_app/dashboard")({
 
 function Dashboard() {
   const { branding } = useBranding();
+  const { user, hasPermission } = useAuth();
   const { patients, appointments, prescriptions, consultations } = useStore();
   const [rxOpen, setRxOpen] = useState(false);
   const [tourOpen, setTourOpen] = useState(false);
@@ -32,6 +41,21 @@ function Dashboard() {
   const todayAppts = appointments.filter((a) => a.date === today);
   const upcoming = appointments.filter((a) => a.date >= today && a.status !== "cancelada").sort((a, b) => a.date.localeCompare(b.date) || a.time.localeCompare(b.time)).slice(0, 5);
   const recentPatients = [...patients].sort((a, b) => b.lastVisit.localeCompare(a.lastVisit)).slice(0, 5);
+
+  const franklTodayQ = useQuery({
+    queryKey: tenantKey(["dashboard-frankl", "today"], user?.brandingId),
+    queryFn: () => api.dashboard.frankl("today"),
+    enabled: !!user?.brandingId,
+  });
+
+  const franklMap = useFranklSummariesMap(useMemo(() => upcoming.map((a) => a.patientId), [upcoming]));
+
+  const showAnalytics = hasPermission("consultations.read");
+  const analyticsQ = useQuery({
+    queryKey: tenantKey(["dashboard-analytics", "90d"], user?.brandingId),
+    queryFn: () => api.dashboard.analytics("90d"),
+    enabled: !!user?.brandingId && showAnalytics,
+  });
 
   return (
     <div className="space-y-8">
@@ -66,6 +90,82 @@ function Dashboard() {
         <StatCard icon={Activity} label="Consultas" value={consultations.length} hint="Histórico" accent="warning" />
       </div>
 
+      {showAnalytics && analyticsQ.data && (
+        <div className="bg-card rounded-2xl border p-6 space-y-6">
+          <div className="flex items-center justify-between gap-4 flex-wrap">
+            <div className="flex items-center gap-2">
+              <BarChart3 className="h-5 w-5 text-primary" />
+              <h2 className="font-display text-lg font-semibold">Insights clínicos</h2>
+              <span className="text-xs text-muted-foreground">Últimos 90 días</span>
+            </div>
+            <Link to="/estadisticas" className="text-sm text-primary font-medium hover:underline">
+              Ver estadísticas completas
+            </Link>
+          </div>
+
+          {analyticsQ.data.insights.length > 0 && (
+            <ul className="space-y-2">
+              {analyticsQ.data.insights.slice(0, 3).map((text, i) => (
+                <li key={i} className="flex gap-2 text-sm text-muted-foreground">
+                  <Lightbulb className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                  <span>{text}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+
+          <div className="grid lg:grid-cols-2 gap-4">
+            <ConsultationsTrendChart data={analyticsQ.data.series.consultationsByMonth} compact />
+            <RankedBarChart
+              title="Top medicamentos"
+              data={analyticsQ.data.rankings.medications.slice(0, 5)}
+              emptyMessage="Sin recetas en los últimos 90 días."
+              compact
+            />
+          </div>
+        </div>
+      )}
+
+      {(franklTodayQ.data?.todayAppointments?.length ?? 0) > 0 && (
+        <div className="bg-card rounded-2xl border p-6">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <Brain className="h-5 w-5 text-primary" />
+              <h2 className="font-display text-lg font-semibold">Comportamiento hoy</h2>
+            </div>
+            <Link to="/comportamiento" className="text-sm text-primary font-medium hover:underline">Ver todos</Link>
+          </div>
+          <div className="divide-y">
+            {franklTodayQ.data!.todayAppointments.map((item) => (
+              <Link
+                key={item.appointmentId}
+                to="/pacientes/$id"
+                params={{ id: item.patientId }}
+                className="flex items-center gap-4 py-3 hover:bg-surface -mx-2 px-2 rounded-lg transition-colors"
+              >
+                <div className="text-center w-14 shrink-0">
+                  <div className="text-xs text-primary font-medium">{item.time}</div>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="font-medium truncate flex items-center gap-2 flex-wrap">
+                    {item.patientName}
+                    {item.franklSummary.latestFrankl && (
+                      <FranklBadge frankl={item.franklSummary.latestFrankl} summary={item.franklSummary} />
+                    )}
+                  </div>
+                  <div className="text-sm text-muted-foreground truncate">{item.reason}</div>
+                  {item.franklSummary.primaryAlert && (
+                    <div className="text-xs text-amber-700 dark:text-amber-300 mt-1 line-clamp-2">
+                      {item.franklSummary.primaryAlert.message}
+                    </div>
+                  )}
+                </div>
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Two col */}
       <div className="grid lg:grid-cols-3 gap-6">
         <div className="bg-card rounded-2xl border p-6 lg:col-span-2">
@@ -77,6 +177,7 @@ function Dashboard() {
             {upcoming.map((a) => {
               const p = patients.find((x) => x.id === a.patientId);
               if (!p) return null;
+              const franklSummary = franklMap.get(a.patientId);
               return (
                 <Link key={a.id} to="/pacientes/$id" params={{ id: p.id }} className="flex items-center gap-4 py-3 hover:bg-surface -mx-2 px-2 rounded-lg transition-colors">
                   <div className="text-center w-14 shrink-0">
@@ -86,7 +187,12 @@ function Dashboard() {
                   </div>
                   <PatientAvatar patient={p} />
                   <div className="flex-1 min-w-0">
-                    <div className="font-medium truncate">{p.name}</div>
+                    <div className="font-medium truncate flex items-center gap-2 flex-wrap">
+                      {p.name}
+                      {shouldShowFranklBadge(franklSummary) && franklSummary?.latestFrankl && (
+                        <FranklBadge frankl={franklSummary.latestFrankl} summary={franklSummary} />
+                      )}
+                    </div>
                     <div className="text-sm text-muted-foreground truncate">{a.reason}</div>
                   </div>
                   <StatusBadge status={a.status} />

@@ -1,9 +1,10 @@
 import { Request, Response } from 'express';
 import { Op } from 'sequelize';
 import { z } from 'zod';
-import { Appointment, Consultation, Patient, sequelize } from '../models';
+import { Appointment, Consultation, Patient, PatientDentalChart, sequelize } from '../models';
 import { findTenantPatient, tenantWhere } from '../middleware/tenant';
 import { dispatchAppointmentNotifications } from '../services/notifications/notificationDispatcher';
+import { isRecordableFrankl, recordFranklReading } from '../services/frankl/recordFranklReading';
 import { NotFound } from '../utils/errors';
 
 export const querySchema = z.object({
@@ -112,6 +113,7 @@ export const completeSchema = z.object({
   paymentAndNextAppointment: z.string().default(''),
   evolutionNote: z.string().default(''),
   doctor: z.string().default(''),
+  frankl: z.enum(['I', 'II', 'III', 'IV']).optional(),
 });
 
 export async function complete(req: Request, res: Response): Promise<void> {
@@ -140,6 +142,42 @@ export async function complete(req: Request, res: Response): Promise<void> {
       { lastVisit: appointment.date },
       { where: { id: appointment.patientId, brandingId: req.user!.brandingId }, transaction: t },
     );
+
+    if (body.frankl && isRecordableFrankl(body.frankl)) {
+      let chart = await PatientDentalChart.findOne({
+        where: { patientId: appointment.patientId },
+        transaction: t,
+      });
+      if (!chart) {
+        chart = await PatientDentalChart.create(
+          {
+            patientId: appointment.patientId,
+            brandingId: req.user!.brandingId,
+            toothTreatments: {},
+            frankl: body.frankl,
+            dentition: [],
+            atm: '',
+            ganglios: '',
+            softTissues: '',
+            frenula: '',
+          },
+          { transaction: t },
+        );
+      } else {
+        await chart.update({ frankl: body.frankl }, { transaction: t });
+      }
+
+      await recordFranklReading({
+        patientId: appointment.patientId,
+        brandingId: req.user!.brandingId,
+        frankl: body.frankl,
+        recordedOn: appointment.date,
+        consultationId: consultation.id,
+        appointmentId: appointment.id,
+        transaction: t,
+      });
+    }
+
     return { consultation, appointment };
   });
 

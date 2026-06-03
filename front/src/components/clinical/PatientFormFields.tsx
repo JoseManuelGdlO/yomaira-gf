@@ -11,6 +11,7 @@ export type PatientFormValues = {
   email: string;
   allergies: string;
   conditions: string;
+  weightKg: string;
 };
 
 export function emptyPatientForm(): PatientFormValues {
@@ -25,6 +26,7 @@ export function emptyPatientForm(): PatientFormValues {
     email: "",
     allergies: "",
     conditions: "",
+    weightKg: "",
   };
 }
 
@@ -40,6 +42,7 @@ export function patientToForm(p: Patient): PatientFormValues {
     email: p.email === "—" ? "" : p.email,
     allergies: p.allergies.join(", "),
     conditions: p.conditions.join(", "),
+    weightKg: p.weightKg != null ? String(p.weightKg) : "",
   };
 }
 
@@ -62,6 +65,7 @@ export function formToPatientFields(values: PatientFormValues, birthDateFallback
     allergies: values.allergies.split(",").map((s) => s.trim()).filter(Boolean),
     conditions: values.conditions.split(",").map((s) => s.trim()).filter(Boolean),
     bloodType: values.bloodType,
+    weightKg: values.weightKg.trim() ? Number(values.weightKg) : null,
   };
 }
 
@@ -83,6 +87,9 @@ export function PatientFormFields({
       </Field>
       <Field label="Edad *">
         <input type="number" min="0" max="120" value={values.age} onChange={(e) => set("age", e.target.value)} className={inputCls} placeholder="6" />
+      </Field>
+      <Field label="Peso (kg)">
+        <input type="number" min="0.5" max="200" step="0.1" value={values.weightKg} onChange={(e) => set("weightKg", e.target.value)} className={inputCls} placeholder="12.5" />
       </Field>
       <Field label="Fecha de nacimiento">
         <input type="date" value={values.birthDate} onChange={(e) => set("birthDate", e.target.value)} className={inputCls} />

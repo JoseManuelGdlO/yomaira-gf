@@ -14,6 +14,7 @@ export interface PatientAttrs {
   allergies: string[];
   conditions: string[];
   bloodType: string;
+  weightKg: number | null;
   lastVisit: string;
   avatarColor: string;
   consentPhoto: string | null;
@@ -23,7 +24,7 @@ export interface PatientAttrs {
 
 export type PatientCreationAttrs = Optional<
   PatientAttrs,
-  'id' | 'allergies' | 'conditions' | 'consentPhoto' | 'createdAt' | 'updatedAt'
+  'id' | 'allergies' | 'conditions' | 'weightKg' | 'consentPhoto' | 'createdAt' | 'updatedAt'
 >;
 
 export class Patient extends Model<PatientAttrs, PatientCreationAttrs> implements PatientAttrs {
@@ -39,6 +40,7 @@ export class Patient extends Model<PatientAttrs, PatientCreationAttrs> implement
   declare allergies: string[];
   declare conditions: string[];
   declare bloodType: string;
+  declare weightKg: number | null;
   declare lastVisit: string;
   declare avatarColor: string;
   declare consentPhoto: string | null;
@@ -60,6 +62,7 @@ Patient.init(
     allergies: { type: DataTypes.JSON, allowNull: false, defaultValue: [] },
     conditions: { type: DataTypes.JSON, allowNull: false, defaultValue: [] },
     bloodType: { type: DataTypes.STRING(8), allowNull: false, defaultValue: 'O+' },
+    weightKg: { type: DataTypes.DECIMAL(5, 2), allowNull: true, field: 'weight_kg' },
     lastVisit: { type: DataTypes.DATEONLY, allowNull: false },
     avatarColor: { type: DataTypes.STRING(16), allowNull: false, defaultValue: '#FCE4F5' },
     consentPhoto: { type: DataTypes.TEXT('long'), allowNull: true },

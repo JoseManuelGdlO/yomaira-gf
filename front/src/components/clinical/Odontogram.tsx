@@ -76,6 +76,9 @@ export function Odontogram({
     mutationFn: (body: Partial<PatientDentalChart>) => api.dentalChart.upsert(patientId, body),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: tenantKey(["dental-chart", patientId], brandingId) });
+      qc.invalidateQueries({ queryKey: tenantKey(["frankl-readings", patientId], brandingId) });
+      qc.invalidateQueries({ queryKey: tenantKey(["frankl-summary", patientId], brandingId) });
+      qc.invalidateQueries({ queryKey: tenantKey(["dashboard-frankl"], brandingId) });
       setDirty(false);
       onDirtyChange?.(false);
       toast.success("Odontograma guardado");

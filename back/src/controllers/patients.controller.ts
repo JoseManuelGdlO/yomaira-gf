@@ -51,6 +51,7 @@ const baseSchema = {
   allergies: z.array(z.string()).default([]),
   conditions: z.array(z.string()).default([]),
   bloodType: z.string().default('O+'),
+  weightKg: z.number().min(0.5).max(200).nullable().optional(),
   lastVisit: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   avatarColor: z.string().default('#FCE4F5'),
   consentPhoto: z.string().nullable().optional(),

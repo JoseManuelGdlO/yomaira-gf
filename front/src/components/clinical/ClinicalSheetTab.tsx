@@ -10,6 +10,7 @@ import type { Consultation } from "@/mocks/data";
 import { Odontogram } from "./Odontogram";
 import { BudgetEditor } from "./BudgetEditor";
 import { EvolutionTable } from "./EvolutionTable";
+import { FranklBehaviorPanel } from "./FranklBehaviorPanel";
 
 export function ClinicalSheetTab({
   patientId,
@@ -78,6 +79,8 @@ export function ClinicalSheetTab({
           onRegisterSave={registerOdontoSave}
         />
       </section>
+
+      <FranklBehaviorPanel patientId={patientId} />
 
       <section>
         <BudgetEditor
