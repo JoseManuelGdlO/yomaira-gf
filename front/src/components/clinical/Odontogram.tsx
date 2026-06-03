@@ -130,7 +130,7 @@ export function Odontogram({
           style={{ backgroundColor: `${ODONTO_DONE_COLOR}33` }}
           aria-hidden
         />
-        Marque en rojo las piezas que ya tienen tratamiento. Puede agregar una nota en texto libre.
+        Escriba el tratamiento planificado sin marcar la casilla. Marque la casilla (rojo) solo cuando el tratamiento ya se realizó.
       </p>
 
       <div className="grid lg:grid-cols-2 gap-4">
@@ -292,16 +292,21 @@ function ToothTreatmentField({
 }) {
   const { done, text } = parseToothTreatment(value);
 
+  const label = getToothTreatmentLabel(value);
+
   if (readOnly) {
-    if (!done) return <span className="text-muted-foreground">—</span>;
-    return (
-      <span
-        className="inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium text-red-800 border border-red-200"
-        style={{ backgroundColor: `${ODONTO_DONE_COLOR}22` }}
-      >
-        {getToothTreatmentLabel(value)}
-      </span>
-    );
+    if (!label) return <span className="text-muted-foreground">—</span>;
+    if (done) {
+      return (
+        <span
+          className="inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium text-red-800 border border-red-200"
+          style={{ backgroundColor: `${ODONTO_DONE_COLOR}22` }}
+        >
+          {label}
+        </span>
+      );
+    }
+    return <span className="text-xs text-muted-foreground">{label}</span>;
   }
 
   return (
@@ -316,8 +321,8 @@ function ToothTreatmentField({
       </label>
       <input
         value={text}
-        onChange={(e) => onChange(formatToothTreatment(done || !!e.target.value.trim(), e.target.value))}
-        placeholder="Tratamiento realizado"
+        onChange={(e) => onChange(formatToothTreatment(done, e.target.value))}
+        placeholder="Tratamiento planificado"
         className={`w-full min-w-0 h-7 px-1.5 rounded border bg-surface text-xs outline-none focus:ring-1 focus:ring-ring ${
           done ? "border-red-300" : ""
         }`}

@@ -153,6 +153,10 @@ function dentalProcedureLabel(value: string): string {
     const text = raw.slice(5).trim();
     return text || 'Tratamiento realizado';
   }
+  if (raw.startsWith('plan:')) {
+    const text = raw.slice(5).trim();
+    return text || 'Tratamiento planificado';
+  }
   const colon = raw.indexOf(':');
   if (colon > 0) {
     const code = raw.slice(0, colon);
@@ -172,6 +176,7 @@ function dentalProcedureKey(value: string): string {
 function isToothTreatmentDone(value?: string | null): boolean {
   const raw = value?.trim();
   if (!raw) return false;
+  if (raw === 'plan' || raw.startsWith('plan:')) return false;
   if (raw === 'done') return true;
   if (raw.startsWith('done:')) return true;
   return true;

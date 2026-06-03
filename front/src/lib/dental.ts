@@ -73,14 +73,19 @@ export function parseToothTreatment(value?: string | null): { done: boolean; tex
   if (!raw) return { done: false, text: "" };
   if (raw === "done") return { done: true, text: "" };
   if (raw.startsWith("done:")) return { done: true, text: raw.slice(5) };
+  if (raw === "plan") return { done: false, text: "" };
+  if (raw.startsWith("plan:")) return { done: false, text: raw.slice(5) };
   return { done: true, text: legacyText(raw) };
 }
 
 export function formatToothTreatment(done: boolean, text: string): string {
   const trimmed = text.trim();
-  if (!done) return "";
-  if (!trimmed) return "done";
-  return `done:${trimmed}`;
+  if (!trimmed && !done) return "";
+  if (done) {
+    if (!trimmed) return "done";
+    return `done:${trimmed}`;
+  }
+  return `plan:${trimmed}`;
 }
 
 export function isToothTreatmentDone(value?: string | null): boolean {
@@ -93,8 +98,9 @@ export function getToothTreatmentText(value?: string | null): string {
 
 export function getToothTreatmentLabel(value?: string | null): string {
   const { done, text } = parseToothTreatment(value);
-  if (!done) return "";
-  return text || "Realizado";
+  if (!text && !done) return "";
+  if (done && !text) return "Realizado";
+  return text;
 }
 
 export function getToothTreatmentColor(value?: string | null): string | undefined {

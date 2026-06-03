@@ -48,7 +48,7 @@ export function PrintClinicalSheet({
             className="inline-block h-2.5 w-2.5 border border-gray-400"
             style={{ backgroundColor: `${ODONTO_DONE_COLOR}44` }}
           />
-          Rojo = pieza ya tratada
+          Rojo = pieza ya tratada. Sin rojo = tratamiento planificado.
         </p>
         <div className="grid grid-cols-2 gap-3 text-[10px]">
           {ODONTO_QUADRANTS.map((quad) => (
@@ -192,8 +192,8 @@ function PrintToothCell({
       <td className={`font-mono w-6 ${className} ${done ? "text-red-700 font-semibold" : ""}`} style={cellStyle}>
         {tooth}
       </td>
-      <td className={`pr-1 ${className}`} style={cellStyle}>
-        {done ? label : ""}
+      <td className={`pr-1 ${className} ${done ? "" : "text-gray-600 italic"}`} style={cellStyle}>
+        {label}
       </td>
     </>
   );
