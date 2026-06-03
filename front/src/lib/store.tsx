@@ -12,7 +12,7 @@ type Store = {
   prescriptions: Prescription[];
   addPrescription: (rx: Prescription) => void;
   addConsultation: (c: Consultation) => void;
-  updatePatient: (id: string, patch: Partial<Patient>) => void;
+  updatePatient: (id: string, patch: Partial<Patient>) => Promise<Patient>;
   setAppointmentStatus: (id: string, status: Appointment["status"]) => void;
   addAppointment: (a: Appointment) => void;
   addPatient: (p: Patient) => void;
@@ -127,7 +127,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     appointments: appointmentsQ.data ?? [],
     prescriptions: prescriptionsQ.data ?? [],
     addPatient: (p) => { createPatient.mutate(p); },
-    updatePatient: (id, patch) => { updatePatientM.mutate({ id, patch }); },
+    updatePatient: (id, patch) => updatePatientM.mutateAsync({ id, patch }),
     addAppointment: (a) => { createAppointment.mutate(a); },
     setAppointmentStatus: (id, status) => { setApptStatus.mutate({ id, status }); },
     addConsultation: (c) => { createConsultation.mutate(c); },

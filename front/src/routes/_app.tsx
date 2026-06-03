@@ -17,9 +17,11 @@ function AuthenticatedLayout() {
   }
 
   if (!ready) {
-    return <div className="min-h-screen flex items-center justify-center">
+    return (
+    <div className="min-h-screen flex items-center justify-center bg-background">
       <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-    </div>;
+    </div>
+    );
   }
 
   return <AppShell />;

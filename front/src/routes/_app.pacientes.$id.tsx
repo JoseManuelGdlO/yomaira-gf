@@ -4,9 +4,10 @@ import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { useStore } from "@/lib/store";
 import { DeletePatientDialog } from "@/components/clinical/DeletePatientDialog";
+import { EditPatientDialog } from "@/components/clinical/EditPatientDialog";
 import { PatientAvatar } from "@/components/clinical/PatientAvatar";
 import { ClinicalSheetTab } from "@/components/clinical/ClinicalSheetTab";
-import { Phone, Mail, Cake, Droplet, AlertCircle, FileText, Pill, Plus, Upload, ClipboardList, FileSignature, Camera, Trash2, Eye, Printer } from "lucide-react";
+import { Phone, Mail, Cake, Droplet, AlertCircle, FileText, Pill, Plus, Upload, ClipboardList, FileSignature, Camera, Trash2, Eye, Printer, Pencil } from "lucide-react";
 import { toast } from "sonner";
 import { useClinicalForm, usePatientClinicalAnswers, type Answers, type Question } from "@/lib/clinicalForm";
 import { FloatingSaveButton } from "@/components/clinical/FloatingSaveButton";
@@ -30,10 +31,12 @@ function PatientDetail() {
   if (!patient) throw notFound();
 
   const canDelete = hasPermission("patients.delete");
+  const canWrite = hasPermission("patients.write");
   const [tab, setTab] = useState<Tab>("Hoja clínica");
   const [viewRx, setViewRx] = useState<Prescription | null>(null);
   const [rxAutoPrint, setRxAutoPrint] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
   const patientConsults = consultations.filter((c) => c.patientId === id);
   const patientRx = [...prescriptions.filter((r) => r.patientId === id)].sort((a, b) =>
     b.date.localeCompare(a.date),
@@ -71,6 +74,15 @@ function PatientDetail() {
           <Link to="/consentimiento" search={{ patientId: patient.id }} className="inline-flex items-center gap-2 border rounded-xl px-4 py-2.5 text-sm font-medium hover:bg-accent/10 shrink-0">
             <FileSignature className="h-4 w-4" /> Consentimiento
           </Link>
+          {canWrite && (
+            <button
+              type="button"
+              onClick={() => setEditOpen(true)}
+              className="inline-flex items-center gap-2 border rounded-xl px-4 py-2.5 text-sm font-medium hover:bg-accent/10 shrink-0"
+            >
+              <Pencil className="h-4 w-4" /> Editar
+            </button>
+          )}
           {canDelete && (
             <button
               type="button"
@@ -99,7 +111,18 @@ function PatientDetail() {
 
         {tab === "Resumen" && (
           <div className="grid lg:grid-cols-2 gap-6">
-            <Section title="Datos generales">
+            <Section
+              title="Datos generales"
+              action={canWrite ? (
+                <button
+                  type="button"
+                  onClick={() => setEditOpen(true)}
+                  className="inline-flex items-center gap-1.5 text-sm text-primary font-medium hover:underline"
+                >
+                  <Pencil className="h-3.5 w-3.5" /> Editar datos
+                </button>
+              ) : undefined}
+            >
               <Field label="Tutor" value={patient.guardian} />
               <Field label="Género" value={patient.gender === "F" ? "Femenino" : "Masculino"} />
               <Field label="Fecha de nacimiento" value={fmtShort(patient.birthDate)} />
@@ -185,14 +208,19 @@ function PatientDetail() {
         open={deleteOpen}
         onOpenChange={setDeleteOpen}
       />
+
+      <EditPatientDialog patient={patient} open={editOpen} onOpenChange={setEditOpen} />
     </div>
   );
 }
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
+function Section({ title, children, action }: { title: string; children: React.ReactNode; action?: React.ReactNode }) {
   return (
     <div className="bg-card border rounded-2xl p-6">
-      <h3 className="font-display text-lg font-semibold mb-4">{title}</h3>
+      <div className="flex items-center justify-between gap-3 mb-4">
+        <h3 className="font-display text-lg font-semibold">{title}</h3>
+        {action}
+      </div>
       <div className="space-y-3">{children}</div>
     </div>
   );

@@ -2,56 +2,37 @@ import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { useStore } from "@/lib/store";
 import { toast } from "sonner";
-import { UserPlus, X } from "lucide-react";
+import { UserPlus } from "lucide-react";
 import { todayISO } from "@/lib/format";
+import {
+  PatientFormFields,
+  emptyPatientForm,
+  validatePatientForm,
+  formToPatientFields,
+  type PatientFormValues,
+} from "./PatientFormFields";
 
 const COLORS = ["#FCE4F5", "#E4E8FC", "#FCE9D6", "#E4FCEA", "#F3E4FC", "#FCEAE4"];
 
 export function NewPatientDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (o: boolean) => void }) {
-  const { patients, updatePatient: _u } = useStore();
-  // Use store mutator: we need addPatient. Inject via store extension below.
-  const store = useStore() as any;
-  const [name, setName] = useState("");
-  const [age, setAge] = useState("");
-  const [gender, setGender] = useState<"M" | "F">("F");
-  const [birthDate, setBirthDate] = useState("");
-  const [guardian, setGuardian] = useState("");
-  const [phone, setPhone] = useState("");
-  const [email, setEmail] = useState("");
-  const [bloodType, setBloodType] = useState("O+");
-  const [allergies, setAllergies] = useState("");
-  const [conditions, setConditions] = useState("");
+  const { patients, addPatient } = useStore();
+  const [form, setForm] = useState<PatientFormValues>(emptyPatientForm());
 
-  const reset = () => {
-    setName(""); setAge(""); setBirthDate(""); setGuardian(""); setPhone(""); setEmail(""); setAllergies(""); setConditions("");
-  };
+  const reset = () => setForm(emptyPatientForm());
 
   const submit = () => {
-    if (!name.trim() || !age || !guardian.trim()) {
-      toast.error("Completa nombre, edad y tutor");
+    const error = validatePatientForm(form);
+    if (error) {
+      toast.error(error);
       return;
     }
-    const newPatient = {
+    const fields = formToPatientFields(form, todayISO());
+    addPatient({
       id: "p" + (patients.length + 1) + "_" + Date.now(),
-      name: name.trim(),
-      age: Number(age),
-      birthDate: birthDate || todayISO(),
-      gender,
-      guardian: guardian.trim(),
-      guardianPhone: phone || "+52 55 0000 0000",
-      email: email || "—",
-      allergies: allergies.split(",").map((s) => s.trim()).filter(Boolean),
-      conditions: conditions.split(",").map((s) => s.trim()).filter(Boolean),
-      bloodType,
+      ...fields,
       lastVisit: todayISO(),
       avatarColor: COLORS[Math.floor(Math.random() * COLORS.length)],
-    };
-    if (store.addPatient) {
-      store.addPatient(newPatient);
-    } else {
-      // Fallback if store doesn't have addPatient yet
-      console.warn("addPatient not in store");
-    }
+    });
     toast.success("Paciente creado");
     reset();
     onOpenChange(false);
@@ -72,46 +53,7 @@ export function NewPatientDialog({ open, onOpenChange }: { open: boolean; onOpen
           </div>
         </DialogHeader>
 
-        <div className="grid sm:grid-cols-2 gap-4 mt-2">
-          <Field label="Nombre completo *" className="sm:col-span-2">
-            <input value={name} onChange={(e) => setName(e.target.value)} className={inputCls} placeholder="Sofía Martínez Ruiz" />
-          </Field>
-          <Field label="Edad *">
-            <input type="number" min="0" max="120" value={age} onChange={(e) => setAge(e.target.value)} className={inputCls} placeholder="6" />
-          </Field>
-          <Field label="Fecha de nacimiento">
-            <input type="date" value={birthDate} onChange={(e) => setBirthDate(e.target.value)} className={inputCls} />
-          </Field>
-          <Field label="Género">
-            <div className="flex gap-2">
-              {(["F", "M"] as const).map((g) => (
-                <button key={g} onClick={() => setGender(g)} type="button" className={`flex-1 h-10 rounded-lg border text-sm font-medium ${gender === g ? "bg-primary text-primary-foreground border-primary" : "bg-surface"}`}>
-                  {g === "F" ? "Femenino" : "Masculino"}
-                </button>
-              ))}
-            </div>
-          </Field>
-          <Field label="Tipo de sangre">
-            <select value={bloodType} onChange={(e) => setBloodType(e.target.value)} className={inputCls}>
-              {["O+","O-","A+","A-","B+","B-","AB+","AB-"].map((b) => <option key={b}>{b}</option>)}
-            </select>
-          </Field>
-          <Field label="Tutor *" className="sm:col-span-2">
-            <input value={guardian} onChange={(e) => setGuardian(e.target.value)} className={inputCls} placeholder="Laura Ruiz" />
-          </Field>
-          <Field label="Teléfono del tutor">
-            <input value={phone} onChange={(e) => setPhone(e.target.value)} className={inputCls} placeholder="+52 55 1234 5678" />
-          </Field>
-          <Field label="Email">
-            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} className={inputCls} placeholder="contacto@email.com" />
-          </Field>
-          <Field label="Alergias (separadas por coma)" className="sm:col-span-2">
-            <input value={allergies} onChange={(e) => setAllergies(e.target.value)} className={inputCls} placeholder="Penicilina, Látex" />
-          </Field>
-          <Field label="Antecedentes médicos (separados por coma)" className="sm:col-span-2">
-            <input value={conditions} onChange={(e) => setConditions(e.target.value)} className={inputCls} placeholder="Caries, Mordida cruzada" />
-          </Field>
-        </div>
+        <PatientFormFields values={form} onChange={(patch) => setForm((f) => ({ ...f, ...patch }))} />
 
         <DialogFooter className="gap-2 sm:gap-2">
           <button onClick={() => onOpenChange(false)} className="px-4 py-2 rounded-lg text-sm font-medium border bg-card hover:bg-surface">Cancelar</button>
@@ -119,15 +61,5 @@ export function NewPatientDialog({ open, onOpenChange }: { open: boolean; onOpen
         </DialogFooter>
       </DialogContent>
     </Dialog>
-  );
-}
-
-const inputCls = "w-full h-10 px-3 rounded-lg bg-surface border text-sm outline-none focus:ring-2 focus:ring-ring";
-function Field({ label, children, className = "" }: { label: string; children: React.ReactNode; className?: string }) {
-  return (
-    <div className={className}>
-      <label className="text-xs font-medium text-muted-foreground">{label}</label>
-      <div className="mt-1">{children}</div>
-    </div>
   );
 }
