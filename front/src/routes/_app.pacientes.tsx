@@ -1,14 +1,26 @@
 import { createFileRoute, Link, Outlet, useLocation } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth";
-import { useStore } from "@/lib/store";
-import { Search, Plus, AlertCircle, Eye, Pill, Trash2 } from "lucide-react";
+import { api } from "@/lib/api";
+import { tenantKey } from "@/lib/tenantQuery";
+import { Search, Plus, AlertCircle, Eye, Pill, Trash2, ChevronLeft, ChevronRight } from "lucide-react";
 import { PatientAvatar } from "@/components/clinical/PatientAvatar";
 import { fmtShort } from "@/lib/format";
 import { NewPatientDialog } from "@/components/clinical/NewPatientDialog";
 import { PatientQuickViewDialog } from "@/components/clinical/PatientQuickViewDialog";
 import { QuickPrescriptionDialog } from "@/components/prescription/QuickPrescriptionDialog";
 import { DeletePatientDialog } from "@/components/clinical/DeletePatientDialog";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+} from "@/components/ui/pagination";
+import { cn } from "@/lib/utils";
+
+const PAGE_SIZE = 20;
 
 export const Route = createFileRoute("/_app/pacientes")({
   head: () => ({ meta: [{ title: "Pacientes — MediFlow" }] }),
@@ -25,24 +37,72 @@ function PatientsRoute() {
   return <PatientsPage />;
 }
 
+function getVisiblePages(current: number, total: number): (number | "ellipsis")[] {
+  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
+
+  const pages: (number | "ellipsis")[] = [1];
+  const windowStart = Math.max(2, current - 1);
+  const windowEnd = Math.min(total - 1, current + 1);
+
+  if (windowStart > 2) pages.push("ellipsis");
+
+  for (let i = windowStart; i <= windowEnd; i++) {
+    pages.push(i);
+  }
+
+  if (windowEnd < total - 1) pages.push("ellipsis");
+
+  if (total > 1) pages.push(total);
+  return pages;
+}
+
 function PatientsPage() {
-  const { hasPermission } = useAuth();
-  const { patients } = useStore();
+  const { hasPermission, user, ready } = useAuth();
+  const brandingId = user?.brandingId;
   const canDelete = hasPermission("patients.delete");
+  const [page, setPage] = useState(1);
   const [q, setQ] = useState("");
   const [newOpen, setNewOpen] = useState(false);
   const [quickId, setQuickId] = useState<string | null>(null);
   const [rxId, setRxId] = useState<string | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
-  const filtered = patients.filter((p) => p.name.toLowerCase().includes(q.toLowerCase()) || p.guardian.toLowerCase().includes(q.toLowerCase()));
+
+  const patientsQ = useQuery({
+    queryKey: [...tenantKey(["patients", "list"], brandingId), page, q],
+    queryFn: () =>
+      api.patients.listPage({
+        q: q || undefined,
+        limit: PAGE_SIZE,
+        offset: (page - 1) * PAGE_SIZE,
+      }),
+    enabled: ready && !!user,
+    placeholderData: (prev) => prev,
+  });
+
+  const patients = patientsQ.data?.data ?? [];
+  const meta = patientsQ.data?.meta;
+  const total = meta?.total ?? 0;
+  const offset = meta?.offset ?? 0;
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const deletePatient = patients.find((p) => p.id === deleteId) ?? null;
+
+  useEffect(() => {
+    if (patients.length === 0 && page > 1 && !patientsQ.isFetching) {
+      setPage((p) => p - 1);
+    }
+  }, [patients.length, page, patientsQ.isFetching]);
+
+  const rangeStart = total === 0 ? 0 : offset + 1;
+  const rangeEnd = total === 0 ? 0 : offset + patients.length;
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div>
           <h1 className="font-display text-3xl font-semibold">Pacientes</h1>
-          <p className="text-muted-foreground text-sm mt-1">{patients.length} pacientes registrados</p>
+          <p className="text-muted-foreground text-sm mt-1">
+            {patientsQ.isLoading ? "Cargando..." : `${total} pacientes registrados`}
+          </p>
         </div>
         {hasPermission("patients.write") && (
           <button onClick={() => setNewOpen(true)} className="inline-flex items-center gap-2 bg-primary text-primary-foreground rounded-xl px-4 py-2.5 text-sm font-medium hover:bg-primary/90">
@@ -55,10 +115,18 @@ function PatientsPage() {
         <div className="p-4 border-b">
           <div className="relative max-w-md">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Buscar por nombre o tutor..." className="w-full pl-10 pr-4 h-10 rounded-lg bg-surface border text-sm outline-none focus:ring-2 focus:ring-ring" />
+            <input
+              value={q}
+              onChange={(e) => {
+                setQ(e.target.value);
+                setPage(1);
+              }}
+              placeholder="Buscar por nombre o tutor..."
+              className="w-full pl-10 pr-4 h-10 rounded-lg bg-surface border text-sm outline-none focus:ring-2 focus:ring-ring"
+            />
           </div>
         </div>
-        <div className="overflow-x-auto">
+        <div className={cn("overflow-x-auto", patientsQ.isFetching && "opacity-60")}>
           <table className="w-full text-sm">
             <thead className="bg-surface/60 text-muted-foreground">
               <tr className="text-left">
@@ -71,7 +139,14 @@ function PatientsPage() {
               </tr>
             </thead>
             <tbody>
-              {filtered.map((p) => (
+              {patientsQ.isError && (
+                <tr>
+                  <td colSpan={6} className="text-center py-12 text-destructive">
+                    No se pudo cargar la lista de pacientes.
+                  </td>
+                </tr>
+              )}
+              {!patientsQ.isError && patients.map((p) => (
                 <tr key={p.id} className="border-t hover:bg-surface/50 transition-colors">
                   <td className="px-6 py-3">
                     <Link to="/pacientes/$id" params={{ id: p.id }} className="flex items-center gap-3">
@@ -123,12 +198,74 @@ function PatientsPage() {
                   </td>
                 </tr>
               ))}
-              {filtered.length === 0 && (
+              {!patientsQ.isError && !patientsQ.isLoading && patients.length === 0 && (
                 <tr><td colSpan={6} className="text-center py-12 text-muted-foreground">Sin resultados.</td></tr>
               )}
             </tbody>
           </table>
         </div>
+
+        {total > 0 && (
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-6 py-4 border-t">
+            <p className="text-sm text-muted-foreground">
+              Mostrando {rangeStart}–{rangeEnd} de {total}
+            </p>
+            {totalPages > 1 && (
+              <Pagination className="mx-0 w-auto">
+                <PaginationContent>
+                  <PaginationItem>
+                    <PaginationLink
+                      href="#"
+                      size="default"
+                      className={cn("gap-1 pl-2.5", page <= 1 && "pointer-events-none opacity-50")}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        if (page > 1) setPage(page - 1);
+                      }}
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                      <span>Anterior</span>
+                    </PaginationLink>
+                  </PaginationItem>
+                  {getVisiblePages(page, totalPages).map((p, i) =>
+                    p === "ellipsis" ? (
+                      <PaginationItem key={`ellipsis-${i}`}>
+                        <PaginationEllipsis />
+                      </PaginationItem>
+                    ) : (
+                      <PaginationItem key={p}>
+                        <PaginationLink
+                          href="#"
+                          isActive={p === page}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            setPage(p);
+                          }}
+                        >
+                          {p}
+                        </PaginationLink>
+                      </PaginationItem>
+                    ),
+                  )}
+                  <PaginationItem>
+                    <PaginationLink
+                      href="#"
+                      size="default"
+                      className={cn("gap-1 pr-2.5", page >= totalPages && "pointer-events-none opacity-50")}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        if (page < totalPages) setPage(page + 1);
+                      }}
+                    >
+                      <span>Siguiente</span>
+                      <ChevronRight className="h-4 w-4" />
+                    </PaginationLink>
+                  </PaginationItem>
+                </PaginationContent>
+              </Pagination>
+            )}
+          </div>
+        )}
       </div>
 
       <NewPatientDialog open={newOpen} onOpenChange={setNewOpen} />

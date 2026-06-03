@@ -23,10 +23,16 @@ const Ctx = createContext<Store | null>(null);
 
 const QK = {
   patients: ["patients"] as const,
+  patientsList: ["patients", "list"] as const,
   consultations: ["consultations"] as const,
   appointments: ["appointments"] as const,
   prescriptions: ["prescriptions"] as const,
 };
+
+function invalidatePatients(qc: ReturnType<typeof useQueryClient>, brandingId: string | undefined) {
+  qc.invalidateQueries({ queryKey: tenantKey(QK.patients, brandingId) });
+  qc.invalidateQueries({ queryKey: tenantKey(QK.patientsList, brandingId) });
+}
 
 function stripLocalId<T extends { id?: unknown }>(input: T): Omit<T, "id"> {
   const { id: _ignored, ...rest } = input;
@@ -70,7 +76,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const createPatient = useMutation({
     mutationFn: (p: Patient) => api.patients.create(stripLocalId(p)),
-    onSuccess: () => qc.invalidateQueries({ queryKey: tenantKey(QK.patients, brandingId) }),
+    onSuccess: () => invalidatePatients(qc, brandingId),
   });
 
   const updatePatientM = useMutation({
@@ -80,7 +86,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       }
       return api.patients.update(id, patch);
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: tenantKey(QK.patients, brandingId) }),
+    onSuccess: () => invalidatePatients(qc, brandingId),
   });
 
   const createAppointment = useMutation({
@@ -98,7 +104,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     mutationFn: (c: Consultation) => api.consultations.create(stripLocalId(c)),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: tenantKey(QK.consultations, brandingId) });
-      qc.invalidateQueries({ queryKey: tenantKey(QK.patients, brandingId) });
+      invalidatePatients(qc, brandingId);
       qc.invalidateQueries({ queryKey: tenantKey(QK.appointments, brandingId) });
     },
   });
@@ -111,7 +117,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const deletePatientM = useMutation({
     mutationFn: (id: string) => api.patients.remove(id),
     onSuccess: (_data, id) => {
-      qc.invalidateQueries({ queryKey: tenantKey(QK.patients, brandingId) });
+      invalidatePatients(qc, brandingId);
       qc.invalidateQueries({ queryKey: tenantKey(QK.consultations, brandingId) });
       qc.invalidateQueries({ queryKey: tenantKey(QK.appointments, brandingId) });
       qc.invalidateQueries({ queryKey: tenantKey(QK.prescriptions, brandingId) });

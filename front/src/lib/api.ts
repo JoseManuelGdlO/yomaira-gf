@@ -55,6 +55,11 @@ export function setRefresh(token: string | null): void {
   } catch {}
 }
 
+export type PaginatedPatientsResponse = {
+  data: Patient[];
+  meta: { total: number; limit: number; offset: number };
+};
+
 export class ApiError extends Error {
   status: number;
   code: string;
@@ -233,6 +238,8 @@ export const api = {
   },
   patients: {
     list: () => request<Patient[]>("/patients"),
+    listPage: (params: { q?: string; limit: number; offset: number }) =>
+      request<PaginatedPatientsResponse>("/patients", { query: params, raw: true }),
     get: (id: string) => request<Patient>(`/patients/${id}`),
     create: (body: Omit<Patient, "id">) => request<Patient>("/patients", { method: "POST", body }),
     update: (id: string, body: Partial<Patient>) => request<Patient>(`/patients/${id}`, { method: "PATCH", body }),

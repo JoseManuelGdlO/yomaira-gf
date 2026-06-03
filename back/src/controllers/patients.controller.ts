@@ -22,7 +22,16 @@ export async function list(req: Request, res: Response): Promise<void> {
       ],
     });
   }
-  const items = await Patient.findAll({ where, order: [['name', 'ASC']], limit, offset });
+  const order: [string, string][] = [['name', 'ASC']];
+
+  if (limit !== undefined) {
+    const offsetVal = offset ?? 0;
+    const { rows, count } = await Patient.findAndCountAll({ where, order, limit, offset: offsetVal });
+    res.json({ data: rows, meta: { total: count, limit, offset: offsetVal } });
+    return;
+  }
+
+  const items = await Patient.findAll({ where, order });
   res.json({ data: items });
 }
 
