@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api, type BudgetItem } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { tenantKey } from "@/lib/tenantQuery";
+import { getToothTreatmentLabel } from "@/lib/dental";
 import { Plus, Trash2, Download } from "lucide-react";
 import { toast } from "sonner";
 
@@ -86,7 +87,7 @@ export function BudgetEditor({
     const imported: BudgetItem[] = [];
     for (const [tooth, desc] of Object.entries(toothTreatments)) {
       if (!desc.trim() || existing.has(tooth)) continue;
-      imported.push({ description: desc.trim(), tooth, amount: 0 });
+      imported.push({ description: getToothTreatmentLabel(desc), tooth, amount: 0 });
     }
     if (imported.length === 0) {
       toast.info("No hay piezas nuevas con tratamiento en el odontograma");

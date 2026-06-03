@@ -1,7 +1,25 @@
 import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api, type PatientDentalChart, type FranklScale, type DentitionType } from "@/lib/api";
-import { ODONTO_QUADRANTS, FRANKL_OPTIONS, DENTITION_OPTIONS } from "@/lib/dental";
+import {
+  ODONTO_QUADRANTS,
+  FRANKL_OPTIONS,
+  DENTITION_OPTIONS,
+  ODONTO_CUSTOM_COLOR,
+  ODONTO_TREATMENT_OPTIONS,
+  getToothTreatmentColor,
+  getToothTreatmentLabel,
+  getToothTreatmentStatusCode,
+  getToothTreatmentText,
+  toothTreatmentStorageValue,
+} from "@/lib/dental";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useAuth } from "@/lib/auth";
 import { tenantKey } from "@/lib/tenantQuery";
 import { toast } from "sonner";
@@ -111,6 +129,8 @@ export function Odontogram({
 
   return (
     <div className="space-y-6">
+      <OdontogramLegend />
+
       <div className="grid lg:grid-cols-2 gap-4">
         {ODONTO_QUADRANTS.map((quad) => (
           <div key={quad.label} className="bg-card border rounded-2xl p-4">
@@ -119,9 +139,9 @@ export function Odontogram({
               <table className="w-full text-xs border-collapse">
                 <thead>
                   <tr className="text-muted-foreground">
-                    <th className="p-1 text-left font-medium">Pieza</th>
+                    <th className="p-1 text-left font-medium w-10">Pieza</th>
                     <th className="p-1 text-left font-medium">Tratamiento</th>
-                    <th className="p-1 text-left font-medium">Pieza</th>
+                    <th className="p-1 text-left font-medium w-10">Pieza</th>
                     <th className="p-1 text-left font-medium">Tratamiento</th>
                   </tr>
                 </thead>
@@ -132,30 +152,22 @@ export function Odontogram({
                     return (
                       <tr key={i} className="border-t border-border/60">
                         {pTooth ? (
-                          <>
-                            <td className="p-1 font-mono font-medium w-10">{pTooth}</td>
-                            <td className="p-1">
-                              <ToothInput
-                                value={local.toothTreatments[pTooth] ?? ""}
-                                onChange={(v) => setTooth(pTooth, v)}
-                                disabled={readOnly}
-                              />
-                            </td>
-                          </>
+                          <ToothCells
+                            tooth={pTooth}
+                            value={local.toothTreatments[pTooth] ?? ""}
+                            onChange={(v) => setTooth(pTooth, v)}
+                            readOnly={readOnly}
+                          />
                         ) : (
                           <td colSpan={2} />
                         )}
                         {permTooth ? (
-                          <>
-                            <td className="p-1 font-mono font-medium w-10">{permTooth}</td>
-                            <td className="p-1">
-                              <ToothInput
-                                value={local.toothTreatments[permTooth] ?? ""}
-                                onChange={(v) => setTooth(permTooth, v)}
-                                disabled={readOnly}
-                              />
-                            </td>
-                          </>
+                          <ToothCells
+                            tooth={permTooth}
+                            value={local.toothTreatments[permTooth] ?? ""}
+                            onChange={(v) => setTooth(permTooth, v)}
+                            readOnly={readOnly}
+                          />
                         ) : (
                           <td colSpan={2} />
                         )}
@@ -237,23 +249,167 @@ export function Odontogram({
   );
 }
 
-function ToothInput({
+function OdontogramLegend() {
+  return (
+    <div className="bg-card border rounded-2xl p-4">
+      <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">
+        Leyenda de tratamientos
+      </div>
+      <div className="flex flex-wrap gap-x-4 gap-y-2">
+        {ODONTO_TREATMENT_OPTIONS.map((opt) => (
+          <div key={opt.value} className="inline-flex items-center gap-2 text-xs">
+            <span
+              className="h-3.5 w-3.5 rounded-sm shrink-0 border border-black/10"
+              style={{ backgroundColor: opt.color }}
+              aria-hidden
+            />
+            <span>{opt.label}</span>
+          </div>
+        ))}
+        <div className="inline-flex items-center gap-2 text-xs">
+          <span
+            className="h-3.5 w-3.5 rounded-sm shrink-0 border border-black/10"
+            style={{ backgroundColor: ODONTO_CUSTOM_COLOR }}
+            aria-hidden
+          />
+          <span>Otro / texto libre</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ToothCells({
+  tooth,
   value,
   onChange,
-  disabled,
+  readOnly,
+}: {
+  tooth: string;
+  value: string;
+  onChange: (v: string) => void;
+  readOnly: boolean;
+}) {
+  const color = getToothTreatmentColor(value);
+  const cellStyle = color ? { backgroundColor: `${color}22` } : undefined;
+
+  return (
+    <>
+      <td className="p-1 font-mono font-medium w-10 align-middle" style={cellStyle}>
+        <div className="flex items-center gap-1.5">
+          {color && (
+            <span
+              className="h-2.5 w-2.5 rounded-full shrink-0 border border-black/10"
+              style={{ backgroundColor: color }}
+              title={getToothTreatmentLabel(value)}
+              aria-hidden
+            />
+          )}
+          {tooth}
+        </div>
+      </td>
+      <td className="p-1 align-middle" style={cellStyle}>
+        <ToothTreatmentField value={value} onChange={onChange} readOnly={readOnly} />
+      </td>
+    </>
+  );
+}
+
+function ToothTreatmentField({
+  value,
+  onChange,
+  readOnly,
 }: {
   value: string;
   onChange: (v: string) => void;
-  disabled?: boolean;
+  readOnly: boolean;
 }) {
+  const statusCode = getToothTreatmentStatusCode(value);
+  const text = getToothTreatmentText(value);
+  const color = getToothTreatmentColor(value);
+
+  if (readOnly) {
+    if (!value.trim()) return <span className="text-muted-foreground">—</span>;
+    return (
+      <span
+        className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-medium border border-black/5"
+        style={{ backgroundColor: color ? `${color}33` : undefined }}
+      >
+        {color && (
+          <span className="h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: color }} aria-hidden />
+        )}
+        {getToothTreatmentLabel(value)}
+      </span>
+    );
+  }
+
+  const persist = (nextStatus: typeof statusCode, nextText: string) => {
+    if (nextStatus === "none" && !nextText.trim()) {
+      onChange("");
+      return;
+    }
+    const code = nextStatus === "none" ? "otro" : nextStatus;
+    onChange(toothTreatmentStorageValue(code, nextText));
+  };
+
   return (
-    <input
-      value={value}
-      disabled={disabled}
-      onChange={(e) => onChange(e.target.value)}
-      placeholder="—"
-      className="w-full min-w-[4rem] h-7 px-1.5 rounded border bg-surface text-xs outline-none focus:ring-1 focus:ring-ring disabled:opacity-70"
-    />
+    <div className="flex items-center gap-1 min-w-0">
+      <Select
+        value={statusCode}
+        onValueChange={(next) => {
+          if (next === "none") persist("none", text);
+          else persist(next as typeof statusCode, text);
+        }}
+      >
+        <SelectTrigger
+          className="h-7 w-9 shrink-0 px-1.5 bg-surface"
+          aria-label="Color de estatus"
+          title="Color de estatus"
+        >
+          <span
+            className="mx-auto h-3 w-3 rounded-full border border-black/10"
+            style={{ backgroundColor: color ?? "transparent" }}
+            aria-hidden
+          />
+        </SelectTrigger>
+        <SelectContent align="start">
+          <SelectItem value="none">
+            <span className="inline-flex items-center gap-2">
+              <span className="h-2.5 w-2.5 rounded-sm shrink-0 border border-dashed border-muted-foreground/40" aria-hidden />
+              Sin estatus
+            </span>
+          </SelectItem>
+          {ODONTO_TREATMENT_OPTIONS.map((opt) => (
+            <SelectItem key={opt.value} value={opt.value}>
+              <span className="inline-flex items-center gap-2">
+                <span
+                  className="h-2.5 w-2.5 rounded-sm shrink-0 border border-black/10"
+                  style={{ backgroundColor: opt.color }}
+                  aria-hidden
+                />
+                {opt.label}
+              </span>
+            </SelectItem>
+          ))}
+          <SelectItem value="otro">
+            <span className="inline-flex items-center gap-2">
+              <span
+                className="h-2.5 w-2.5 rounded-sm shrink-0 border border-black/10"
+                style={{ backgroundColor: ODONTO_CUSTOM_COLOR }}
+                aria-hidden
+              />
+              Otro / texto libre
+            </span>
+          </SelectItem>
+        </SelectContent>
+      </Select>
+      <input
+        value={text}
+        onChange={(e) => persist(statusCode === "none" ? "otro" : statusCode, e.target.value)}
+        placeholder="Estatus o tratamiento"
+        className="w-full min-w-0 h-7 px-1.5 rounded border bg-surface text-xs outline-none focus:ring-1 focus:ring-ring"
+      />
+    </div>
   );
 }
 
