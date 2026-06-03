@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { fmtShort } from "@/lib/format";
-import { ODONTO_QUADRANTS, FRANKL_OPTIONS, DENTITION_OPTIONS, ODONTO_TREATMENT_OPTIONS, getToothTreatmentColor, getToothTreatmentLabel, getToothTreatmentShort } from "@/lib/dental";
+import { ODONTO_QUADRANTS, FRANKL_OPTIONS, DENTITION_OPTIONS, ODONTO_DONE_COLOR, getToothTreatmentColor, getToothTreatmentLabel, isToothTreatmentDone } from "@/lib/dental";
 import type { Branding } from "@/mocks/brandings";
 import type { Patient, Consultation } from "@/mocks/data";
 
@@ -43,18 +43,13 @@ export function PrintClinicalSheet({
 
       <section className="mb-6 break-inside-avoid">
         <h2 className="font-bold text-base uppercase border-b border-black mb-3">Odontograma</h2>
-        <div className="flex flex-wrap gap-x-3 gap-y-1 text-[9px] mb-3">
-          {ODONTO_TREATMENT_OPTIONS.map((opt) => (
-            <span key={opt.value} className="inline-flex items-center gap-1">
-              <span className="inline-block h-2.5 w-2.5 border border-gray-400" style={{ backgroundColor: opt.color }} />
-              {opt.short} = {opt.label}
-            </span>
-          ))}
-          <span className="inline-flex items-center gap-1">
-            <span className="inline-block h-2.5 w-2.5 border border-gray-400 bg-slate-400" />
-            Otro = texto libre
-          </span>
-        </div>
+        <p className="text-[9px] mb-3 inline-flex items-center gap-1.5">
+          <span
+            className="inline-block h-2.5 w-2.5 border border-gray-400"
+            style={{ backgroundColor: `${ODONTO_DONE_COLOR}44` }}
+          />
+          Rojo = pieza ya tratada
+        </p>
         <div className="grid grid-cols-2 gap-3 text-[10px]">
           {ODONTO_QUADRANTS.map((quad) => (
             <div key={quad.label} className="border border-gray-400 p-2">
@@ -187,18 +182,18 @@ function PrintToothCell({
   treatment?: string;
   className?: string;
 }) {
+  const done = isToothTreatmentDone(treatment);
   const color = getToothTreatmentColor(treatment);
   const label = getToothTreatmentLabel(treatment);
-  const short = getToothTreatmentShort(treatment);
-  const cellStyle = color ? { backgroundColor: `${color}33` } : undefined;
+  const cellStyle = done && color ? { backgroundColor: `${color}33` } : undefined;
 
   return (
     <>
-      <td className={`font-mono w-6 ${className}`} style={cellStyle}>
+      <td className={`font-mono w-6 ${className} ${done ? "text-red-700 font-semibold" : ""}`} style={cellStyle}>
         {tooth}
       </td>
       <td className={`pr-1 ${className}`} style={cellStyle}>
-        {label ? `${short}${short !== label ? ` (${label})` : ""}` : ""}
+        {done ? label : ""}
       </td>
     </>
   );

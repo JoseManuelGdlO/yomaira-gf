@@ -40,114 +40,63 @@ export function allChartTeeth(): string[] {
   return ODONTO_QUADRANTS.flatMap((q) => [...q.primary, ...q.permanent]);
 }
 
-/** Colores por estatus/tratamiento en el odontograma (leyenda clínica). */
-export const ODONTO_TREATMENT_OPTIONS = [
-  { value: "realizado", label: "Tratamiento realizado", short: "OK", color: "#22C55E" },
-  { value: "resina", label: "Resina / curación", short: "R", color: "#3B82F6" },
-  { value: "sellador", label: "Sellador", short: "S", color: "#06B6D4" },
-  { value: "extraccion", label: "Extracción", short: "X", color: "#EF4444" },
-  { value: "pulpotomia", label: "Pulpotomía", short: "P", color: "#A855F7" },
-  { value: "corona", label: "Corona", short: "CR", color: "#F59E0B" },
-  { value: "conducto", label: "Tratamiento de conductos", short: "TC", color: "#8B5CF6" },
-  { value: "caries", label: "Caries / por tratar", short: "C", color: "#F97316" },
-  { value: "ausente", label: "Ausente", short: "A", color: "#6B7280" },
-  { value: "observacion", label: "En observación", short: "OBS", color: "#EAB308" },
-] as const;
+/** Rojo para piezas ya tratadas. */
+export const ODONTO_DONE_COLOR = "#EF4444";
 
-export type OdontoTreatmentCode = (typeof ODONTO_TREATMENT_OPTIONS)[number]["value"] | "otro";
+const LEGACY_LABELS: Record<string, string> = {
+  realizado: "Tratamiento realizado",
+  resina: "Resina / curación",
+  sellador: "Sellador",
+  extraccion: "Extracción",
+  pulpotomia: "Pulpotomía",
+  corona: "Corona",
+  conducto: "Tratamiento de conductos",
+  caries: "Caries / por tratar",
+  ausente: "Ausente",
+  observacion: "En observación",
+};
 
-export const ODONTO_CUSTOM_COLOR = "#64748B";
-
-type ResolvedToothTreatment =
-  | { kind: "code"; code: OdontoTreatmentCode; text: string; color: string }
-  | { kind: "custom"; text: string; color: string }
-  | { kind: "legacy"; text: string; color: string };
-
-const optionByValue = new Map<string, (typeof ODONTO_TREATMENT_OPTIONS)[number]>(
-  ODONTO_TREATMENT_OPTIONS.map((opt) => [opt.value, opt]),
-);
-
-function optionForCode(code: string) {
-  return optionByValue.get(code);
-}
-
-/** Guarda estatus + texto libre: `resina`, `resina:detalle` o `otro:texto`. */
-export function toothTreatmentStorageValue(code: OdontoTreatmentCode | string, text = ""): string {
-  const trimmed = text.trim();
-  if (code === "otro" || !optionForCode(code)) {
-    return trimmed ? `otro:${trimmed}` : "";
-  }
-  if (trimmed) return `${code}:${trimmed}`;
-  return code;
-}
-
-export function resolveToothTreatment(value?: string | null): ResolvedToothTreatment | null {
-  const raw = value?.trim();
-  if (!raw) return null;
-
-  const colon = raw.indexOf(":");
+function legacyText(value: string): string {
+  const colon = value.indexOf(":");
   if (colon > 0) {
-    const code = raw.slice(0, colon);
-    const text = raw.slice(colon + 1).trim();
-    if (code === "otro") {
-      if (!text) return null;
-      return { kind: "custom", text, color: ODONTO_CUSTOM_COLOR };
-    }
-    const opt = optionForCode(code);
-    if (opt) {
-      return {
-        kind: "code",
-        code: opt.value,
-        text: text || opt.label,
-        color: opt.color,
-      };
-    }
+    const code = value.slice(0, colon);
+    const text = value.slice(colon + 1).trim();
+    if (code === "otro") return text;
+    if (text) return text;
+    return LEGACY_LABELS[code] ?? text;
   }
-
-  const opt = optionForCode(raw);
-  if (opt) {
-    return { kind: "code", code: opt.value, text: opt.label, color: opt.color };
-  }
-
-  return { kind: "legacy", text: raw, color: ODONTO_CUSTOM_COLOR };
+  return LEGACY_LABELS[value] ?? value;
 }
 
-export function getToothTreatmentStatusCode(value?: string | null): OdontoTreatmentCode | "none" {
-  const resolved = resolveToothTreatment(value);
-  if (!resolved) return "none";
-  if (resolved.kind === "code") return resolved.code;
-  return "otro";
+export function parseToothTreatment(value?: string | null): { done: boolean; text: string } {
+  const raw = value?.trim();
+  if (!raw) return { done: false, text: "" };
+  if (raw === "done") return { done: true, text: "" };
+  if (raw.startsWith("done:")) return { done: true, text: raw.slice(5) };
+  return { done: true, text: legacyText(raw) };
+}
+
+export function formatToothTreatment(done: boolean, text: string): string {
+  const trimmed = text.trim();
+  if (!done) return "";
+  if (!trimmed) return "done";
+  return `done:${trimmed}`;
+}
+
+export function isToothTreatmentDone(value?: string | null): boolean {
+  return parseToothTreatment(value).done;
 }
 
 export function getToothTreatmentText(value?: string | null): string {
-  const resolved = resolveToothTreatment(value);
-  if (!resolved) return "";
-  if (resolved.kind === "code") {
-    const opt = optionForCode(resolved.code);
-    if (opt && resolved.text === opt.label) return "";
-    return resolved.text;
-  }
-  return resolved.text;
-}
-
-export function getToothTreatmentSelectValue(value?: string | null): string {
-  return getToothTreatmentStatusCode(value);
-}
-
-export function getToothTreatmentColor(value?: string | null): string | undefined {
-  return resolveToothTreatment(value)?.color;
+  return parseToothTreatment(value).text;
 }
 
 export function getToothTreatmentLabel(value?: string | null): string {
-  return resolveToothTreatment(value)?.text ?? "";
+  const { done, text } = parseToothTreatment(value);
+  if (!done) return "";
+  return text || "Realizado";
 }
 
-export function getToothTreatmentShort(value?: string | null): string {
-  const resolved = resolveToothTreatment(value);
-  if (!resolved) return "";
-  if (resolved.kind === "code") {
-    const opt = optionForCode(resolved.code);
-    return opt?.short ?? resolved.text.slice(0, 3).toUpperCase();
-  }
-  return resolved.text.slice(0, 3).toUpperCase();
+export function getToothTreatmentColor(value?: string | null): string | undefined {
+  return isToothTreatmentDone(value) ? ODONTO_DONE_COLOR : undefined;
 }
