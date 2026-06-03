@@ -40,5 +40,10 @@ router.post(
   validate({ params: cancelParams, body: z.object({ token: z.string().min(1) }) }),
   asyncHandler(ctrl.cancelPublic),
 );
+router.post(
+  '/appointments/:id/confirm',
+  validate({ params: cancelParams, body: z.object({ token: z.string().min(1) }) }),
+  asyncHandler(ctrl.confirmPublic),
+);
 
 export default router;

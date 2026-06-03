@@ -1,8 +1,10 @@
 import type { Appointment } from '../../models/Appointment';
+import { env } from '../../config/env';
 import {
   removeAppointmentFromGoogle,
   syncAppointmentToGoogle,
 } from '../calendar/googleCalendarService';
+import { signConfirmToken } from '../publicAppointmentTokens';
 import { sendEmail } from './emailService';
 import { sendPushToUser } from './pushService';
 import {
@@ -45,6 +47,26 @@ async function runDispatch(
 ): Promise<void> {
   const ctx = await buildAppointmentContext(appointment);
 
+  if (event === 'confirmation_requested') {
+    if (appointment.status === 'pendiente' && isValidPatientEmail(ctx.patientEmail)) {
+      const confirmUrl = `${env.FRONTEND_URL}/confirmar-cita/${appointment.id}?token=${signConfirmToken(appointment.id)}`;
+      const { subject, html, text } = emailContent(
+        event,
+        { ...ctx, confirmUrl },
+        'patient',
+      );
+      await sendEmail({
+        to: ctx.patientEmail,
+        subject,
+        html,
+        text,
+        appointmentId: appointment.id,
+        eventType: event,
+      });
+    }
+    return;
+  }
+
   const prefEvent =
     event === 'completed' ? 'confirmed' : event === 'created' ? 'created' : event === 'confirmed' ? 'confirmed' : 'cancelled';
 
@@ -77,7 +99,7 @@ async function runDispatch(
     }
   }
 
-  if (['confirmed', 'cancelled', 'created'].includes(event) && isValidPatientEmail(ctx.patientEmail)) {
+  if (['confirmed', 'cancelled'].includes(event) && isValidPatientEmail(ctx.patientEmail)) {
     const { subject, html, text } = emailContent(event, ctx, 'patient');
     await sendEmail({
       to: ctx.patientEmail,

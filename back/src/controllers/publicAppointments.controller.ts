@@ -4,28 +4,15 @@ import { z } from 'zod';
 import { Appointment, Branding, Patient } from '../models';
 import { requirePublicSlug, resolveBrandingBySlug } from '../middleware/tenant';
 import { dispatchAppointmentNotifications } from '../services/notifications/notificationDispatcher';
-import { env } from '../config/env';
+import {
+  signCancelToken,
+  verifyCancelToken,
+  verifyConfirmToken,
+} from '../services/publicAppointmentTokens';
 import { NotFound } from '../utils/errors';
-import crypto from 'crypto';
 
 const WORK_START = 9;
 const WORK_END = 18;
-
-function signCancelToken(appointmentId: string): string {
-  return crypto
-    .createHmac('sha256', env.PUBLIC_BOOKING_SECRET)
-    .update(`cancel:${appointmentId}`)
-    .digest('hex');
-}
-
-export function verifyCancelToken(appointmentId: string, token: string): boolean {
-  const expected = signCancelToken(appointmentId);
-  try {
-    return crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(token));
-  } catch {
-    return false;
-  }
-}
 
 export async function getBrandingPublic(req: Request, res: Response): Promise<void> {
   const slug = requirePublicSlug(req);
@@ -166,6 +153,7 @@ export async function bookAppointment(req: Request, res: Response): Promise<void
   });
 
   dispatchAppointmentNotifications(appointment, 'created');
+  dispatchAppointmentNotifications(appointment, 'confirmation_requested');
 
   res.status(201).json({
     data: {
@@ -197,6 +185,38 @@ export async function cancelPublic(req: Request, res: Response): Promise<void> {
   appointment.status = 'cancelada';
   await appointment.save();
   dispatchAppointmentNotifications(appointment, 'cancelled', prev);
+
+  res.json({ data: appointment });
+}
+
+export async function confirmPublic(req: Request, res: Response): Promise<void> {
+  const id = req.params.id;
+  const token = (req.body as { token?: string }).token ?? (req.query.token as string);
+  if (!token || !verifyConfirmToken(id, token)) {
+    res.status(403).json({ error: { code: 'FORBIDDEN', message: 'Token inválido' } });
+    return;
+  }
+
+  const appointment = await Appointment.findByPk(id);
+  if (!appointment) {
+    res.status(404).json({ error: { code: 'NOT_FOUND', message: 'Cita no encontrada' } });
+    return;
+  }
+  if (appointment.status === 'confirmada') {
+    res.json({ data: appointment });
+    return;
+  }
+  if (appointment.status === 'cancelada' || appointment.status === 'completada') {
+    res.status(409).json({
+      error: { code: 'CONFLICT', message: 'La cita ya no puede confirmarse' },
+    });
+    return;
+  }
+
+  const prev = appointment.status;
+  appointment.status = 'confirmada';
+  await appointment.save();
+  dispatchAppointmentNotifications(appointment, 'confirmed', prev);
 
   res.json({ data: appointment });
 }

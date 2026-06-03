@@ -13,6 +13,7 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as AgendarRouteImport } from './routes/agendar'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ConfirmarCitaIdRouteImport } from './routes/confirmar-cita.$id'
 import { Route as AgendarSlugRouteImport } from './routes/agendar.$slug'
 import { Route as AppRecetasRouteImport } from './routes/_app.recetas'
 import { Route as AppPacientesRouteImport } from './routes/_app.pacientes'
@@ -44,6 +45,11 @@ const AppRoute = AppRouteImport.update({
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ConfirmarCitaIdRoute = ConfirmarCitaIdRouteImport.update({
+  id: '/confirmar-cita/$id',
+  path: '/confirmar-cita/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AgendarSlugRoute = AgendarSlugRouteImport.update({
@@ -126,6 +132,7 @@ export interface FileRoutesByFullPath {
   '/pacientes': typeof AppPacientesRouteWithChildren
   '/recetas': typeof AppRecetasRouteWithChildren
   '/agendar/$slug': typeof AgendarSlugRoute
+  '/confirmar-cita/$id': typeof ConfirmarCitaIdRoute
   '/pacientes/$id': typeof AppPacientesIdRouteWithChildren
   '/recetas/nueva': typeof AppRecetasNuevaRoute
   '/pacientes/$id/hoja': typeof AppPacientesIdHojaRoute
@@ -144,6 +151,7 @@ export interface FileRoutesByTo {
   '/pacientes': typeof AppPacientesRouteWithChildren
   '/recetas': typeof AppRecetasRouteWithChildren
   '/agendar/$slug': typeof AgendarSlugRoute
+  '/confirmar-cita/$id': typeof ConfirmarCitaIdRoute
   '/pacientes/$id': typeof AppPacientesIdRouteWithChildren
   '/recetas/nueva': typeof AppRecetasNuevaRoute
   '/pacientes/$id/hoja': typeof AppPacientesIdHojaRoute
@@ -164,6 +172,7 @@ export interface FileRoutesById {
   '/_app/pacientes': typeof AppPacientesRouteWithChildren
   '/_app/recetas': typeof AppRecetasRouteWithChildren
   '/agendar/$slug': typeof AgendarSlugRoute
+  '/confirmar-cita/$id': typeof ConfirmarCitaIdRoute
   '/_app/pacientes/$id': typeof AppPacientesIdRouteWithChildren
   '/_app/recetas/nueva': typeof AppRecetasNuevaRoute
   '/_app/pacientes/$id/hoja': typeof AppPacientesIdHojaRoute
@@ -184,6 +193,7 @@ export interface FileRouteTypes {
     | '/pacientes'
     | '/recetas'
     | '/agendar/$slug'
+    | '/confirmar-cita/$id'
     | '/pacientes/$id'
     | '/recetas/nueva'
     | '/pacientes/$id/hoja'
@@ -202,6 +212,7 @@ export interface FileRouteTypes {
     | '/pacientes'
     | '/recetas'
     | '/agendar/$slug'
+    | '/confirmar-cita/$id'
     | '/pacientes/$id'
     | '/recetas/nueva'
     | '/pacientes/$id/hoja'
@@ -221,6 +232,7 @@ export interface FileRouteTypes {
     | '/_app/pacientes'
     | '/_app/recetas'
     | '/agendar/$slug'
+    | '/confirmar-cita/$id'
     | '/_app/pacientes/$id'
     | '/_app/recetas/nueva'
     | '/_app/pacientes/$id/hoja'
@@ -231,6 +243,7 @@ export interface RootRouteChildren {
   AppRoute: typeof AppRouteWithChildren
   AgendarRoute: typeof AgendarRouteWithChildren
   LoginRoute: typeof LoginRoute
+  ConfirmarCitaIdRoute: typeof ConfirmarCitaIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -261,6 +274,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/confirmar-cita/$id': {
+      id: '/confirmar-cita/$id'
+      path: '/confirmar-cita/$id'
+      fullPath: '/confirmar-cita/$id'
+      preLoaderRoute: typeof ConfirmarCitaIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/agendar/$slug': {
@@ -435,6 +455,7 @@ const rootRouteChildren: RootRouteChildren = {
   AppRoute: AppRouteWithChildren,
   AgendarRoute: AgendarRouteWithChildren,
   LoginRoute: LoginRoute,
+  ConfirmarCitaIdRoute: ConfirmarCitaIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

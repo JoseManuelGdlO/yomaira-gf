@@ -1,4 +1,9 @@
-export type AppointmentNotificationEvent = 'created' | 'confirmed' | 'cancelled' | 'completed';
+export type AppointmentNotificationEvent =
+  | 'created'
+  | 'confirmation_requested'
+  | 'confirmed'
+  | 'cancelled'
+  | 'completed';
 
 export type AppointmentContext = {
   appointmentId: string;
@@ -13,4 +18,5 @@ export type AppointmentContext = {
   scheduledBy: 'staff' | 'patient';
   clinicName: string;
   brandingId: string;
+  confirmUrl?: string;
 };

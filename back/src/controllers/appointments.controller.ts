@@ -64,6 +64,9 @@ export async function create(req: Request, res: Response): Promise<void> {
   await findTenantPatient(req, body.patientId);
   const item = await Appointment.create({ ...body, brandingId: req.user!.brandingId });
   dispatchAppointmentNotifications(item, 'created');
+  if (item.status === 'pendiente') {
+    dispatchAppointmentNotifications(item, 'confirmation_requested');
+  }
   res.status(201).json({ data: item });
 }
 

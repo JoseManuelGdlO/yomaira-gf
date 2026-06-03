@@ -38,6 +38,10 @@ export function emailContent(
       doctor: `Nueva cita — ${ctx.patientName} (${when})`,
       patient: `Cita registrada — ${clinic}`,
     },
+    confirmation_requested: {
+      doctor: `Confirmación pendiente — ${ctx.patientName}`,
+      patient: `Confirme su cita — ${clinic}`,
+    },
     confirmed: {
       doctor: `Cita confirmada — ${ctx.patientName}`,
       patient: `Su cita fue confirmada — ${clinic}`,
@@ -57,6 +61,10 @@ export function emailContent(
       doctor: 'Se registró una nueva cita en la agenda.',
       patient: 'Su cita fue registrada en el consultorio. Pendiente de confirmación.',
     },
+    confirmation_requested: {
+      doctor: 'Se solicitó confirmación de cita al paciente.',
+      patient: 'Tiene una cita pendiente. Confírmela con el botón siguiente.',
+    },
     confirmed: {
       doctor: 'La cita pasó a estado confirmada.',
       patient: 'Le confirmamos su cita. Por favor asista puntualmente.',
@@ -73,15 +81,21 @@ export function emailContent(
 
   const subject = subjects[event][audience];
   const intro = intros[event][audience];
+  const confirmCta =
+    audience === 'patient' && ctx.confirmUrl
+      ? `<p style="margin-top:20px"><a href="${ctx.confirmUrl}" style="display:inline-block;padding:12px 24px;background:#B100D4;color:#fff;text-decoration:none;border-radius:8px;font-weight:600">Confirmar mi cita</a></p>`
+      : '';
   const html = `
     <div style="font-family:sans-serif;max-width:560px">
       <h2 style="color:#333">${clinic}</h2>
       <p>${intro}</p>
       ${bodyBlock(ctx)}
+      ${confirmCta}
       <p style="color:#666;font-size:12px;margin-top:24px">Mensaje automático de MedFlow.</p>
     </div>
   `;
-  const text = `${intro}\nPaciente: ${ctx.patientName}\nFecha: ${when}\nEstado: ${ctx.status}`;
+  const confirmText = ctx.confirmUrl ? `\nConfirmar: ${ctx.confirmUrl}` : '';
+  const text = `${intro}\nPaciente: ${ctx.patientName}\nFecha: ${when}\nEstado: ${ctx.status}${confirmText}`;
 
   return { subject, html, text };
 }
@@ -94,6 +108,10 @@ export function pushContent(
   const map: Record<AppointmentNotificationEvent, { title: string; body: string }> = {
     created: {
       title: 'Nueva cita',
+      body: `${ctx.patientName} — ${when}`,
+    },
+    confirmation_requested: {
+      title: 'Confirmación pendiente',
       body: `${ctx.patientName} — ${when}`,
     },
     confirmed: {

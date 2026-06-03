@@ -384,6 +384,12 @@ export const api = {
         body: { token },
         noAuth: true,
       }),
+    confirm: (id: string, token: string) =>
+      request<Appointment>(`/public/appointments/${id}/confirm`, {
+        method: "POST",
+        body: { token },
+        noAuth: true,
+      }),
   },
 };
 
