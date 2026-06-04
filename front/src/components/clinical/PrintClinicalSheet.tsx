@@ -79,6 +79,31 @@ export function PrintClinicalSheet({
             </div>
           ))}
         </div>
+        {(chart?.otherTreatments?.length ?? 0) > 0 && (
+          <div className="mt-4 border border-gray-400 p-2 text-[10px]">
+            <div className="font-semibold mb-1">Otros</div>
+            <table className="w-full">
+              <tbody>
+                {chart!.otherTreatments!.map((treatment, i) => {
+                  const done = isToothTreatmentDone(treatment);
+                  const color = getToothTreatmentColor(treatment);
+                  const label = getToothTreatmentLabel(treatment);
+                  const cellStyle = done && color ? { backgroundColor: `${color}33` } : undefined;
+                  return (
+                    <tr key={i}>
+                      <td
+                        className={`py-0.5 pr-2 ${done ? "text-red-700 font-semibold" : "text-gray-600 italic"}`}
+                        style={cellStyle}
+                      >
+                        {label || "—"}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
         <div className="mt-4 grid grid-cols-2 gap-2 text-xs">
           <div><strong>Frankl:</strong> {franklLabel}</div>
           <div>

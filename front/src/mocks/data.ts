@@ -37,6 +37,7 @@ export type PatientDentalChart = {
   id: string;
   patientId: string;
   toothTreatments: Record<string, string>;
+  otherTreatments: string[];
   frankl: FranklScale;
   dentition: DentitionType[];
   atm: string;

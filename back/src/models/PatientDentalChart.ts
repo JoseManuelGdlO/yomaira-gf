@@ -9,6 +9,7 @@ export interface PatientDentalChartAttrs {
   patientId: string;
   brandingId: string;
   toothTreatments: Record<string, string>;
+  otherTreatments: string[];
   frankl: FranklScale;
   dentition: DentitionType[];
   atm: string;
@@ -21,7 +22,7 @@ export interface PatientDentalChartAttrs {
 
 export type PatientDentalChartCreationAttrs = Optional<
   PatientDentalChartAttrs,
-  'id' | 'toothTreatments' | 'frankl' | 'dentition' | 'atm' | 'ganglios' | 'softTissues' | 'frenula' | 'createdAt' | 'updatedAt'
+  'id' | 'toothTreatments' | 'otherTreatments' | 'frankl' | 'dentition' | 'atm' | 'ganglios' | 'softTissues' | 'frenula' | 'createdAt' | 'updatedAt'
 >;
 
 export class PatientDentalChart
@@ -32,6 +33,7 @@ export class PatientDentalChart
   declare patientId: string;
   declare brandingId: string;
   declare toothTreatments: Record<string, string>;
+  declare otherTreatments: string[];
   declare frankl: FranklScale;
   declare dentition: DentitionType[];
   declare atm: string;
@@ -48,6 +50,7 @@ PatientDentalChart.init(
     patientId: { type: DataTypes.UUID, allowNull: false, unique: true, field: 'patient_id' },
     brandingId: { type: DataTypes.UUID, allowNull: false, field: 'branding_id' },
     toothTreatments: { type: DataTypes.JSON, allowNull: false, defaultValue: {}, field: 'tooth_treatments' },
+    otherTreatments: { type: DataTypes.JSON, allowNull: false, defaultValue: [], field: 'other_treatments' },
     frankl: {
       type: DataTypes.ENUM('na', 'I', 'II', 'III', 'IV'),
       allowNull: false,

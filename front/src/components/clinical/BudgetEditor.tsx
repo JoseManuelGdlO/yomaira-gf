@@ -25,12 +25,14 @@ function isPdfDataUrl(url: string) {
 export function BudgetEditor({
   patientId,
   toothTreatments,
+  otherTreatments,
   readOnly = false,
   onDirtyChange,
   onRegisterSave,
 }: {
   patientId: string;
   toothTreatments?: Record<string, string>;
+  otherTreatments?: string[];
   readOnly?: boolean;
   onDirtyChange?: (dirty: boolean) => void;
   onRegisterSave?: (save: () => Promise<unknown>) => void;
@@ -130,15 +132,27 @@ export function BudgetEditor({
   const total = items.reduce((s, it) => s + (Number(it.amount) || 0), 0);
 
   const importFromChart = () => {
-    if (!toothTreatments) return;
-    const existing = new Set(items.map((i) => i.tooth).filter(Boolean));
+    const existingDesc = new Set(items.map((i) => i.description.trim().toLowerCase()).filter(Boolean));
+    const existingTeeth = new Set(items.map((i) => i.tooth).filter(Boolean));
     const imported: BudgetItem[] = [];
-    for (const [tooth, desc] of Object.entries(toothTreatments)) {
-      if (!desc.trim() || existing.has(tooth)) continue;
-      imported.push({ description: getToothTreatmentLabel(desc), tooth, amount: 0 });
+
+    if (toothTreatments) {
+      for (const [tooth, desc] of Object.entries(toothTreatments)) {
+        if (!desc.trim() || existingTeeth.has(tooth)) continue;
+        const label = getToothTreatmentLabel(desc);
+        if (!label.trim()) continue;
+        imported.push({ description: label, tooth, amount: 0 });
+      }
     }
+
+    for (const desc of otherTreatments ?? []) {
+      const label = getToothTreatmentLabel(desc);
+      if (!label.trim() || existingDesc.has(label.trim().toLowerCase())) continue;
+      imported.push({ description: label, amount: 0 });
+    }
+
     if (imported.length === 0) {
-      toast.info("No hay piezas nuevas con tratamiento en el odontograma");
+      toast.info("No hay tratamientos nuevos en el odontograma");
       return;
     }
     updateItems([...items, ...imported]);
@@ -153,7 +167,9 @@ export function BudgetEditor({
     <div className="bg-card border rounded-2xl p-6 space-y-4">
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <h3 className="font-display text-lg font-semibold">Presupuesto</h3>
-        {!readOnly && toothTreatments && Object.keys(toothTreatments).length > 0 && (
+        {!readOnly &&
+          ((toothTreatments && Object.keys(toothTreatments).length > 0) ||
+            (otherTreatments && otherTreatments.some((t) => t.trim()))) && (
           <button
             type="button"
             onClick={importFromChart}

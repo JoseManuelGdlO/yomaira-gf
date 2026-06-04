@@ -10,6 +10,7 @@ const dentitionEnum = z.enum(['temporal', 'mixta', 'permanente']);
 
 export const upsertSchema = z.object({
   toothTreatments: z.record(z.string(), z.string()).optional(),
+  otherTreatments: z.array(z.string()).optional(),
   frankl: franklEnum.optional(),
   dentition: z.array(dentitionEnum).optional(),
   atm: z.string().optional(),
@@ -20,6 +21,7 @@ export const upsertSchema = z.object({
 
 const defaultChart = {
   toothTreatments: {} as Record<string, string>,
+  otherTreatments: [] as string[],
   frankl: 'na' as FranklScale,
   dentition: [] as DentitionType[],
   atm: '',

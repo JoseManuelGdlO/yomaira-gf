@@ -154,6 +154,7 @@ export async function complete(req: Request, res: Response): Promise<void> {
             patientId: appointment.patientId,
             brandingId: req.user!.brandingId,
             toothTreatments: {},
+            otherTreatments: [],
             frankl: body.frankl,
             dentition: [],
             atm: '',

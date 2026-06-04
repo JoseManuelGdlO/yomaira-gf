@@ -311,7 +311,7 @@ export async function buildClinicalAnalytics(
     }),
     PatientDentalChart.findAll({
       where: { brandingId },
-      attributes: ['toothTreatments'],
+      attributes: ['toothTreatments', 'otherTreatments'],
     }),
   ]);
 
@@ -364,6 +364,12 @@ export async function buildClinicalAnalytics(
   for (const chart of dentalCharts) {
     const treatments = chart.toothTreatments ?? {};
     for (const value of Object.values(treatments)) {
+      if (!isToothTreatmentDone(value)) continue;
+      const key = dentalProcedureKey(value);
+      const label = dentalProcedureLabel(value);
+      increment(dentalMap, key, label);
+    }
+    for (const value of chart.otherTreatments ?? []) {
       if (!isToothTreatmentDone(value)) continue;
       const key = dentalProcedureKey(value);
       const label = dentalProcedureLabel(value);

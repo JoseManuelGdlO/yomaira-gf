@@ -86,6 +86,7 @@ export function ClinicalSheetTab({
         <BudgetEditor
           patientId={patientId}
           toothTreatments={chartQ.data?.toothTreatments}
+          otherTreatments={chartQ.data?.otherTreatments}
           onDirtyChange={setBudgetDirty}
           onRegisterSave={registerBudgetSave}
         />

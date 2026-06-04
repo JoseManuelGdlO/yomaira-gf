@@ -1,3 +1,4 @@
+import { Plus, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api, type PatientDentalChart, type FranklScale, type DentitionType } from "@/lib/api";
@@ -18,6 +19,7 @@ import { toast } from "sonner";
 
 const defaultChart: Omit<PatientDentalChart, "id" | "patientId"> = {
   toothTreatments: {},
+  otherTreatments: [],
   frankl: "na",
   dentition: [],
   atm: "",
@@ -29,6 +31,7 @@ const defaultChart: Omit<PatientDentalChart, "id" | "patientId"> = {
 function chartFromData(data: PatientDentalChart): typeof defaultChart {
   return {
     toothTreatments: data.toothTreatments ?? {},
+    otherTreatments: data.otherTreatments ?? [],
     frankl: data.frankl ?? "na",
     dentition: data.dentition ?? [],
     atm: data.atm ?? "",
@@ -88,7 +91,12 @@ export function Odontogram({
 
   useEffect(() => {
     if (readOnly) return;
-    onRegisterSave?.(() => saveM.mutateAsync(local));
+    onRegisterSave?.(() =>
+      saveM.mutateAsync({
+        ...local,
+        otherTreatments: local.otherTreatments.filter((t) => t.trim()),
+      }),
+    );
   }, [local, readOnly, onRegisterSave, saveM]);
 
   const markDirty = () => {
@@ -116,6 +124,23 @@ export function Odontogram({
       ? local.dentition.filter((x) => x !== d)
       : [...local.dentition, d];
     update({ dentition });
+  };
+
+  const otherRows = local.otherTreatments.length > 0 ? local.otherTreatments : [""];
+
+  const setOtherTreatment = (index: number, treatment: string) => {
+    const otherTreatments = [...otherRows];
+    otherTreatments[index] = treatment;
+    update({ otherTreatments });
+  };
+
+  const addOtherTreatment = () => {
+    update({ otherTreatments: [...otherRows, ""] });
+  };
+
+  const removeOtherTreatment = (index: number) => {
+    const otherTreatments = otherRows.filter((_, i) => i !== index);
+    update({ otherTreatments });
   };
 
   if (chartQ.isLoading) {
@@ -181,6 +206,49 @@ export function Odontogram({
             </div>
           </div>
         ))}
+      </div>
+
+      <div className="bg-card border rounded-2xl p-4 space-y-3">
+        <div className="flex items-center justify-between gap-4 flex-wrap">
+          <div>
+            <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Otros</div>
+            <p className="text-xs text-muted-foreground mt-1">
+              Tratamientos generales que no corresponden a una pieza dental específica.
+            </p>
+          </div>
+          {!readOnly && (
+            <button
+              type="button"
+              onClick={addOtherTreatment}
+              className="inline-flex items-center gap-1.5 text-sm text-primary font-medium hover:underline"
+            >
+              <Plus className="h-4 w-4" /> Agregar
+            </button>
+          )}
+        </div>
+        <div className="space-y-2">
+          {otherRows.map((treatment, index) => (
+            <div key={index} className="flex items-center gap-2">
+              <div className="flex-1 min-w-0">
+                <ToothTreatmentField
+                  value={treatment}
+                  onChange={(v) => setOtherTreatment(index, v)}
+                  readOnly={readOnly}
+                />
+              </div>
+              {!readOnly && otherRows.length > 1 && (
+                <button
+                  type="button"
+                  onClick={() => removeOtherTreatment(index)}
+                  className="shrink-0 p-1.5 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                  title="Quitar"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              )}
+            </div>
+          ))}
+        </div>
       </div>
 
       <div className="bg-card border rounded-2xl p-6 space-y-4">
