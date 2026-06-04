@@ -11,14 +11,14 @@ import { ClinicalSafetyAlerts } from "./ClinicalSafetyAlerts";
 export function PatientQuickViewDialog({ patientId, open, onOpenChange }: { patientId: string | null; open: boolean; onOpenChange: (o: boolean) => void }) {
   const { patients, consultations, prescriptions } = useStore();
   const navigate = useNavigate();
+  const { report: safetyReport, isLoading: safetyLoading } = useClinicalSafety(
+    open && patientId ? patientId : undefined,
+    "procedure",
+  );
   const patient = patients.find((p) => p.id === patientId);
   if (!patient) return null;
   const patientConsults = consultations.filter((c) => c.patientId === patient.id);
   const patientRx = prescriptions.filter((r) => r.patientId === patient.id);
-  const { report: safetyReport, isLoading: safetyLoading } = useClinicalSafety(
-    open ? patient.id : undefined,
-    "procedure",
-  );
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
