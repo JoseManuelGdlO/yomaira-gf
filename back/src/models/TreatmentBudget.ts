@@ -14,13 +14,15 @@ export interface TreatmentBudgetAttrs {
   status: 'active' | 'superseded';
   items: BudgetItem[];
   notes: string;
+  attachment: string | null;
+  attachmentFileName: string | null;
   createdAt?: Date;
   updatedAt?: Date;
 }
 
 export type TreatmentBudgetCreationAttrs = Optional<
   TreatmentBudgetAttrs,
-  'id' | 'status' | 'items' | 'notes' | 'createdAt' | 'updatedAt'
+  'id' | 'status' | 'items' | 'notes' | 'attachment' | 'attachmentFileName' | 'createdAt' | 'updatedAt'
 >;
 
 export class TreatmentBudget
@@ -33,6 +35,8 @@ export class TreatmentBudget
   declare status: 'active' | 'superseded';
   declare items: BudgetItem[];
   declare notes: string;
+  declare attachment: string | null;
+  declare attachmentFileName: string | null;
   declare readonly createdAt: Date;
   declare readonly updatedAt: Date;
 }
@@ -49,6 +53,8 @@ TreatmentBudget.init(
     },
     items: { type: DataTypes.JSON, allowNull: false, defaultValue: [] },
     notes: { type: DataTypes.TEXT, allowNull: false, defaultValue: '' },
+    attachment: { type: DataTypes.TEXT('long'), allowNull: true },
+    attachmentFileName: { type: DataTypes.STRING(255), allowNull: true, field: 'attachment_file_name' },
   },
   {
     sequelize,

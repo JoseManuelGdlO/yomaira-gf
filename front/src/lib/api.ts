@@ -338,6 +338,11 @@ export const api = {
     get: (patientId: string) => request<TreatmentBudget>(`/patients/${patientId}/budget`),
     upsert: (patientId: string, body: { items: BudgetItem[]; notes?: string }) =>
       request<TreatmentBudget>(`/patients/${patientId}/budget`, { method: "PUT", body }),
+    setAttachment: (
+      patientId: string,
+      body: { attachment: string | null; attachmentFileName?: string | null },
+    ) =>
+      request<TreatmentBudget>(`/patients/${patientId}/budget/attachment`, { method: "PATCH", body }),
   },
   frankl: {
     list: (patientId: string) => request<PatientFranklReading[]>(`/patients/${patientId}/frankl-readings`),

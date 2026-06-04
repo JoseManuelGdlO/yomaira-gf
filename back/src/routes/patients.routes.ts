@@ -86,6 +86,12 @@ router.put(
   validate({ params: idParam, body: treatmentBudget.upsertSchema }),
   asyncHandler(treatmentBudget.upsertForPatient),
 );
+router.patch(
+  '/:id/budget/attachment',
+  requirePermission('patients.write'),
+  validate({ params: idParam, body: treatmentBudget.attachmentSchema }),
+  asyncHandler(treatmentBudget.setAttachmentForPatient),
+);
 
 router.get(
   '/:id/frankl-readings',

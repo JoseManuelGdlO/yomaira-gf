@@ -57,6 +57,8 @@ export type TreatmentBudget = {
   status: string;
   items: BudgetItem[];
   notes: string;
+  attachment?: string | null;
+  attachmentFileName?: string | null;
   subtotal: number;
   total: number;
 };

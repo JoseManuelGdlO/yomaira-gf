@@ -96,9 +96,29 @@ export function PrintClinicalSheet({
 
       <section className="mb-6 break-inside-avoid">
         <h2 className="font-bold text-base uppercase border-b border-black mb-3">Presupuesto</h2>
-        {(budget?.items?.length ?? 0) === 0 ? (
+        {budget?.attachment && (
+          <div className="mb-4 break-inside-avoid">
+            {budget.attachmentFileName && (
+              <p className="text-xs text-gray-600 mb-2">Archivo: {budget.attachmentFileName}</p>
+            )}
+            {budget.attachment.startsWith("data:application/pdf") ? (
+              <iframe
+                title="Presupuesto adjunto"
+                src={budget.attachment}
+                className="w-full h-[280px] border border-gray-400"
+              />
+            ) : (
+              <img
+                src={budget.attachment}
+                alt="Presupuesto adjunto"
+                className="max-w-full max-h-[320px] object-contain border border-gray-300"
+              />
+            )}
+          </div>
+        )}
+        {(budget?.items?.length ?? 0) === 0 && !budget?.attachment ? (
           <p className="text-gray-600">Sin líneas de presupuesto.</p>
-        ) : (
+        ) : (budget?.items?.length ?? 0) === 0 ? null : (
           <table className="w-full border-collapse text-xs">
             <thead>
               <tr className="border-b border-black">
@@ -123,6 +143,9 @@ export function PrintClinicalSheet({
               </tr>
             </tfoot>
           </table>
+        )}
+        {(budget?.items?.length ?? 0) === 0 && budget?.attachment && (
+          <p className="text-xs text-gray-600 mt-2">Presupuesto registrado como archivo adjunto.</p>
         )}
       </section>
 
