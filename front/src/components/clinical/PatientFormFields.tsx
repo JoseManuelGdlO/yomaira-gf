@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import type { Patient } from "@/mocks/data";
 
 export type PatientFormValues = {
@@ -9,8 +10,10 @@ export type PatientFormValues = {
   guardian: string;
   phone: string;
   email: string;
-  allergies: string;
-  conditions: string;
+  hasAllergies: boolean;
+  allergiesDetail: string;
+  hasConditions: boolean;
+  conditionsDetail: string;
   weightKg: string;
 };
 
@@ -24,8 +27,10 @@ export function emptyPatientForm(): PatientFormValues {
     guardian: "",
     phone: "",
     email: "",
-    allergies: "",
-    conditions: "",
+    hasAllergies: false,
+    allergiesDetail: "",
+    hasConditions: false,
+    conditionsDetail: "",
     weightKg: "",
   };
 }
@@ -40,8 +45,10 @@ export function patientToForm(p: Patient): PatientFormValues {
     guardian: p.guardian,
     phone: p.guardianPhone,
     email: p.email === "—" ? "" : p.email,
-    allergies: p.allergies.join(", "),
-    conditions: p.conditions.join(", "),
+    hasAllergies: p.allergies.length > 0,
+    allergiesDetail: p.allergies.join(", "),
+    hasConditions: p.conditions.length > 0,
+    conditionsDetail: p.conditions.join(", "),
     weightKg: p.weightKg != null ? String(p.weightKg) : "",
   };
 }
@@ -53,6 +60,10 @@ export function validatePatientForm(values: PatientFormValues): string | null {
   return null;
 }
 
+function splitList(value: string): string[] {
+  return value.split(",").map((s) => s.trim()).filter(Boolean);
+}
+
 export function formToPatientFields(values: PatientFormValues, birthDateFallback: string) {
   return {
     name: values.name.trim(),
@@ -62,8 +73,8 @@ export function formToPatientFields(values: PatientFormValues, birthDateFallback
     guardian: values.guardian.trim(),
     guardianPhone: values.phone || "+52 55 0000 0000",
     email: values.email || "—",
-    allergies: values.allergies.split(",").map((s) => s.trim()).filter(Boolean),
-    conditions: values.conditions.split(",").map((s) => s.trim()).filter(Boolean),
+    allergies: values.hasAllergies ? splitList(values.allergiesDetail) : [],
+    conditions: values.hasConditions ? splitList(values.conditionsDetail) : [],
     bloodType: values.bloodType,
     weightKg: values.weightKg.trim() ? Number(values.weightKg) : null,
   };
@@ -78,7 +89,8 @@ export function PatientFormFields({
   values: PatientFormValues;
   onChange: (patch: Partial<PatientFormValues>) => void;
 }) {
-  const set = (key: keyof PatientFormValues, value: string) => onChange({ [key]: value });
+  const set = <K extends keyof PatientFormValues>(key: K, value: PatientFormValues[K]) =>
+    onChange({ [key]: value });
 
   return (
     <div className="grid sm:grid-cols-2 gap-4 mt-2">
@@ -117,13 +129,91 @@ export function PatientFormFields({
       <Field label="Email">
         <input type="email" value={values.email} onChange={(e) => set("email", e.target.value)} className={inputCls} placeholder="contacto@email.com" />
       </Field>
-      <Field label="Alergias (separadas por coma)" className="sm:col-span-2">
-        <input value={values.allergies} onChange={(e) => set("allergies", e.target.value)} className={inputCls} placeholder="Penicilina, Látex" />
-      </Field>
-      <Field label="Antecedentes médicos (separados por coma)" className="sm:col-span-2">
-        <input value={values.conditions} onChange={(e) => set("conditions", e.target.value)} className={inputCls} placeholder="Caries, Mordida cruzada" />
-      </Field>
+      <ListYesNoField
+        label="¿Tiene alergias?"
+        hasItems={values.hasAllergies}
+        detail={values.allergiesDetail}
+        onChange={(hasItems, detail) => onChange({ hasAllergies: hasItems, allergiesDetail: detail })}
+        placeholder="Penicilina, Látex"
+        detailLabel="Especifique las alergias (separadas por coma)"
+      />
+      <ListYesNoField
+        label="¿Tiene antecedentes médicos?"
+        hasItems={values.hasConditions}
+        detail={values.conditionsDetail}
+        onChange={(hasItems, detail) => onChange({ hasConditions: hasItems, conditionsDetail: detail })}
+        placeholder="Caries, Mordida cruzada"
+        detailLabel="Especifique los antecedentes (separados por coma)"
+      />
     </div>
+  );
+}
+
+function ListYesNoField({
+  label,
+  detailLabel,
+  hasItems,
+  detail,
+  onChange,
+  placeholder,
+}: {
+  label: string;
+  detailLabel: string;
+  hasItems: boolean;
+  detail: string;
+  onChange: (hasItems: boolean, detail: string) => void;
+  placeholder: string;
+}) {
+  const [yes, setYes] = useState(hasItems);
+  const [detailValue, setDetailValue] = useState(detail);
+
+  useEffect(() => {
+    setYes(hasItems);
+    setDetailValue(detail);
+  }, [hasItems, detail]);
+
+  return (
+    <Field label={label} className="sm:col-span-2">
+      <div className="flex gap-2">
+        {(["Sí", "No"] as const).map((opt) => (
+          <button
+            key={opt}
+            type="button"
+            onClick={() => {
+              if (opt === "No") {
+                setYes(false);
+                setDetailValue("");
+                onChange(false, "");
+              } else {
+                setYes(true);
+                onChange(true, detailValue);
+              }
+            }}
+            className={`px-4 h-10 rounded-lg border text-sm font-medium transition-colors ${
+              (opt === "Sí" ? yes : !yes)
+                ? "bg-primary text-primary-foreground border-primary"
+                : "bg-surface hover:bg-accent/10"
+            }`}
+          >
+            {opt}
+          </button>
+        ))}
+      </div>
+      {yes && (
+        <div className="mt-2">
+          <label className="text-xs font-medium text-muted-foreground">{detailLabel}</label>
+          <input
+            value={detailValue}
+            onChange={(e) => {
+              setDetailValue(e.target.value);
+              onChange(true, e.target.value);
+            }}
+            className={`${inputCls} mt-1`}
+            placeholder={placeholder}
+          />
+        </div>
+      )}
+    </Field>
   );
 }
 
