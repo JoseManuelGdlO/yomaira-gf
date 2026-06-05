@@ -1,7 +1,9 @@
 import { createFileRoute, Link, notFound, useBlocker } from "@tanstack/react-router";
 import { fmtShort } from "@/lib/format";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth";
+import { tenantKey } from "@/lib/tenantQuery";
 import { useStore } from "@/lib/store";
 import { DeletePatientDialog } from "@/components/clinical/DeletePatientDialog";
 import { EditPatientDialog } from "@/components/clinical/EditPatientDialog";
@@ -292,7 +294,88 @@ function Field({ label, value }: { label: string; value: string }) {
   );
 }
 
+function parseTreatmentValue(value: string | undefined): { yes: boolean; detail: string } {
+  const trimmed = (value ?? "").trim();
+  const negative = /^(no|ninguno|n\/a|na|—|-)$/i;
+  if (!trimmed || negative.test(trimmed)) return { yes: false, detail: "" };
+  return { yes: true, detail: trimmed };
+}
+
+function normalizeTreatmentAnswer(answers: Answers): Answers {
+  const normalized = { ...answers };
+  if (typeof normalized.current_treatment === "string") {
+    const parsed = parseTreatmentValue(normalized.current_treatment);
+    normalized.current_treatment = parsed.yes ? parsed.detail : "";
+  }
+  return normalized;
+}
+
+function TreatmentYesNoField({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: string | undefined;
+  onChange: (v: string) => void;
+}) {
+  const parsed = parseTreatmentValue(value);
+  const [yes, setYes] = useState(parsed.yes);
+  const [detail, setDetail] = useState(parsed.detail);
+
+  useEffect(() => {
+    const next = parseTreatmentValue(value);
+    setYes(next.yes);
+    setDetail(next.detail);
+  }, [value]);
+
+  return (
+    <div className="md:col-span-2">
+      <label className="text-sm font-medium block mb-1.5">{label}</label>
+      <div className="flex gap-2">
+        {(["Sí", "No"] as const).map((opt) => (
+          <button
+            key={opt}
+            type="button"
+            onClick={() => {
+              if (opt === "No") {
+                setYes(false);
+                setDetail("");
+                onChange("");
+              } else {
+                setYes(true);
+                onChange(detail);
+              }
+            }}
+            className={`px-4 h-10 rounded-lg border text-sm font-medium transition-colors ${
+              (opt === "Sí" ? yes : !yes)
+                ? "bg-primary text-primary-foreground border-primary"
+                : "bg-surface hover:bg-accent/10"
+            }`}
+          >
+            {opt}
+          </button>
+        ))}
+      </div>
+      {yes && (
+        <textarea
+          value={detail}
+          onChange={(e) => {
+            setDetail(e.target.value);
+            onChange(e.target.value);
+          }}
+          rows={3}
+          placeholder="Describa el tratamiento o medicación actual"
+          className="w-full p-3 rounded-lg bg-surface border text-sm outline-none focus:ring-2 focus:ring-ring resize-y mt-2"
+        />
+      )}
+    </div>
+  );
+}
+
 function HistoriaClinica({ patientId, onDirtyChange }: { patientId: string; onDirtyChange?: (dirty: boolean) => void }) {
+  const { user } = useAuth();
+  const qc = useQueryClient();
   const { questions, saveAnswers } = useClinicalForm();
   const answersQ = usePatientClinicalAnswers(patientId);
   const [draft, setDraft] = useState<Answers>({});
@@ -313,12 +396,13 @@ function HistoriaClinica({ patientId, onDirtyChange }: { patientId: string; onDi
 
   useEffect(() => {
     if (!answersQ.data || dirty) return;
+    const normalized = normalizeTreatmentAnswer(answersQ.data);
     if (syncedPatient.current !== patientId) {
       syncedPatient.current = patientId;
-      setDraft({ ...answersQ.data });
+      setDraft(normalized);
       return;
     }
-    setDraft({ ...answersQ.data });
+    setDraft(normalized);
   }, [patientId, answersQ.data, dirty]);
 
   const setAnswer = (qid: string, value: string | string[]) => {
@@ -329,8 +413,11 @@ function HistoriaClinica({ patientId, onDirtyChange }: { patientId: string; onDi
   const handleSave = async () => {
     setSaving(true);
     try {
-      await saveAnswers(patientId, draft);
+      const toSave = normalizeTreatmentAnswer(draft);
+      await saveAnswers(patientId, toSave);
+      setDraft(toSave);
       setDirty(false);
+      qc.invalidateQueries({ queryKey: tenantKey(["clinical-safety", patientId], user?.brandingId) });
       toast.success("Historia clínica guardada");
     } catch {
       toast.error("No se pudo guardar la historia clínica");
@@ -352,9 +439,18 @@ function HistoriaClinica({ patientId, onDirtyChange }: { patientId: string; onDi
         <div key={s} className="bg-card border rounded-2xl p-6 space-y-4">
           <div className="font-display font-semibold">{s}</div>
           <div className="grid md:grid-cols-2 gap-4">
-            {questions.filter((q) => q.section === s).map((q) => (
-              <QuestionField key={q.id} q={q} value={draft[q.id]} onChange={(v) => setAnswer(q.id, v)} />
-            ))}
+            {questions.filter((q) => q.section === s).map((q) =>
+              q.id === "current_treatment" ? (
+                <TreatmentYesNoField
+                  key={q.id}
+                  label={q.label}
+                  value={draft[q.id] as string | undefined}
+                  onChange={(v) => setAnswer(q.id, v)}
+                />
+              ) : (
+                <QuestionField key={q.id} q={q} value={draft[q.id]} onChange={(v) => setAnswer(q.id, v)} />
+              ),
+            )}
           </div>
         </div>
       ))}
