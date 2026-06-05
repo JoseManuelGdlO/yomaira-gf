@@ -1,6 +1,6 @@
-import { createFileRoute, Link, notFound } from "@tanstack/react-router";
+import { createFileRoute, Link, notFound, useBlocker } from "@tanstack/react-router";
 import { fmtShort } from "@/lib/format";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { useStore } from "@/lib/store";
 import { DeletePatientDialog } from "@/components/clinical/DeletePatientDialog";
@@ -25,6 +25,22 @@ export const Route = createFileRoute("/_app/pacientes/$id")({
 const TABS = ["Hoja clínica", "Resumen", "Historia clínica", "Medicamentos", "Recetas"] as const;
 type Tab = typeof TABS[number];
 
+function getUnsavedChangesWarning(
+  tab: Tab,
+  clinicalSheetDirty: boolean,
+  historiaDirty: boolean,
+  scope: "tab" | "page",
+): string | null {
+  const action = scope === "tab" ? "cambiar de pestaña" : "salir";
+  if (tab === "Hoja clínica" && clinicalSheetDirty) {
+    return `Guarda los cambios de la hoja clínica antes de ${action}`;
+  }
+  if (tab === "Historia clínica" && historiaDirty) {
+    return `Guarda los cambios de la historia clínica antes de ${action}`;
+  }
+  return null;
+}
+
 function PatientDetail() {
   const { id } = Route.useParams();
   const { hasPermission } = useAuth();
@@ -35,6 +51,8 @@ function PatientDetail() {
   const canDelete = hasPermission("patients.delete");
   const canWrite = hasPermission("patients.write");
   const [tab, setTab] = useState<Tab>("Hoja clínica");
+  const [clinicalSheetDirty, setClinicalSheetDirty] = useState(false);
+  const [historiaDirty, setHistoriaDirty] = useState(false);
   const [viewRx, setViewRx] = useState<Prescription | null>(null);
   const [rxAutoPrint, setRxAutoPrint] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -44,6 +62,37 @@ function PatientDetail() {
     b.date.localeCompare(a.date),
   );
   const { report: safetyReport, isLoading: safetyLoading } = useClinicalSafety(patient.id, "procedure");
+
+  useEffect(() => {
+    setClinicalSheetDirty(false);
+    setHistoriaDirty(false);
+  }, [patient.id]);
+
+  const hasUnsavedChanges =
+    (tab === "Hoja clínica" && clinicalSheetDirty) ||
+    (tab === "Historia clínica" && historiaDirty);
+
+  const shouldBlockNavigation = useCallback(() => {
+    const message = getUnsavedChangesWarning(tab, clinicalSheetDirty, historiaDirty, "page");
+    if (!message) return false;
+    toast.warning(message);
+    return true;
+  }, [tab, clinicalSheetDirty, historiaDirty]);
+
+  useBlocker({
+    shouldBlockFn: shouldBlockNavigation,
+    enableBeforeUnload: hasUnsavedChanges,
+  });
+
+  const handleTabChange = (next: Tab) => {
+    if (next === tab) return;
+    const message = getUnsavedChangesWarning(tab, clinicalSheetDirty, historiaDirty, "tab");
+    if (message) {
+      toast.warning(message);
+      return;
+    }
+    setTab(next);
+  };
 
   return (
     <div className="space-y-6">
@@ -106,7 +155,7 @@ function PatientDetail() {
       {/* Tabs */}
       <div className="flex gap-1 border-b overflow-x-auto">
         {TABS.map((t) => (
-          <button key={t} onClick={() => setTab(t)} className={`px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors whitespace-nowrap ${tab === t ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}>
+          <button key={t} onClick={() => handleTabChange(t)} className={`px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors whitespace-nowrap ${tab === t ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}>
             {t}
           </button>
         ))}
@@ -114,7 +163,7 @@ function PatientDetail() {
 
       <div>
         {tab === "Hoja clínica" && (
-          <ClinicalSheetTab patientId={patient.id} consultations={patientConsults} />
+          <ClinicalSheetTab patientId={patient.id} consultations={patientConsults} onDirtyChange={setClinicalSheetDirty} />
         )}
 
         {tab === "Resumen" && (
@@ -148,7 +197,7 @@ function PatientDetail() {
           </div>
         )}
 
-        {tab === "Historia clínica" && <HistoriaClinica patientId={patient.id} />}
+        {tab === "Historia clínica" && <HistoriaClinica patientId={patient.id} onDirtyChange={setHistoriaDirty} />}
 
         {tab === "Medicamentos" && (
           <div className="space-y-3">
@@ -243,7 +292,7 @@ function Field({ label, value }: { label: string; value: string }) {
   );
 }
 
-function HistoriaClinica({ patientId }: { patientId: string }) {
+function HistoriaClinica({ patientId, onDirtyChange }: { patientId: string; onDirtyChange?: (dirty: boolean) => void }) {
   const { questions, saveAnswers } = useClinicalForm();
   const answersQ = usePatientClinicalAnswers(patientId);
   const [draft, setDraft] = useState<Answers>({});
@@ -256,6 +305,11 @@ function HistoriaClinica({ patientId }: { patientId: string }) {
     syncedPatient.current = null;
     setDirty(false);
   }, [patientId]);
+
+  useEffect(() => {
+    onDirtyChange?.(dirty);
+    return () => onDirtyChange?.(false);
+  }, [dirty, onDirtyChange]);
 
   useEffect(() => {
     if (!answersQ.data || dirty) return;

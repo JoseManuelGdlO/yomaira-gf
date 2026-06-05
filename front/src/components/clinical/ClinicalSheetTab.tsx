@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { Printer } from "lucide-react";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { FloatingSaveButton } from "./FloatingSaveButton";
 import { api } from "@/lib/api";
@@ -15,9 +15,11 @@ import { FranklBehaviorPanel } from "./FranklBehaviorPanel";
 export function ClinicalSheetTab({
   patientId,
   consultations,
+  onDirtyChange,
 }: {
   patientId: string;
   consultations: Consultation[];
+  onDirtyChange?: (dirty: boolean) => void;
 }) {
   const { user } = useAuth();
   const [odontoDirty, setOdontoDirty] = useState(false);
@@ -41,6 +43,11 @@ export function ClinicalSheetTab({
   }, []);
 
   const sheetDirty = odontoDirty || budgetDirty;
+
+  useEffect(() => {
+    onDirtyChange?.(sheetDirty);
+    return () => onDirtyChange?.(false);
+  }, [sheetDirty, onDirtyChange]);
 
   const handleSave = async () => {
     setSaving(true);
