@@ -26,7 +26,7 @@ export function InventoryUsagePicker({ value, onChange, initialUsages }: Props) 
   const [pickId, setPickId] = useState("");
 
   const itemsQ = useQuery({
-    queryKey: tenantKey(["inventory", "active"], brandingId),
+    queryKey: [...tenantKey(["inventory"], brandingId), "active"],
     queryFn: () => api.inventory.list({ active: true }),
     enabled: !!brandingId && hasPermission("inventory.read"),
   });

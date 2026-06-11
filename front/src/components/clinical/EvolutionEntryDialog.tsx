@@ -38,7 +38,7 @@ export function EvolutionEntryDialog({ mode, patientId, consultation, open, onOp
   const [inventoryUsages, setInventoryUsages] = useState<SelectedUsage[]>([]);
 
   const inventoryQ = useQuery({
-    queryKey: tenantKey(["inventory", "active"], brandingId),
+    queryKey: [...tenantKey(["inventory"], brandingId), "active"],
     queryFn: () => api.inventory.list({ active: true }),
     enabled: open && hasPermission("inventory.read"),
   });

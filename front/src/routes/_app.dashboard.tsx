@@ -51,17 +51,26 @@ function Dashboard() {
   const franklMap = useFranklSummariesMap(useMemo(() => upcoming.map((a) => a.patientId), [upcoming]));
 
   const showAnalytics = hasPermission("consultations.read");
-  const showInventory = hasPermission("inventory.read");
+  const showInventory = hasPermission("inventory.read") || hasPermission("inventory.write");
+
+  const inventoryQ = useQuery({
+    queryKey: [...tenantKey(["inventory"], user?.brandingId), "all"],
+    queryFn: () => api.inventory.list(),
+    enabled: !!user?.brandingId && showInventory,
+  });
+
+  const lowStockItems = useMemo(
+    () =>
+      (inventoryQ.data ?? []).filter(
+        (i) => i.active && (i.isLowStock || i.quantity <= i.minQuantity),
+      ),
+    [inventoryQ.data],
+  );
+
   const analyticsQ = useQuery({
     queryKey: tenantKey(["dashboard-analytics", "90d"], user?.brandingId),
     queryFn: () => api.dashboard.analytics("90d"),
     enabled: !!user?.brandingId && showAnalytics,
-  });
-
-  const lowStockQ = useQuery({
-    queryKey: tenantKey(["inventory", "low-stock"], user?.brandingId),
-    queryFn: () => api.inventory.lowStock(),
-    enabled: !!user?.brandingId && showInventory,
   });
 
   return (
@@ -89,24 +98,29 @@ function Dashboard() {
         <div className="absolute -right-10 -top-10 text-[14rem] opacity-15 select-none">{branding.logoEmoji}</div>
       </div>
 
-      {showInventory && (lowStockQ.data?.length ?? 0) > 0 && (
+      {showInventory && lowStockItems.length > 0 && (
         <div className="rounded-2xl border border-amber-200 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-800 p-5">
           <div className="flex items-start gap-3">
             <AlertTriangle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
             <div className="flex-1 min-w-0">
               <h2 className="font-display font-semibold text-amber-900 dark:text-amber-100">
-                Inventario bajo — {lowStockQ.data!.length}{" "}
-                {lowStockQ.data!.length === 1 ? "insumo necesita" : "insumos necesitan"} reabastecimiento
+                Alerta de inventario — {lowStockItems.length}{" "}
+                {lowStockItems.length === 1 ? "insumo con stock bajo" : "insumos con stock bajo"}
               </h2>
               <ul className="mt-2 space-y-1 text-sm text-amber-800/90 dark:text-amber-200/90">
-                {lowStockQ.data!.slice(0, 3).map((item) => (
+                {lowStockItems.slice(0, 5).map((item) => (
                   <li key={item.id}>
                     <strong>{item.name}</strong>: {item.quantity} {item.unit} (mín. {item.minQuantity})
                   </li>
                 ))}
+                {lowStockItems.length > 5 && (
+                  <li className="text-amber-700/80 dark:text-amber-300/80">
+                    y {lowStockItems.length - 5} más…
+                  </li>
+                )}
               </ul>
               <Link to="/inventario" className="inline-flex items-center gap-1.5 mt-3 text-sm font-medium text-amber-900 dark:text-amber-100 hover:underline">
-                <Package className="h-4 w-4" /> Ver inventario
+                <Package className="h-4 w-4" /> Ir a inventario
               </Link>
             </div>
           </div>
@@ -114,11 +128,20 @@ function Dashboard() {
       )}
 
       {/* Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className={`grid grid-cols-2 gap-4 ${showInventory ? "lg:grid-cols-5" : "lg:grid-cols-4"}`}>
         <StatCard icon={Users} label="Pacientes activos" value={patients.length} hint="+2 esta semana" accent="primary" />
         <StatCard icon={Calendar} label="Citas hoy" value={todayAppts.length} hint={`${appointments.filter(a => a.status === "confirmada").length} confirmadas`} accent="accent" />
         <StatCard icon={Pill} label="Recetas emitidas" value={prescriptions.length} hint="Este mes" accent="success" />
         <StatCard icon={Activity} label="Consultas" value={consultations.length} hint="Histórico" accent="warning" />
+        {showInventory && (
+          <StatCard
+            icon={Package}
+            label="Stock bajo"
+            value={lowStockItems.length}
+            hint={lowStockItems.length > 0 ? "Reabastecer pronto" : "Inventario OK"}
+            accent="warning"
+          />
+        )}
       </div>
 
       {showAnalytics && analyticsQ.data && (

@@ -1,11 +1,12 @@
 import { useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { api, type InventoryItem } from "@/lib/api";
+import { api, ApiError, type InventoryItem } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { tenantKey } from "@/lib/tenantQuery";
 import { InventoryItemDialog } from "./InventoryItemDialog";
 import { RestockDialog } from "./RestockDialog";
-import { AlertTriangle, PackagePlus, Pencil, Plus, RefreshCw } from "lucide-react";
+import { DeleteInventoryItemDialog } from "./DeleteInventoryItemDialog";
+import { AlertTriangle, PackagePlus, Pencil, Plus, RefreshCw, RotateCcw, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 function stockBadge(item: InventoryItem) {
@@ -33,29 +34,53 @@ export function InventoryPageContent() {
   const qc = useQueryClient();
 
   const [lowStockOnly, setLowStockOnly] = useState(false);
+  const [hideInactive, setHideInactive] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
   const [editItem, setEditItem] = useState<InventoryItem | null>(null);
   const [restockItem, setRestockItem] = useState<InventoryItem | null>(null);
+  const [deleteItem, setDeleteItem] = useState<InventoryItem | null>(null);
 
   const itemsQ = useQuery({
-    queryKey: tenantKey(["inventory", lowStockOnly ? "low" : "all"], brandingId),
+    queryKey: [...tenantKey(["inventory"], brandingId), lowStockOnly ? "low" : "all"],
     queryFn: () => api.inventory.list(lowStockOnly ? { lowStock: true } : undefined),
     enabled: !!brandingId,
   });
 
-  const items = itemsQ.data ?? [];
+  const allItems = itemsQ.data ?? [];
+  const items = useMemo(() => {
+    if (hideInactive) return allItems.filter((i) => i.active);
+    return allItems;
+  }, [allItems, hideInactive]);
   const lowCount = useMemo(
-    () => items.filter((i) => i.active && (i.isLowStock || i.quantity <= i.minQuantity)).length,
-    [items],
+    () => allItems.filter((i) => i.active && (i.isLowStock || i.quantity <= i.minQuantity)).length,
+    [allItems],
   );
 
-  const deactivateM = useMutation({
+  const deleteM = useMutation({
     mutationFn: (id: string) => api.inventory.remove(id),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: tenantKey(["inventory"], brandingId) });
       toast.success("Insumo desactivado");
+      setDeleteItem(null);
     },
-    onError: () => toast.error("No se pudo desactivar"),
+    onError: (err) => {
+      if (err instanceof ApiError && err.status === 404) {
+        qc.invalidateQueries({ queryKey: tenantKey(["inventory"], brandingId) });
+        toast.error("El insumo ya no existe. Actualizando lista…");
+        setDeleteItem(null);
+        return;
+      }
+      toast.error("No se pudo desactivar el insumo");
+    },
+  });
+
+  const reactivateM = useMutation({
+    mutationFn: (id: string) => api.inventory.update(id, { active: true }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: tenantKey(["inventory"], brandingId) });
+      toast.success("Insumo reactivado");
+    },
+    onError: () => toast.error("No se pudo reactivar el insumo"),
   });
 
   return (
@@ -64,7 +89,7 @@ export function InventoryPageContent() {
         <div>
           <h1 className="font-display text-3xl font-semibold">Inventario</h1>
           <p className="text-muted-foreground text-sm mt-1">
-            {items.length} insumos registrados
+            {allItems.length} insumos registrados
             {lowCount > 0 && ` · ${lowCount} con stock bajo`}
           </p>
         </div>
@@ -92,7 +117,7 @@ export function InventoryPageContent() {
         </div>
       )}
 
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-4 flex-wrap">
         <label className="inline-flex items-center gap-2 text-sm cursor-pointer">
           <input
             type="checkbox"
@@ -101,6 +126,15 @@ export function InventoryPageContent() {
             className="rounded border"
           />
           Solo bajo stock
+        </label>
+        <label className="inline-flex items-center gap-2 text-sm cursor-pointer">
+          <input
+            type="checkbox"
+            checked={hideInactive}
+            onChange={(e) => setHideInactive(e.target.checked)}
+            className="rounded border"
+          />
+          Ocultar inactivos
         </label>
         <button
           type="button"
@@ -121,7 +155,7 @@ export function InventoryPageContent() {
                 <th className="p-3 font-medium">Stock</th>
                 <th className="p-3 font-medium">Mínimo</th>
                 <th className="p-3 font-medium">Estado</th>
-                {canWrite && <th className="p-3 font-medium w-32">Acciones</th>}
+                {canWrite && <th className="p-3 font-medium w-40">Acciones</th>}
               </tr>
             </thead>
             <tbody>
@@ -139,7 +173,10 @@ export function InventoryPageContent() {
                 </tr>
               ) : (
                 items.map((item) => (
-                  <tr key={item.id} className="border-b border-border/50 hover:bg-surface/40 align-middle">
+                  <tr
+                    key={item.id}
+                    className={`border-b border-border/50 hover:bg-surface/40 align-middle ${!item.active ? "opacity-70" : ""}`}
+                  >
                     <td className="p-3">
                       <div className="font-medium">{item.name}</div>
                       <div className="text-xs text-muted-foreground">{item.unit}</div>
@@ -151,31 +188,53 @@ export function InventoryPageContent() {
                     {canWrite && (
                       <td className="p-3">
                         <div className="flex gap-1">
-                          <button
-                            type="button"
-                            title="Reabastecer"
-                            onClick={() => setRestockItem(item)}
-                            className="p-2 rounded-lg hover:bg-primary/10 text-muted-foreground hover:text-primary"
-                          >
-                            <PackagePlus className="h-4 w-4" />
-                          </button>
-                          <button
-                            type="button"
-                            title="Editar"
-                            onClick={() => setEditItem(item)}
-                            className="p-2 rounded-lg hover:bg-primary/10 text-muted-foreground hover:text-primary"
-                          >
-                            <Pencil className="h-4 w-4" />
-                          </button>
-                          {item.active && (
-                            <button
-                              type="button"
-                              title="Desactivar"
-                              onClick={() => deactivateM.mutate(item.id)}
-                              className="p-2 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive text-xs font-medium px-2"
-                            >
-                              Off
-                            </button>
+                          {item.active ? (
+                            <>
+                              <button
+                                type="button"
+                                title="Reabastecer"
+                                onClick={() => setRestockItem(item)}
+                                className="p-2 rounded-lg hover:bg-primary/10 text-muted-foreground hover:text-primary"
+                              >
+                                <PackagePlus className="h-4 w-4" />
+                              </button>
+                              <button
+                                type="button"
+                                title="Editar"
+                                onClick={() => setEditItem(item)}
+                                className="p-2 rounded-lg hover:bg-primary/10 text-muted-foreground hover:text-primary"
+                              >
+                                <Pencil className="h-4 w-4" />
+                              </button>
+                              <button
+                                type="button"
+                                title="Desactivar"
+                                onClick={() => setDeleteItem(item)}
+                                className="p-2 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </button>
+                            </>
+                          ) : (
+                            <>
+                              <button
+                                type="button"
+                                title="Editar"
+                                onClick={() => setEditItem(item)}
+                                className="p-2 rounded-lg hover:bg-primary/10 text-muted-foreground hover:text-primary"
+                              >
+                                <Pencil className="h-4 w-4" />
+                              </button>
+                              <button
+                                type="button"
+                                title="Reactivar"
+                                onClick={() => reactivateM.mutate(item.id)}
+                                disabled={reactivateM.isPending}
+                                className="p-2 rounded-lg hover:bg-emerald-500/10 text-muted-foreground hover:text-emerald-600"
+                              >
+                                <RotateCcw className="h-4 w-4" />
+                              </button>
+                            </>
                           )}
                         </div>
                       </td>
@@ -199,6 +258,13 @@ export function InventoryPageContent() {
         item={restockItem}
         open={!!restockItem}
         onOpenChange={(o) => !o && setRestockItem(null)}
+      />
+      <DeleteInventoryItemDialog
+        item={deleteItem}
+        open={!!deleteItem}
+        onOpenChange={(o) => !o && setDeleteItem(null)}
+        deleting={deleteM.isPending}
+        onConfirm={() => deleteItem && deleteM.mutate(deleteItem.id)}
       />
     </div>
   );
