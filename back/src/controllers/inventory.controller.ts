@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { z } from 'zod';
-import { ConsultationInventoryUsage, InventoryItem } from '../models';
+import { InventoryItem } from '../models';
 import { requireBrandingId, tenantWhere } from '../middleware/tenant';
 import {
   getLowStockItems,
@@ -85,14 +85,6 @@ export async function restock(req: Request, res: Response): Promise<void> {
 
 export async function remove(req: Request, res: Response): Promise<void> {
   const item = await findTenantItem(req, req.params.id);
-  const usageCount = await ConsultationInventoryUsage.count({
-    where: { inventoryItemId: item.id },
-  });
-  if (usageCount > 0) {
-    await item.update({ active: false });
-    res.json({ data: serializeInventoryItem(item) });
-    return;
-  }
-  await item.destroy();
-  res.status(204).end();
+  await item.update({ active: false });
+  res.json({ data: serializeInventoryItem(item) });
 }

@@ -147,7 +147,7 @@ export async function getLowStockItems(brandingId: string): Promise<InventoryIte
     where: {
       brandingId,
       active: true,
-      [Op.and]: sequelize.where(sequelize.col('quantity'), Op.lte, sequelize.col('min_quantity')),
+      [Op.and]: sequelize.literal('`quantity` <= `min_quantity`'),
     },
     order: [['quantity', 'ASC']],
   });
