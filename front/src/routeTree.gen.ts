@@ -17,6 +17,7 @@ import { Route as ConfirmarCitaIdRouteImport } from './routes/confirmar-cita.$id
 import { Route as AgendarSlugRouteImport } from './routes/agendar.$slug'
 import { Route as AppRecetasRouteImport } from './routes/_app.recetas'
 import { Route as AppPacientesRouteImport } from './routes/_app.pacientes'
+import { Route as AppInventarioRouteImport } from './routes/_app.inventario'
 import { Route as AppHistorialRouteImport } from './routes/_app.historial'
 import { Route as AppEstadisticasRouteImport } from './routes/_app.estadisticas'
 import { Route as AppDashboardRouteImport } from './routes/_app.dashboard'
@@ -67,6 +68,11 @@ const AppRecetasRoute = AppRecetasRouteImport.update({
 const AppPacientesRoute = AppPacientesRouteImport.update({
   id: '/pacientes',
   path: '/pacientes',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppInventarioRoute = AppInventarioRouteImport.update({
+  id: '/inventario',
+  path: '/inventario',
   getParentRoute: () => AppRoute,
 } as any)
 const AppHistorialRoute = AppHistorialRouteImport.update({
@@ -143,6 +149,7 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof AppDashboardRoute
   '/estadisticas': typeof AppEstadisticasRoute
   '/historial': typeof AppHistorialRoute
+  '/inventario': typeof AppInventarioRoute
   '/pacientes': typeof AppPacientesRouteWithChildren
   '/recetas': typeof AppRecetasRouteWithChildren
   '/agendar/$slug': typeof AgendarSlugRoute
@@ -164,6 +171,7 @@ export interface FileRoutesByTo {
   '/dashboard': typeof AppDashboardRoute
   '/estadisticas': typeof AppEstadisticasRoute
   '/historial': typeof AppHistorialRoute
+  '/inventario': typeof AppInventarioRoute
   '/pacientes': typeof AppPacientesRouteWithChildren
   '/recetas': typeof AppRecetasRouteWithChildren
   '/agendar/$slug': typeof AgendarSlugRoute
@@ -187,6 +195,7 @@ export interface FileRoutesById {
   '/_app/dashboard': typeof AppDashboardRoute
   '/_app/estadisticas': typeof AppEstadisticasRoute
   '/_app/historial': typeof AppHistorialRoute
+  '/_app/inventario': typeof AppInventarioRoute
   '/_app/pacientes': typeof AppPacientesRouteWithChildren
   '/_app/recetas': typeof AppRecetasRouteWithChildren
   '/agendar/$slug': typeof AgendarSlugRoute
@@ -210,6 +219,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/estadisticas'
     | '/historial'
+    | '/inventario'
     | '/pacientes'
     | '/recetas'
     | '/agendar/$slug'
@@ -231,6 +241,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/estadisticas'
     | '/historial'
+    | '/inventario'
     | '/pacientes'
     | '/recetas'
     | '/agendar/$slug'
@@ -253,6 +264,7 @@ export interface FileRouteTypes {
     | '/_app/dashboard'
     | '/_app/estadisticas'
     | '/_app/historial'
+    | '/_app/inventario'
     | '/_app/pacientes'
     | '/_app/recetas'
     | '/agendar/$slug'
@@ -326,6 +338,13 @@ declare module '@tanstack/react-router' {
       path: '/pacientes'
       fullPath: '/pacientes'
       preLoaderRoute: typeof AppPacientesRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/inventario': {
+      id: '/_app/inventario'
+      path: '/inventario'
+      fullPath: '/inventario'
+      preLoaderRoute: typeof AppInventarioRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/historial': {
@@ -461,6 +480,7 @@ interface AppRouteChildren {
   AppDashboardRoute: typeof AppDashboardRoute
   AppEstadisticasRoute: typeof AppEstadisticasRoute
   AppHistorialRoute: typeof AppHistorialRoute
+  AppInventarioRoute: typeof AppInventarioRoute
   AppPacientesRoute: typeof AppPacientesRouteWithChildren
   AppRecetasRoute: typeof AppRecetasRouteWithChildren
 }
@@ -475,6 +495,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppDashboardRoute: AppDashboardRoute,
   AppEstadisticasRoute: AppEstadisticasRoute,
   AppHistorialRoute: AppHistorialRoute,
+  AppInventarioRoute: AppInventarioRoute,
   AppPacientesRoute: AppPacientesRouteWithChildren,
   AppRecetasRoute: AppRecetasRouteWithChildren,
 }

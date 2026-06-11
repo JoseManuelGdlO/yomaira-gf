@@ -5,6 +5,7 @@ import { PatientAvatar } from "./PatientAvatar";
 import { CalendarPlus, Search, UserPlus } from "lucide-react";
 import { toast } from "sonner";
 import { todayISO } from "@/lib/format";
+import { ApiError } from "@/lib/api";
 import type { Appointment } from "@/mocks/data";
 
 const COLORS = ["#FCE4F5", "#E4E8FC", "#FCE9D6", "#E4FCEA", "#F3E4FC", "#FCEAE4"];
@@ -42,6 +43,7 @@ export function NewAppointmentDialog({
   const [npGuardian, setNpGuardian] = useState("");
   const [npPhone, setNpPhone] = useState("");
   const [npGender, setNpGender] = useState<"F" | "M">("F");
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (open) {
@@ -59,40 +61,61 @@ export function NewAppointmentDialog({
   const patient = patients.find((p) => p.id === patientId);
   const filtered = patients.filter((p) => p.name.toLowerCase().includes(pickerQ.toLowerCase()));
 
-  const submit = () => {
+  const submit = async () => {
+    if (saving) return;
     if (!date || !time) return toast.error("Define fecha y hora");
+
     let usePatientId = patientId;
-    if (mode === "new" && !patient) {
+    const isNewPatient = mode === "new" && !patient;
+
+    if (isNewPatient) {
       if (!npName.trim() || !npAge || !npGuardian.trim()) {
         return toast.error("Completa nombre, edad y tutor");
       }
-      const np = {
-        id: "p_" + Date.now(),
-        name: npName.trim(),
-        age: Number(npAge),
-        birthDate: todayISO(),
-        gender: npGender,
-        guardian: npGuardian.trim(),
-        guardianPhone: npPhone || "+52 55 0000 0000",
-        email: "—",
-        allergies: [],
-        conditions: [],
-        bloodType: "O+",
-        lastVisit: date,
-        avatarColor: COLORS[Math.floor(Math.random() * COLORS.length)],
-      };
-      addPatient(np);
-      usePatientId = np.id;
     }
-    if (!usePatientId) return toast.error("Selecciona o registra un paciente");
-    addAppointment({
-      id: "a" + Date.now(),
-      patientId: usePatientId, date, time,
-      reason: reason.trim() || "Consulta",
-      status,
-    });
-    toast.success(mode === "new" ? "Paciente registrado y cita agendada" : "Cita agendada");
-    onOpenChange(false);
+
+    if (!usePatientId && !isNewPatient) {
+      return toast.error("Selecciona o registra un paciente");
+    }
+
+    setSaving(true);
+    try {
+      if (isNewPatient) {
+        const created = await addPatient({
+          id: "p_" + Date.now(),
+          name: npName.trim(),
+          age: Number(npAge),
+          birthDate: todayISO(),
+          gender: npGender,
+          guardian: npGuardian.trim(),
+          guardianPhone: npPhone || "+52 55 0000 0000",
+          email: "—",
+          allergies: [],
+          conditions: [],
+          bloodType: "O+",
+          lastVisit: date,
+          avatarColor: COLORS[Math.floor(Math.random() * COLORS.length)],
+        });
+        usePatientId = created.id;
+      }
+
+      await addAppointment({
+        id: "a" + Date.now(),
+        patientId: usePatientId!,
+        date,
+        time,
+        reason: reason.trim() || "Consulta",
+        status,
+      });
+
+      toast.success(isNewPatient ? "Paciente registrado y cita agendada" : "Cita agendada");
+      onOpenChange(false);
+    } catch (err) {
+      const message = err instanceof ApiError ? err.message : "No se pudo guardar la cita";
+      toast.error(message);
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -216,7 +239,13 @@ export function NewAppointmentDialog({
 
         <DialogFooter className="gap-2 sm:gap-2">
           <button onClick={() => onOpenChange(false)} className="px-4 py-2 rounded-lg text-sm font-medium border bg-card hover:bg-surface">Cancelar</button>
-          <button onClick={submit} className="px-4 py-2 rounded-lg text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90">Agendar cita</button>
+          <button
+            onClick={() => void submit()}
+            disabled={saving}
+            className="px-4 py-2 rounded-lg text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-60"
+          >
+            {saving ? "Guardando..." : "Agendar cita"}
+          </button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

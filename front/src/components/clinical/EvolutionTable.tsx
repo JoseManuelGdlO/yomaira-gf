@@ -3,6 +3,13 @@ import { fmtShort } from "@/lib/format";
 import type { Consultation } from "@/mocks/data";
 import { EvolutionEntryDialog } from "./EvolutionEntryDialog";
 import { Pencil, Plus } from "lucide-react";
+import { useAuth } from "@/lib/auth";
+
+function formatUsages(c: Consultation): string {
+  const usages = c.inventoryUsages;
+  if (!usages?.length) return "—";
+  return usages.map((u) => `${u.itemName ?? "Insumo"} (${u.quantity}${u.unit ? ` ${u.unit}` : ""})`).join(", ");
+}
 
 export function EvolutionTable({
   patientId,
@@ -13,6 +20,8 @@ export function EvolutionTable({
   consultations: Consultation[];
   readOnly?: boolean;
 }) {
+  const { hasPermission } = useAuth();
+  const showInventory = hasPermission("inventory.read");
   const [editRow, setEditRow] = useState<Consultation | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
   const sorted = [...consultations].sort((a, b) => b.date.localeCompare(a.date));
@@ -46,13 +55,14 @@ export function EvolutionTable({
                 <th className="p-3 font-medium">Próximo tratamiento</th>
                 <th className="p-3 font-medium">Pago y próxima cita</th>
                 <th className="p-3 font-medium">Nota de evolución</th>
+                {showInventory && <th className="p-3 font-medium">Insumos</th>}
                 {!readOnly && <th className="p-3 w-10" />}
               </tr>
             </thead>
             <tbody>
               {sorted.length === 0 ? (
                 <tr>
-                  <td colSpan={readOnly ? 5 : 6} className="p-8 text-center text-muted-foreground">
+                  <td colSpan={(readOnly ? 5 : 6) + (showInventory ? 1 : 0)} className="p-8 text-center text-muted-foreground">
                     Sin registros. Usa &quot;Nuevo registro&quot; para añadir la primera fila a la hoja clínica.
                   </td>
                 </tr>
@@ -64,6 +74,9 @@ export function EvolutionTable({
                     <td className="p-3">{c.nextTreatment || "—"}</td>
                     <td className="p-3">{c.paymentAndNextAppointment || "—"}</td>
                     <td className="p-3 whitespace-pre-wrap">{c.evolutionNote || c.notes || "—"}</td>
+                    {showInventory && (
+                      <td className="p-3 text-xs text-muted-foreground">{formatUsages(c)}</td>
+                    )}
                     {!readOnly && (
                       <td className="p-3">
                         <button

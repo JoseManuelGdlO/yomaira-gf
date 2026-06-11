@@ -15,8 +15,8 @@ type Store = {
   addConsultation: (c: Consultation) => void;
   updatePatient: (id: string, patch: Partial<Patient>) => Promise<Patient>;
   setAppointmentStatus: (id: string, status: Appointment["status"]) => void;
-  addAppointment: (a: Appointment) => void;
-  addPatient: (p: Patient) => void;
+  addAppointment: (a: Appointment) => Promise<Appointment>;
+  addPatient: (p: Patient) => Promise<Patient>;
   deletePatient: (id: string) => Promise<void>;
 };
 
@@ -133,9 +133,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     consultations: consultationsQ.data ?? [],
     appointments: appointmentsQ.data ?? [],
     prescriptions: prescriptionsQ.data ?? [],
-    addPatient: (p) => { createPatient.mutate(p); },
+    addPatient: (p) => createPatient.mutateAsync(p),
     updatePatient: (id, patch) => updatePatientM.mutateAsync({ id, patch }),
-    addAppointment: (a) => { createAppointment.mutate(a); },
+    addAppointment: (a) => createAppointment.mutateAsync(a),
     setAppointmentStatus: (id, status) => { setApptStatus.mutate({ id, status }); },
     addConsultation: (c) => { createConsultation.mutate(c); },
     addPrescription: (rx) => createPrescription.mutateAsync(rx),

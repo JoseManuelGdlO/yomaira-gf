@@ -12,6 +12,11 @@ import { toast } from "sonner";
 import { FRANKL_READING_OPTIONS } from "@/lib/frankl";
 import { useClinicalSafety } from "@/lib/useClinicalSafety";
 import { ClinicalSafetyAlerts } from "@/components/clinical/ClinicalSafetyAlerts";
+import {
+  InventoryUsagePicker,
+  toInventoryUsageInputs,
+  type SelectedUsage,
+} from "@/components/inventory/InventoryUsagePicker";
 import type { Appointment, Patient } from "@/mocks/data";
 
 export function CompleteAppointmentDialog({
@@ -26,7 +31,7 @@ export function CompleteAppointmentDialog({
   onOpenChange: (o: boolean) => void;
 }) {
   const { branding } = useBranding();
-  const { user } = useAuth();
+  const { user, hasPermission } = useAuth();
   const qc = useQueryClient();
   const brandingId = user?.brandingId;
 
@@ -38,6 +43,7 @@ export function CompleteAppointmentDialog({
   const [nextAppointment, setNextAppointment] = useState("");
   const [evolutionNote, setEvolutionNote] = useState("");
   const [frankl, setFrankl] = useState<FranklReadingScale | "">("");
+  const [inventoryUsages, setInventoryUsages] = useState<SelectedUsage[]>([]);
 
   const chartQ = useQuery({
     queryKey: tenantKey(["dental-chart", patient?.id ?? ""], brandingId),
@@ -54,6 +60,7 @@ export function CompleteAppointmentDialog({
       setPaymentMethod("");
       setNextAppointment("");
       setEvolutionNote("");
+      setInventoryUsages([]);
       const current = chartQ.data?.frankl;
       setFrankl(current && current !== "na" ? current : "");
     }
@@ -78,12 +85,16 @@ export function CompleteAppointmentDialog({
         notes: evolutionNote.trim(),
         doctor: branding.doctorName,
         ...(frankl ? { frankl } : {}),
+        ...(hasPermission("inventory.read") && inventoryUsages.length
+          ? { inventoryUsages: toInventoryUsageInputs(inventoryUsages) }
+          : {}),
       });
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: tenantKey(["consultations"], brandingId) });
       qc.invalidateQueries({ queryKey: tenantKey(["appointments"], brandingId) });
       qc.invalidateQueries({ queryKey: tenantKey(["patients"], brandingId) });
+      qc.invalidateQueries({ queryKey: tenantKey(["inventory"], brandingId) });
       if (patient) {
         qc.invalidateQueries({ queryKey: tenantKey(["dental-chart", patient.id], brandingId) });
         qc.invalidateQueries({ queryKey: tenantKey(["frankl-readings", patient.id], brandingId) });
@@ -156,6 +167,9 @@ export function CompleteAppointmentDialog({
               className="mt-1 w-full p-3 rounded-lg bg-surface border text-sm outline-none focus:ring-2 focus:ring-ring resize-y"
             />
           </div>
+          {hasPermission("inventory.read") && (
+            <InventoryUsagePicker value={inventoryUsages} onChange={setInventoryUsages} />
+          )}
           <Field label="Diagnóstico *" value={diagnosis} onChange={setDiagnosis} placeholder="Ej. Caries en molar 64" />
           <div>
             <label className="text-xs font-medium text-muted-foreground block mb-2">Escala Frankl</label>

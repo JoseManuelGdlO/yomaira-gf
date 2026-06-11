@@ -28,6 +28,28 @@ export type Consultation = {
   paymentAndNextAppointment: string;
   evolutionNote: string;
   doctor: string;
+  inventoryUsages?: InventoryUsage[];
+};
+
+export type InventoryItem = {
+  id: string;
+  brandingId?: string;
+  name: string;
+  unit: string;
+  quantity: number;
+  minQuantity: number;
+  category: string;
+  active: boolean;
+  isLowStock?: boolean;
+};
+
+export type InventoryUsage = {
+  id?: string;
+  consultationId?: string;
+  inventoryItemId: string;
+  quantity: number;
+  itemName?: string;
+  unit?: string;
 };
 
 export type FranklScale = "na" | "I" | "II" | "III" | "IV";

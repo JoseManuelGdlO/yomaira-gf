@@ -1,12 +1,17 @@
 import { useEffect, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api, type Consultation } from "@/lib/api";
 import { useBranding } from "@/lib/theme/ThemeProvider";
 import { useAuth } from "@/lib/auth";
 import { tenantKey } from "@/lib/tenantQuery";
 import { todayISO } from "@/lib/format";
 import { toast } from "sonner";
+import {
+  InventoryUsagePicker,
+  toInventoryUsageInputs,
+  type SelectedUsage,
+} from "@/components/inventory/InventoryUsagePicker";
 
 type Props = {
   mode: "create" | "edit";
@@ -18,7 +23,7 @@ type Props = {
 
 export function EvolutionEntryDialog({ mode, patientId, consultation, open, onOpenChange }: Props) {
   const qc = useQueryClient();
-  const { user } = useAuth();
+  const { user, hasPermission } = useAuth();
   const { branding } = useBranding();
   const brandingId = user?.brandingId;
 
@@ -30,6 +35,13 @@ export function EvolutionEntryDialog({ mode, patientId, consultation, open, onOp
   const [nextAppointment, setNextAppointment] = useState("");
   const [evolutionNote, setEvolutionNote] = useState("");
   const [diagnosis, setDiagnosis] = useState("");
+  const [inventoryUsages, setInventoryUsages] = useState<SelectedUsage[]>([]);
+
+  const inventoryQ = useQuery({
+    queryKey: tenantKey(["inventory", "active"], brandingId),
+    queryFn: () => api.inventory.list({ active: true }),
+    enabled: open && hasPermission("inventory.read"),
+  });
 
   useEffect(() => {
     if (!open) return;
@@ -42,6 +54,7 @@ export function EvolutionEntryDialog({ mode, patientId, consultation, open, onOp
       setNextAppointment("");
       setEvolutionNote("");
       setDiagnosis("");
+      setInventoryUsages([]);
       return;
     }
     if (consultation) {
@@ -65,8 +78,27 @@ export function EvolutionEntryDialog({ mode, patientId, consultation, open, onOp
         setPaymentMethod("");
       }
       setNextAppointment(apptMatch?.[1]?.trim() ?? "");
+
+      if (mode !== "edit") return;
+      const usages = consultation.inventoryUsages ?? [];
+      if (usages.length && inventoryQ.data) {
+        setInventoryUsages(
+          usages.map((u) => {
+            const item = inventoryQ.data!.find((i) => i.id === u.inventoryItemId);
+            return {
+              inventoryItemId: u.inventoryItemId,
+              quantity: u.quantity,
+              itemName: u.itemName ?? item?.name ?? "Insumo",
+              unit: u.unit ?? item?.unit ?? "unidades",
+              available: (item?.quantity ?? 0) + u.quantity,
+            };
+          }),
+        );
+      } else if (!usages.length) {
+        setInventoryUsages([]);
+      }
     }
-  }, [open, mode, consultation]);
+  }, [open, mode, consultation, inventoryQ.data]);
 
   const buildPaymentField = () => {
     const paymentParts = [paymentAmount.trim(), paymentMethod.trim()].filter(Boolean);
@@ -81,6 +113,9 @@ export function EvolutionEntryDialog({ mode, patientId, consultation, open, onOp
   const saveM = useMutation({
     mutationFn: async () => {
       const paymentAndNextAppointment = buildPaymentField();
+      const usagePayload = hasPermission("inventory.read")
+        ? { inventoryUsages: toInventoryUsageInputs(inventoryUsages) }
+        : {};
       const body = {
         treatment: treatment.trim(),
         nextTreatment: nextTreatment.trim(),
@@ -88,6 +123,7 @@ export function EvolutionEntryDialog({ mode, patientId, consultation, open, onOp
         evolutionNote: evolutionNote.trim(),
         diagnosis: diagnosis.trim(),
         notes: evolutionNote.trim(),
+        ...usagePayload,
       };
 
       if (mode === "create") {
@@ -104,10 +140,11 @@ export function EvolutionEntryDialog({ mode, patientId, consultation, open, onOp
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: tenantKey(["consultations"], brandingId) });
       qc.invalidateQueries({ queryKey: tenantKey(["patients"], brandingId) });
+      qc.invalidateQueries({ queryKey: tenantKey(["inventory"], brandingId) });
       toast.success(mode === "create" ? "Registro añadido a la hoja clínica" : "Registro actualizado");
       onOpenChange(false);
     },
-    onError: () => toast.error("No se pudo guardar"),
+    onError: (err: Error) => toast.error(err.message || "No se pudo guardar"),
   });
 
   const submit = () => {
@@ -117,7 +154,8 @@ export function EvolutionEntryDialog({ mode, patientId, consultation, open, onOp
       nextTreatment.trim() ||
       diagnosis.trim() ||
       paymentAmount.trim() ||
-      nextAppointment.trim();
+      nextAppointment.trim() ||
+      inventoryUsages.length > 0;
     if (!hasContent) {
       return toast.error("Captura al menos un dato del registro");
     }
@@ -165,6 +203,13 @@ export function EvolutionEntryDialog({ mode, patientId, consultation, open, onOp
               className="mt-1 w-full p-3 rounded-lg bg-surface border text-sm outline-none focus:ring-2 focus:ring-ring resize-y"
             />
           </div>
+          {hasPermission("inventory.read") && (
+            <InventoryUsagePicker
+              value={inventoryUsages}
+              onChange={setInventoryUsages}
+              initialUsages={consultation?.inventoryUsages}
+            />
+          )}
           <Field label="Diagnóstico" value={diagnosis} onChange={setDiagnosis} />
         </div>
 

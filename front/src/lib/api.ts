@@ -10,6 +10,8 @@ import type {
   BudgetItem,
   FranklScale,
   DentitionType,
+  InventoryItem,
+  InventoryUsage,
 } from "@/mocks/data";
 import type { ClinicalAnalytics, AnalyticsPeriod } from "@/lib/analytics";
 import type { Branding } from "@/mocks/brandings";
@@ -27,6 +29,8 @@ export type {
   BudgetItem,
   FranklScale,
   DentitionType,
+  InventoryItem,
+  InventoryUsage,
 };
 
 const TOKEN_KEY = "med:token";
@@ -282,6 +286,7 @@ export const api = {
         evolutionNote?: string;
         doctor?: string;
         frankl?: FranklReadingScale;
+        inventoryUsages?: InventoryUsageInput[];
       },
     ) =>
       request<{ appointment: Appointment; consultation: Consultation }>(`/appointments/${id}/complete`, {
@@ -309,6 +314,24 @@ export const api = {
   },
   medications: {
     list: () => request<Medication[]>("/medications"),
+  },
+  inventory: {
+    list: (q?: { lowStock?: boolean; active?: boolean }) =>
+      request<InventoryItem[]>("/inventory", {
+        query: {
+          lowStock: q?.lowStock ? "true" : undefined,
+          active: q?.active === true ? "true" : q?.active === false ? "false" : undefined,
+        },
+      }),
+    lowStock: () => request<InventoryItem[]>("/inventory/low-stock"),
+    get: (id: string) => request<InventoryItem>(`/inventory/${id}`),
+    create: (body: Omit<InventoryItem, "id" | "isLowStock">) =>
+      request<InventoryItem>("/inventory", { method: "POST", body }),
+    update: (id: string, body: Partial<Omit<InventoryItem, "id" | "isLowStock">>) =>
+      request<InventoryItem>(`/inventory/${id}`, { method: "PATCH", body }),
+    restock: (id: string, addQuantity: number) =>
+      request<InventoryItem>(`/inventory/${id}/restock`, { method: "POST", body: { addQuantity } }),
+    remove: (id: string) => request<void>(`/inventory/${id}`, { method: "DELETE" }),
   },
   brandings: {
     me: () => request<Branding>("/brandings/me"),
@@ -487,4 +510,9 @@ export type PublicBookBody = {
   date: string;
   time: string;
   reason?: string;
+};
+
+export type InventoryUsageInput = {
+  inventoryItemId: string;
+  quantity: number;
 };

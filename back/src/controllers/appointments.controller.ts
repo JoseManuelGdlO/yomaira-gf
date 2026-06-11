@@ -5,6 +5,11 @@ import { Appointment, Consultation, Patient, PatientDentalChart, sequelize } fro
 import { findTenantPatient, tenantWhere } from '../middleware/tenant';
 import { dispatchAppointmentNotifications } from '../services/notifications/notificationDispatcher';
 import { isRecordableFrankl, recordFranklReading } from '../services/frankl/recordFranklReading';
+import { inventoryUsagesSchema } from './consultations.controller';
+import {
+  handleInventoryUsagesOnSave,
+  loadConsultationUsages,
+} from '../services/inventory/inventoryService';
 import { NotFound } from '../utils/errors';
 
 export const querySchema = z.object({
@@ -114,6 +119,7 @@ export const completeSchema = z.object({
   evolutionNote: z.string().default(''),
   doctor: z.string().default(''),
   frankl: z.enum(['I', 'II', 'III', 'IV']).optional(),
+  inventoryUsages: inventoryUsagesSchema.default([]),
 });
 
 export async function complete(req: Request, res: Response): Promise<void> {
@@ -179,9 +185,28 @@ export async function complete(req: Request, res: Response): Promise<void> {
       });
     }
 
+    await handleInventoryUsagesOnSave({
+      consultationId: consultation.id,
+      brandingId: req.user!.brandingId,
+      usages: body.inventoryUsages,
+      permissions: req.user!.permissions,
+      roles: req.user!.roles,
+      isUpdate: false,
+      transaction: t,
+    });
+
     return { consultation, appointment };
   });
 
+  const usageMap = await loadConsultationUsages([result.consultation.id]);
   dispatchAppointmentNotifications(result.appointment, 'completed', 'confirmada');
-  res.status(201).json({ data: { appointment: result.appointment, consultation: result.consultation } });
+  res.status(201).json({
+    data: {
+      appointment: result.appointment,
+      consultation: {
+        ...result.consultation.toJSON(),
+        inventoryUsages: usageMap.get(result.consultation.id) ?? [],
+      },
+    },
+  });
 }
