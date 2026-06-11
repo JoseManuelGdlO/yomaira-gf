@@ -1,13 +1,13 @@
 import { Request, Response } from 'express';
 import { z } from 'zod';
-import { InventoryItem } from '../models';
+import { ConsultationInventoryUsage, InventoryItem } from '../models';
 import { requireBrandingId, tenantWhere } from '../middleware/tenant';
 import {
   getLowStockItems,
   restockItem,
   serializeInventoryItem,
 } from '../services/inventory/inventoryService';
-import { NotFound } from '../utils/errors';
+import { Conflict, NotFound } from '../utils/errors';
 
 async function findTenantItem(req: Request, id: string): Promise<InventoryItem> {
   const item = await InventoryItem.findOne({ where: { id, ...tenantWhere(req) } });
@@ -85,6 +85,14 @@ export async function restock(req: Request, res: Response): Promise<void> {
 
 export async function remove(req: Request, res: Response): Promise<void> {
   const item = await findTenantItem(req, req.params.id);
-  await item.update({ active: false });
-  res.json({ data: serializeInventoryItem(item) });
+  const usageCount = await ConsultationInventoryUsage.count({
+    where: { inventoryItemId: item.id },
+  });
+  if (usageCount > 0) {
+    throw Conflict(
+      'No se puede eliminar: el insumo tiene historial en consultas. Desactívalo en su lugar.',
+    );
+  }
+  await item.destroy();
+  res.status(204).end();
 }

@@ -5,8 +5,8 @@ import { useAuth } from "@/lib/auth";
 import { tenantKey } from "@/lib/tenantQuery";
 import { InventoryItemDialog } from "./InventoryItemDialog";
 import { RestockDialog } from "./RestockDialog";
-import { DeleteInventoryItemDialog } from "./DeleteInventoryItemDialog";
-import { AlertTriangle, PackagePlus, Pencil, Plus, RefreshCw, RotateCcw, Trash2 } from "lucide-react";
+import { InventoryItemActionDialog } from "./InventoryItemActionDialog";
+import { AlertTriangle, Ban, PackagePlus, Pencil, Plus, RefreshCw, RotateCcw, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 function stockBadge(item: InventoryItem) {
@@ -39,6 +39,7 @@ export function InventoryPageContent() {
   const [editItem, setEditItem] = useState<InventoryItem | null>(null);
   const [restockItem, setRestockItem] = useState<InventoryItem | null>(null);
   const [deleteItem, setDeleteItem] = useState<InventoryItem | null>(null);
+  const [actionMode, setActionMode] = useState<"deactivate" | "delete" | null>(null);
 
   const itemsQ = useQuery({
     queryKey: [...tenantKey(["inventory"], brandingId), lowStockOnly ? "low" : "all"],
@@ -56,21 +57,45 @@ export function InventoryPageContent() {
     [allItems],
   );
 
+  const openAction = (item: InventoryItem, mode: "deactivate" | "delete") => {
+    setDeleteItem(item);
+    setActionMode(mode);
+  };
+
+  const closeAction = () => {
+    setDeleteItem(null);
+    setActionMode(null);
+  };
+
+  const deactivateM = useMutation({
+    mutationFn: (id: string) => api.inventory.update(id, { active: false }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: tenantKey(["inventory"], brandingId) });
+      toast.success("Insumo desactivado");
+      closeAction();
+    },
+    onError: () => toast.error("No se pudo desactivar el insumo"),
+  });
+
   const deleteM = useMutation({
     mutationFn: (id: string) => api.inventory.remove(id),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: tenantKey(["inventory"], brandingId) });
-      toast.success("Insumo desactivado");
-      setDeleteItem(null);
+      toast.success("Insumo eliminado permanentemente");
+      closeAction();
     },
     onError: (err) => {
       if (err instanceof ApiError && err.status === 404) {
         qc.invalidateQueries({ queryKey: tenantKey(["inventory"], brandingId) });
         toast.error("El insumo ya no existe. Actualizando lista…");
-        setDeleteItem(null);
+        closeAction();
         return;
       }
-      toast.error("No se pudo desactivar el insumo");
+      if (err instanceof ApiError && err.status === 409) {
+        toast.error(err.message);
+        return;
+      }
+      toast.error("No se pudo eliminar el insumo");
     },
   });
 
@@ -155,7 +180,7 @@ export function InventoryPageContent() {
                 <th className="p-3 font-medium">Stock</th>
                 <th className="p-3 font-medium">Mínimo</th>
                 <th className="p-3 font-medium">Estado</th>
-                {canWrite && <th className="p-3 font-medium w-40">Acciones</th>}
+                {canWrite && <th className="p-3 font-medium w-48">Acciones</th>}
               </tr>
             </thead>
             <tbody>
@@ -188,54 +213,52 @@ export function InventoryPageContent() {
                     {canWrite && (
                       <td className="p-3">
                         <div className="flex gap-1">
-                          {item.active ? (
-                            <>
-                              <button
-                                type="button"
-                                title="Reabastecer"
-                                onClick={() => setRestockItem(item)}
-                                className="p-2 rounded-lg hover:bg-primary/10 text-muted-foreground hover:text-primary"
-                              >
-                                <PackagePlus className="h-4 w-4" />
-                              </button>
-                              <button
-                                type="button"
-                                title="Editar"
-                                onClick={() => setEditItem(item)}
-                                className="p-2 rounded-lg hover:bg-primary/10 text-muted-foreground hover:text-primary"
-                              >
-                                <Pencil className="h-4 w-4" />
-                              </button>
-                              <button
-                                type="button"
-                                title="Desactivar"
-                                onClick={() => setDeleteItem(item)}
-                                className="p-2 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </button>
-                            </>
-                          ) : (
-                            <>
-                              <button
-                                type="button"
-                                title="Editar"
-                                onClick={() => setEditItem(item)}
-                                className="p-2 rounded-lg hover:bg-primary/10 text-muted-foreground hover:text-primary"
-                              >
-                                <Pencil className="h-4 w-4" />
-                              </button>
-                              <button
-                                type="button"
-                                title="Reactivar"
-                                onClick={() => reactivateM.mutate(item.id)}
-                                disabled={reactivateM.isPending}
-                                className="p-2 rounded-lg hover:bg-emerald-500/10 text-muted-foreground hover:text-emerald-600"
-                              >
-                                <RotateCcw className="h-4 w-4" />
-                              </button>
-                            </>
+                          {item.active && (
+                            <button
+                              type="button"
+                              title="Reabastecer"
+                              onClick={() => setRestockItem(item)}
+                              className="p-2 rounded-lg hover:bg-primary/10 text-muted-foreground hover:text-primary"
+                            >
+                              <PackagePlus className="h-4 w-4" />
+                            </button>
                           )}
+                          <button
+                            type="button"
+                            title="Editar"
+                            onClick={() => setEditItem(item)}
+                            className="p-2 rounded-lg hover:bg-primary/10 text-muted-foreground hover:text-primary"
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </button>
+                          {item.active ? (
+                            <button
+                              type="button"
+                              title="Desactivar"
+                              onClick={() => openAction(item, "deactivate")}
+                              className="p-2 rounded-lg hover:bg-amber-500/10 text-muted-foreground hover:text-amber-700"
+                            >
+                              <Ban className="h-4 w-4" />
+                            </button>
+                          ) : (
+                            <button
+                              type="button"
+                              title="Reactivar"
+                              onClick={() => reactivateM.mutate(item.id)}
+                              disabled={reactivateM.isPending}
+                              className="p-2 rounded-lg hover:bg-emerald-500/10 text-muted-foreground hover:text-emerald-600"
+                            >
+                              <RotateCcw className="h-4 w-4" />
+                            </button>
+                          )}
+                          <button
+                            type="button"
+                            title="Eliminar permanentemente"
+                            onClick={() => openAction(item, "delete")}
+                            className="p-2 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
                         </div>
                       </td>
                     )}
@@ -259,12 +282,17 @@ export function InventoryPageContent() {
         open={!!restockItem}
         onOpenChange={(o) => !o && setRestockItem(null)}
       />
-      <DeleteInventoryItemDialog
+      <InventoryItemActionDialog
         item={deleteItem}
-        open={!!deleteItem}
-        onOpenChange={(o) => !o && setDeleteItem(null)}
-        deleting={deleteM.isPending}
-        onConfirm={() => deleteItem && deleteM.mutate(deleteItem.id)}
+        mode={actionMode}
+        open={!!deleteItem && !!actionMode}
+        onOpenChange={(o) => !o && closeAction()}
+        pending={deactivateM.isPending || deleteM.isPending}
+        onConfirm={() => {
+          if (!deleteItem || !actionMode) return;
+          if (actionMode === "deactivate") deactivateM.mutate(deleteItem.id);
+          else deleteM.mutate(deleteItem.id);
+        }}
       />
     </div>
   );

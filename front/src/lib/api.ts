@@ -331,7 +331,7 @@ export const api = {
       request<InventoryItem>(`/inventory/${id}`, { method: "PATCH", body }),
     restock: (id: string, addQuantity: number) =>
       request<InventoryItem>(`/inventory/${id}/restock`, { method: "POST", body: { addQuantity } }),
-    remove: (id: string) => request<InventoryItem>(`/inventory/${id}`, { method: "DELETE" }),
+    remove: (id: string) => request<void>(`/inventory/${id}`, { method: "DELETE" }),
   },
   brandings: {
     me: () => request<Branding>("/brandings/me"),
