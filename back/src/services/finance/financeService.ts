@@ -1,4 +1,4 @@
-import { Op, Transaction } from 'sequelize';
+ssaimport { Op, Transaction } from 'sequelize';
 import { Consultation, FinanceCharge, FinanceExpense, Patient } from '../../models';
 import type { PaymentMethod } from '../../models/FinanceCharge';
 
@@ -18,7 +18,7 @@ export function serializeFinanceCharge(charge: ChargeWithPatient) {
     patientId: charge.patientId,
     date: charge.date,
     amount: Number(charge.amount),
-    paymentMethod: charge.paymentMethod,
+    paymentMethod: charge.paymentMethod, 
     note: charge.note,
     createdBy: charge.createdBy,
     createdAt: charge.createdAt,

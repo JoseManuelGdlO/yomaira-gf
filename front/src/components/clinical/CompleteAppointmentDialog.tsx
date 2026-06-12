@@ -119,12 +119,12 @@ export function CompleteAppointmentDialog({
     onError: () => toast.error("No se pudo completar la cita"),
   });
 
-  if (!appointment || !patient) return null;
-
   const { report: safetyReport, isLoading: safetyLoading } = useClinicalSafety(
-    open ? patient.id : undefined,
+    open && patient?.id ? patient.id : undefined,
     "procedure",
   );
+
+  if (!appointment || !patient) return null;
 
   const submit = () => {
     if (!diagnosis.trim() || !treatment.trim()) {

@@ -26,6 +26,13 @@ export function errorHandler(err: unknown, _req: Request, res: Response, _next: 
     return;
   }
 
+  if (err && typeof err === 'object' && 'type' in err && (err as { type?: string }).type === 'entity.too.large') {
+    res.status(413).json({
+      error: { code: 'PAYLOAD_TOO_LARGE', message: 'El archivo es demasiado pesado para subirlo' },
+    });
+    return;
+  }
+
   if (err && typeof err === 'object' && 'name' in err && (err as any).name === 'SequelizeUniqueConstraintError') {
     res.status(409).json({
       error: { code: 'CONFLICT', message: 'Resource already exists' },

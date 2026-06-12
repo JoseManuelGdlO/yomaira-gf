@@ -6,20 +6,15 @@ import { tenantKey } from "@/lib/tenantQuery";
 import { getToothTreatmentLabel } from "@/lib/dental";
 import { Plus, Trash2, Download, Upload, FileText, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
-
-const MAX_FILE_BYTES = 10 * 1024 * 1024;
-function isAcceptedBudgetFile(file: File) {
-  if (file.type === "application/pdf") return true;
-  if (file.type.startsWith("image/")) return true;
-  return /\.(jpe?g|png|webp|heic|heif|pdf)$/i.test(file.name);
-}
+import {
+  budgetAttachmentErrorMessage,
+  isAcceptedBudgetFile,
+  prepareBudgetAttachment,
+} from "@/lib/budgetAttachment";
+import { BudgetAttachmentPreview, useBudgetAttachmentPreviewUrl } from "@/components/clinical/BudgetAttachmentPreview";
 
 function formatMoney(n: number) {
   return new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN" }).format(n);
-}
-
-function isPdfDataUrl(url: string) {
-  return url.startsWith("data:application/pdf");
 }
 
 export function BudgetEditor({
@@ -81,30 +76,25 @@ export function BudgetEditor({
       qc.invalidateQueries({ queryKey: tenantKey(["budget", patientId], brandingId) });
       toast.success("Archivo de presupuesto guardado");
     },
-    onError: () => toast.error("No se pudo guardar el archivo"),
+    onError: (err) => toast.error(err instanceof Error ? err.message : "No se pudo guardar el archivo"),
   });
 
   const attachment = budgetQ.data?.attachment ?? null;
   const attachmentFileName = budgetQ.data?.attachmentFileName ?? null;
+  const attachmentPreviewUrl = useBudgetAttachmentPreviewUrl(attachment);
 
-  const handleAttachmentFile = (file: File) => {
+  const handleAttachmentFile = async (file: File) => {
     if (!isAcceptedBudgetFile(file)) {
-      toast.error("Formato no admitido. Usa imagen (JPG, PNG, WEBP) o PDF.");
+      toast.error(budgetAttachmentErrorMessage("format"));
       return;
     }
-    if (file.size > MAX_FILE_BYTES) {
-      toast.error("El archivo no puede superar 10 MB");
-      return;
+    try {
+      const { dataUrl, fileName } = await prepareBudgetAttachment(file);
+      attachmentM.mutate({ attachment: dataUrl, attachmentFileName: fileName });
+    } catch (err) {
+      const code = err instanceof Error ? err.message : "unknown";
+      toast.error(budgetAttachmentErrorMessage(code));
     }
-    const reader = new FileReader();
-    reader.onload = () => {
-      attachmentM.mutate({
-        attachment: reader.result as string,
-        attachmentFileName: file.name,
-      });
-    };
-    reader.onerror = () => toast.error("No se pudo leer el archivo");
-    reader.readAsDataURL(file);
   };
 
   const removeAttachment = () => {
@@ -196,23 +186,11 @@ export function BudgetEditor({
               </p>
             )}
             <div className="border rounded-xl overflow-hidden bg-card">
-              {isPdfDataUrl(attachment) ? (
-                <iframe
-                  title="Presupuesto adjunto"
-                  src={attachment}
-                  className="w-full h-[min(480px,60vh)] border-0"
-                />
-              ) : (
-                <img
-                  src={attachment}
-                  alt="Presupuesto adjunto"
-                  className="w-full max-h-[480px] object-contain"
-                />
-              )}
+              <BudgetAttachmentPreview attachment={attachment} previewUrl={attachmentPreviewUrl} />
             </div>
             <div className="flex flex-wrap gap-2">
               <a
-                href={attachment}
+                href={attachmentPreviewUrl ?? attachment}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 border rounded-lg px-3 py-2 text-sm font-medium hover:bg-accent/10"
@@ -253,7 +231,7 @@ export function BudgetEditor({
           <label className="border-2 border-dashed rounded-xl p-8 text-center block cursor-pointer hover:bg-surface/60 transition-colors">
             <Upload className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
             <div className="text-sm font-medium">Subir imagen o PDF del presupuesto</div>
-            <div className="text-xs text-muted-foreground mt-1">JPG, PNG, WEBP o PDF — máx. 10 MB</div>
+            <div className="text-xs text-muted-foreground mt-1">JPG, PNG, WEBP o PDF — las fotos se comprimen automáticamente</div>
             <input
               type="file"
               accept="image/*,application/pdf"

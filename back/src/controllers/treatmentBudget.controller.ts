@@ -2,8 +2,9 @@ import { Request, Response } from 'express';
 import { z } from 'zod';
 import { TreatmentBudget, type BudgetItem } from '../models/TreatmentBudget';
 import { findTenantPatient } from '../middleware/tenant';
+import { BadRequest } from '../utils/errors';
 
-const MAX_ATTACHMENT_BYTES = 10 * 1024 * 1024;
+const MAX_ATTACHMENT_BYTES = 12 * 1024 * 1024;
 
 const budgetItemSchema = z.object({
   description: z.string().min(1),
@@ -40,9 +41,7 @@ function assertAttachmentSize(attachment: string | null): void {
   if (!attachment) return;
   const approxBytes = Math.ceil((attachment.length * 3) / 4);
   if (approxBytes > MAX_ATTACHMENT_BYTES) {
-    const err = new Error('El archivo supera el tamaño máximo (10 MB)');
-    (err as Error & { status: number }).status = 400;
-    throw err;
+    throw BadRequest('El archivo supera el tamaño máximo (12 MB)');
   }
 }
 

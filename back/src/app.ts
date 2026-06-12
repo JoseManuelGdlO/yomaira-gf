@@ -50,7 +50,7 @@ export function createApp(): Express {
   );
 
   app.use(compression());
-  app.use(express.json({ limit: '15mb' }));
+  app.use(express.json({ limit: '20mb' }));
   app.use(express.urlencoded({ extended: true }));
   if (env.NODE_ENV !== 'test') app.use(morgan(env.NODE_ENV === 'production' ? 'combined' : 'dev'));
 
