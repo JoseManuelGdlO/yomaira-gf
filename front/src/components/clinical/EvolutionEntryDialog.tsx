@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { api, type Consultation } from "@/lib/api";
+import { api, type Consultation, type PaymentMethod } from "@/lib/api";
 import { useBranding } from "@/lib/theme/ThemeProvider";
 import { useAuth } from "@/lib/auth";
 import { tenantKey } from "@/lib/tenantQuery";
@@ -12,6 +12,8 @@ import {
   toInventoryUsageInputs,
   type SelectedUsage,
 } from "@/components/inventory/InventoryUsagePicker";
+import { ChargeFormFields } from "@/components/finance/ChargeFormFields";
+import { buildChargePayload, buildNextAppointmentField, monthRange } from "@/lib/finance";
 
 type Props = {
   mode: "create" | "edit";
@@ -26,12 +28,15 @@ export function EvolutionEntryDialog({ mode, patientId, consultation, open, onOp
   const { user, hasPermission } = useAuth();
   const { branding } = useBranding();
   const brandingId = user?.brandingId;
+  const canCharge = hasPermission("finances.write");
 
   const [date, setDate] = useState(todayISO());
   const [treatment, setTreatment] = useState("");
   const [nextTreatment, setNextTreatment] = useState("");
   const [paymentAmount, setPaymentAmount] = useState("");
-  const [paymentMethod, setPaymentMethod] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | "">("");
+  const [chargeNote, setChargeNote] = useState("");
+  const [chargeNoteTouched, setChargeNoteTouched] = useState(false);
   const [nextAppointment, setNextAppointment] = useState("");
   const [evolutionNote, setEvolutionNote] = useState("");
   const [diagnosis, setDiagnosis] = useState("");
@@ -51,6 +56,8 @@ export function EvolutionEntryDialog({ mode, patientId, consultation, open, onOp
       setNextTreatment("");
       setPaymentAmount("");
       setPaymentMethod("");
+      setChargeNote("");
+      setChargeNoteTouched(false);
       setNextAppointment("");
       setEvolutionNote("");
       setDiagnosis("");
@@ -63,20 +70,39 @@ export function EvolutionEntryDialog({ mode, patientId, consultation, open, onOp
       setNextTreatment(consultation.nextTreatment ?? "");
       setEvolutionNote(consultation.evolutionNote ?? consultation.notes ?? "");
       setDiagnosis(consultation.diagnosis ?? "");
-      const raw = consultation.paymentAndNextAppointment ?? "";
-      const payMatch = raw.match(/Pago:\s*([^|]+)/i);
-      const apptMatch = raw.match(/Próxima cita:\s*(.+)/i);
-      if (payMatch) {
-        const parts = payMatch[1].trim().split(" — ");
-        setPaymentAmount(parts[0] ?? "");
-        setPaymentMethod(parts[1] ?? "");
-      } else if (raw && !apptMatch) {
-        setPaymentAmount(raw);
-        setPaymentMethod("");
+
+      if (consultation.charge) {
+        setPaymentAmount(String(consultation.charge.amount));
+        setPaymentMethod(consultation.charge.paymentMethod);
+        setChargeNote(consultation.charge.note ?? "");
+        setChargeNoteTouched(true);
       } else {
-        setPaymentAmount("");
-        setPaymentMethod("");
+        const raw = consultation.paymentAndNextAppointment ?? "";
+        const payMatch = raw.match(/Pago:\s*([^|]+)/i);
+        if (payMatch) {
+          const parts = payMatch[1].trim().split(" — ");
+          setPaymentAmount(parts[0]?.replace(/[^\d.,]/g, "") ?? "");
+          const legacyMethod = parts[1]?.toLowerCase() ?? "";
+          const mapped =
+            legacyMethod.includes("tarjeta")
+              ? "tarjeta"
+              : legacyMethod.includes("transfer")
+                ? "transferencia"
+                : legacyMethod.includes("efectivo")
+                  ? "efectivo"
+                  : legacyMethod
+                    ? "otro"
+                    : "";
+          setPaymentMethod(mapped as PaymentMethod | "");
+        } else {
+          setPaymentAmount("");
+          setPaymentMethod("");
+        }
+        setChargeNote(consultation.treatment ?? "");
+        setChargeNoteTouched(false);
       }
+
+      const apptMatch = (consultation.paymentAndNextAppointment ?? "").match(/Próxima cita:\s*(.+)/i);
       setNextAppointment(apptMatch?.[1]?.trim() ?? "");
 
       if (mode !== "edit") return;
@@ -100,30 +126,26 @@ export function EvolutionEntryDialog({ mode, patientId, consultation, open, onOp
     }
   }, [open, mode, consultation, inventoryQ.data]);
 
-  const buildPaymentField = () => {
-    const paymentParts = [paymentAmount.trim(), paymentMethod.trim()].filter(Boolean);
-    return [
-      paymentParts.length ? `Pago: ${paymentParts.join(" — ")}` : "",
-      nextAppointment.trim() ? `Próxima cita: ${nextAppointment.trim()}` : "",
-    ]
-      .filter(Boolean)
-      .join(" | ");
-  };
+  useEffect(() => {
+    if (!canCharge || chargeNoteTouched) return;
+    setChargeNote(treatment);
+  }, [treatment, canCharge, chargeNoteTouched]);
 
   const saveM = useMutation({
     mutationFn: async () => {
-      const paymentAndNextAppointment = buildPaymentField();
       const usagePayload = hasPermission("inventory.read")
         ? { inventoryUsages: toInventoryUsageInputs(inventoryUsages) }
         : {};
+      const charge = canCharge ? buildChargePayload(paymentAmount, paymentMethod, chargeNote) : undefined;
       const body = {
         treatment: treatment.trim(),
         nextTreatment: nextTreatment.trim(),
-        paymentAndNextAppointment,
+        paymentAndNextAppointment: buildNextAppointmentField(nextAppointment),
         evolutionNote: evolutionNote.trim(),
         diagnosis: diagnosis.trim(),
         notes: evolutionNote.trim(),
         ...usagePayload,
+        ...(canCharge ? { charge: charge ?? null } : {}),
       };
 
       if (mode === "create") {
@@ -138,9 +160,12 @@ export function EvolutionEntryDialog({ mode, patientId, consultation, open, onOp
       return api.consultations.update(consultation!.id, { ...body, date });
     },
     onSuccess: () => {
+      const range = monthRange();
       qc.invalidateQueries({ queryKey: tenantKey(["consultations"], brandingId) });
       qc.invalidateQueries({ queryKey: tenantKey(["patients"], brandingId) });
       qc.invalidateQueries({ queryKey: tenantKey(["inventory"], brandingId) });
+      qc.invalidateQueries({ queryKey: tenantKey(["finances"], brandingId) });
+      qc.invalidateQueries({ queryKey: [...tenantKey(["finances", "summary"], brandingId), range.from, range.to] });
       toast.success(mode === "create" ? "Registro añadido a la hoja clínica" : "Registro actualizado");
       onOpenChange(false);
     },
@@ -188,10 +213,19 @@ export function EvolutionEntryDialog({ mode, patientId, consultation, open, onOp
           </div>
           <Field label="Tratamiento realizado" value={treatment} onChange={setTreatment} placeholder="Ej. Resina, fluorización" />
           <Field label="Próximo tratamiento" value={nextTreatment} onChange={setNextTreatment} />
-          <div className="grid sm:grid-cols-2 gap-3">
-            <Field label="Pago (monto)" value={paymentAmount} onChange={setPaymentAmount} placeholder="Ej. $800" />
-            <Field label="Método de pago" value={paymentMethod} onChange={setPaymentMethod} placeholder="Efectivo, tarjeta…" />
-          </div>
+          {canCharge && (
+            <ChargeFormFields
+              amount={paymentAmount}
+              paymentMethod={paymentMethod}
+              chargeNote={chargeNote}
+              onAmountChange={setPaymentAmount}
+              onPaymentMethodChange={setPaymentMethod}
+              onChargeNoteChange={(v) => {
+                setChargeNoteTouched(true);
+                setChargeNote(v);
+              }}
+            />
+          )}
           <Field label="Próxima cita" value={nextAppointment} onChange={setNextAppointment} placeholder="Fecha y hora" />
           <div>
             <label className="text-xs font-medium text-muted-foreground">Nota de evolución</label>

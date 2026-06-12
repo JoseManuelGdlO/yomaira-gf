@@ -7,6 +7,7 @@ export const NAV_ITEM_PERMISSIONS: Record<string, string | null> = {
   "/estadisticas": "consultations.read",
   "/recetas": "prescriptions.read",
   "/inventario": "inventory.read",
+  "/finanzas": "finances.read",
   "/historial": "consultations.read",
   "/consentimiento": "patients.read",
   "/branding": "branding.read",

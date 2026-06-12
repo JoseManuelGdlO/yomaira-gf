@@ -18,8 +18,11 @@ import { TreatmentBudget } from './TreatmentBudget';
 import { PatientFranklReading } from './PatientFranklReading';
 import { InventoryItem } from './InventoryItem';
 import { ConsultationInventoryUsage } from './ConsultationInventoryUsage';
+import { FinanceCharge } from './FinanceCharge';
+import { FinanceExpense } from './FinanceExpense';
 
 export type { FranklScale, DentitionType } from './PatientDentalChart';
+export type { PaymentMethod } from './FinanceCharge';
 export type { FranklReadingScale } from './PatientFranklReading';
 export type { BudgetItem } from './TreatmentBudget';
 import { NotificationPreference } from './NotificationPreference';
@@ -124,6 +127,15 @@ ClinicalQuestion.belongsTo(Branding, { foreignKey: 'brandingId', as: 'branding' 
 Branding.hasMany(NotificationLog, { foreignKey: 'brandingId', as: 'notificationLogs', onDelete: 'CASCADE' });
 NotificationLog.belongsTo(Branding, { foreignKey: 'brandingId', as: 'branding' });
 
+Branding.hasMany(FinanceCharge, { foreignKey: 'brandingId', as: 'financeCharges', onDelete: 'CASCADE' });
+FinanceCharge.belongsTo(Branding, { foreignKey: 'brandingId', as: 'branding' });
+FinanceCharge.belongsTo(Patient, { foreignKey: 'patientId', as: 'patient' });
+FinanceCharge.belongsTo(Consultation, { foreignKey: 'consultationId', as: 'consultation' });
+Consultation.hasOne(FinanceCharge, { foreignKey: 'consultationId', as: 'charge', onDelete: 'CASCADE' });
+
+Branding.hasMany(FinanceExpense, { foreignKey: 'brandingId', as: 'financeExpenses', onDelete: 'CASCADE' });
+FinanceExpense.belongsTo(Branding, { foreignKey: 'brandingId', as: 'branding' });
+
 export {
   sequelize,
   User,
@@ -145,6 +157,8 @@ export {
   PatientFranklReading,
   InventoryItem,
   ConsultationInventoryUsage,
+  FinanceCharge,
+  FinanceExpense,
   NotificationPreference,
   PushSubscription,
   GoogleCalendarConnection,

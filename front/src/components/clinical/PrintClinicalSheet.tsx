@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { fmtShort } from "@/lib/format";
+import { formatConsultationPaymentColumn } from "@/lib/finance";
 import { ODONTO_QUADRANTS, FRANKL_OPTIONS, DENTITION_OPTIONS, ODONTO_DONE_COLOR, getToothTreatmentColor, getToothTreatmentLabel, isToothTreatmentDone } from "@/lib/dental";
 import type { Branding } from "@/mocks/brandings";
 import type { Patient, Consultation } from "@/mocks/data";
@@ -199,7 +200,7 @@ export function PrintClinicalSheet({
                   <td className="p-1">{fmtShort(c.date)}</td>
                   <td className="p-1">{c.treatment}</td>
                   <td className="p-1">{c.nextTreatment || ""}</td>
-                  <td className="p-1">{c.paymentAndNextAppointment || ""}</td>
+                  <td className="p-1">{formatConsultationPaymentColumn(c)}</td>
                   <td className="p-1 whitespace-pre-wrap">{c.evolutionNote || c.notes || ""}</td>
                 </tr>
               ))

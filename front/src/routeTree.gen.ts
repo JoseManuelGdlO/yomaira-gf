@@ -19,6 +19,7 @@ import { Route as AppRecetasRouteImport } from './routes/_app.recetas'
 import { Route as AppPacientesRouteImport } from './routes/_app.pacientes'
 import { Route as AppInventarioRouteImport } from './routes/_app.inventario'
 import { Route as AppHistorialRouteImport } from './routes/_app.historial'
+import { Route as AppFinanzasRouteImport } from './routes/_app.finanzas'
 import { Route as AppEstadisticasRouteImport } from './routes/_app.estadisticas'
 import { Route as AppDashboardRouteImport } from './routes/_app.dashboard'
 import { Route as AppConsentimientoRouteImport } from './routes/_app.consentimiento'
@@ -78,6 +79,11 @@ const AppInventarioRoute = AppInventarioRouteImport.update({
 const AppHistorialRoute = AppHistorialRouteImport.update({
   id: '/historial',
   path: '/historial',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppFinanzasRoute = AppFinanzasRouteImport.update({
+  id: '/finanzas',
+  path: '/finanzas',
   getParentRoute: () => AppRoute,
 } as any)
 const AppEstadisticasRoute = AppEstadisticasRouteImport.update({
@@ -148,6 +154,7 @@ export interface FileRoutesByFullPath {
   '/consentimiento': typeof AppConsentimientoRoute
   '/dashboard': typeof AppDashboardRoute
   '/estadisticas': typeof AppEstadisticasRoute
+  '/finanzas': typeof AppFinanzasRoute
   '/historial': typeof AppHistorialRoute
   '/inventario': typeof AppInventarioRoute
   '/pacientes': typeof AppPacientesRouteWithChildren
@@ -170,6 +177,7 @@ export interface FileRoutesByTo {
   '/consentimiento': typeof AppConsentimientoRoute
   '/dashboard': typeof AppDashboardRoute
   '/estadisticas': typeof AppEstadisticasRoute
+  '/finanzas': typeof AppFinanzasRoute
   '/historial': typeof AppHistorialRoute
   '/inventario': typeof AppInventarioRoute
   '/pacientes': typeof AppPacientesRouteWithChildren
@@ -194,6 +202,7 @@ export interface FileRoutesById {
   '/_app/consentimiento': typeof AppConsentimientoRoute
   '/_app/dashboard': typeof AppDashboardRoute
   '/_app/estadisticas': typeof AppEstadisticasRoute
+  '/_app/finanzas': typeof AppFinanzasRoute
   '/_app/historial': typeof AppHistorialRoute
   '/_app/inventario': typeof AppInventarioRoute
   '/_app/pacientes': typeof AppPacientesRouteWithChildren
@@ -218,6 +227,7 @@ export interface FileRouteTypes {
     | '/consentimiento'
     | '/dashboard'
     | '/estadisticas'
+    | '/finanzas'
     | '/historial'
     | '/inventario'
     | '/pacientes'
@@ -240,6 +250,7 @@ export interface FileRouteTypes {
     | '/consentimiento'
     | '/dashboard'
     | '/estadisticas'
+    | '/finanzas'
     | '/historial'
     | '/inventario'
     | '/pacientes'
@@ -263,6 +274,7 @@ export interface FileRouteTypes {
     | '/_app/consentimiento'
     | '/_app/dashboard'
     | '/_app/estadisticas'
+    | '/_app/finanzas'
     | '/_app/historial'
     | '/_app/inventario'
     | '/_app/pacientes'
@@ -352,6 +364,13 @@ declare module '@tanstack/react-router' {
       path: '/historial'
       fullPath: '/historial'
       preLoaderRoute: typeof AppHistorialRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/finanzas': {
+      id: '/_app/finanzas'
+      path: '/finanzas'
+      fullPath: '/finanzas'
+      preLoaderRoute: typeof AppFinanzasRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/estadisticas': {
@@ -479,6 +498,7 @@ interface AppRouteChildren {
   AppConsentimientoRoute: typeof AppConsentimientoRoute
   AppDashboardRoute: typeof AppDashboardRoute
   AppEstadisticasRoute: typeof AppEstadisticasRoute
+  AppFinanzasRoute: typeof AppFinanzasRoute
   AppHistorialRoute: typeof AppHistorialRoute
   AppInventarioRoute: typeof AppInventarioRoute
   AppPacientesRoute: typeof AppPacientesRouteWithChildren
@@ -494,6 +514,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppConsentimientoRoute: AppConsentimientoRoute,
   AppDashboardRoute: AppDashboardRoute,
   AppEstadisticasRoute: AppEstadisticasRoute,
+  AppFinanzasRoute: AppFinanzasRoute,
   AppHistorialRoute: AppHistorialRoute,
   AppInventarioRoute: AppInventarioRoute,
   AppPacientesRoute: AppPacientesRouteWithChildren,

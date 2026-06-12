@@ -10,6 +10,11 @@ import {
   handleInventoryUsagesOnSave,
   loadConsultationUsages,
 } from '../services/inventory/inventoryService';
+import {
+  loadChargesForConsultations,
+  upsertChargeFromConsultation,
+} from '../services/finance/financeService';
+import { chargeSchema } from './finances.controller';
 import { NotFound } from '../utils/errors';
 
 export const querySchema = z.object({
@@ -120,6 +125,7 @@ export const completeSchema = z.object({
   doctor: z.string().default(''),
   frankl: z.enum(['I', 'II', 'III', 'IV']).optional(),
   inventoryUsages: inventoryUsagesSchema.default([]),
+  charge: chargeSchema.nullish(),
 });
 
 export async function complete(req: Request, res: Response): Promise<void> {
@@ -195,9 +201,20 @@ export async function complete(req: Request, res: Response): Promise<void> {
       transaction: t,
     });
 
+    if (body.charge !== undefined) {
+      await upsertChargeFromConsultation({
+        consultation,
+        brandingId: req.user!.brandingId,
+        userId: req.user!.id,
+        charge: body.charge,
+        transaction: t,
+      });
+    }
+
     return { consultation, appointment };
   });
 
+  const chargeMap = await loadChargesForConsultations([result.consultation.id]);
   const usageMap = await loadConsultationUsages([result.consultation.id]);
   dispatchAppointmentNotifications(result.appointment, 'completed', 'confirmada');
   res.status(201).json({
@@ -206,6 +223,7 @@ export async function complete(req: Request, res: Response): Promise<void> {
       consultation: {
         ...result.consultation.toJSON(),
         inventoryUsages: usageMap.get(result.consultation.id) ?? [],
+        charge: chargeMap.get(result.consultation.id) ?? null,
       },
     },
   });

@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { api, type FranklReadingScale } from "@/lib/api";
+import { api, type FranklReadingScale, type PaymentMethod } from "@/lib/api";
 import { useBranding } from "@/lib/theme/ThemeProvider";
 import { useAuth } from "@/lib/auth";
 import { tenantKey } from "@/lib/tenantQuery";
@@ -17,6 +17,8 @@ import {
   toInventoryUsageInputs,
   type SelectedUsage,
 } from "@/components/inventory/InventoryUsagePicker";
+import { ChargeFormFields } from "@/components/finance/ChargeFormFields";
+import { buildChargePayload, buildNextAppointmentField, monthRange } from "@/lib/finance";
 import type { Appointment, Patient } from "@/mocks/data";
 
 export function CompleteAppointmentDialog({
@@ -34,12 +36,15 @@ export function CompleteAppointmentDialog({
   const { user, hasPermission } = useAuth();
   const qc = useQueryClient();
   const brandingId = user?.brandingId;
+  const canCharge = hasPermission("finances.write");
 
   const [diagnosis, setDiagnosis] = useState("");
   const [treatment, setTreatment] = useState("");
   const [nextTreatment, setNextTreatment] = useState("");
   const [paymentAmount, setPaymentAmount] = useState("");
-  const [paymentMethod, setPaymentMethod] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | "">("");
+  const [chargeNote, setChargeNote] = useState("");
+  const [chargeNoteTouched, setChargeNoteTouched] = useState(false);
   const [nextAppointment, setNextAppointment] = useState("");
   const [evolutionNote, setEvolutionNote] = useState("");
   const [frankl, setFrankl] = useState<FranklReadingScale | "">("");
@@ -58,6 +63,8 @@ export function CompleteAppointmentDialog({
       setNextTreatment("");
       setPaymentAmount("");
       setPaymentMethod("");
+      setChargeNote("");
+      setChargeNoteTouched(false);
       setNextAppointment("");
       setEvolutionNote("");
       setInventoryUsages([]);
@@ -66,21 +73,34 @@ export function CompleteAppointmentDialog({
     }
   }, [open, appointment, chartQ.data?.frankl]);
 
+  useEffect(() => {
+    if (!canCharge || chargeNoteTouched) return;
+    setChargeNote(treatment);
+  }, [treatment, canCharge, chargeNoteTouched]);
+
+  const invalidateAfterSave = () => {
+    const range = monthRange();
+    qc.invalidateQueries({ queryKey: tenantKey(["consultations"], brandingId) });
+    qc.invalidateQueries({ queryKey: tenantKey(["appointments"], brandingId) });
+    qc.invalidateQueries({ queryKey: tenantKey(["patients"], brandingId) });
+    qc.invalidateQueries({ queryKey: tenantKey(["inventory"], brandingId) });
+    qc.invalidateQueries({ queryKey: tenantKey(["finances"], brandingId) });
+    qc.invalidateQueries({ queryKey: [...tenantKey(["finances", "summary"], brandingId), range.from, range.to] });
+    if (patient) {
+      qc.invalidateQueries({ queryKey: tenantKey(["dental-chart", patient.id], brandingId) });
+      qc.invalidateQueries({ queryKey: tenantKey(["frankl-readings", patient.id], brandingId) });
+      qc.invalidateQueries({ queryKey: tenantKey(["frankl-summary", patient.id], brandingId) });
+    }
+  };
+
   const completeM = useMutation({
     mutationFn: () => {
-      const paymentParts = [paymentAmount.trim(), paymentMethod.trim()].filter(Boolean);
-      const paymentAndNextAppointment = [
-        paymentParts.length ? `Pago: ${paymentParts.join(" — ")}` : "",
-        nextAppointment.trim() ? `Próxima cita: ${nextAppointment.trim()}` : "",
-      ]
-        .filter(Boolean)
-        .join(" | ");
-
+      const charge = canCharge ? buildChargePayload(paymentAmount, paymentMethod, chargeNote) : undefined;
       return api.appointments.complete(appointment!.id, {
         diagnosis: diagnosis.trim(),
         treatment: treatment.trim(),
         nextTreatment: nextTreatment.trim(),
-        paymentAndNextAppointment,
+        paymentAndNextAppointment: buildNextAppointmentField(nextAppointment),
         evolutionNote: evolutionNote.trim(),
         notes: evolutionNote.trim(),
         doctor: branding.doctorName,
@@ -88,18 +108,11 @@ export function CompleteAppointmentDialog({
         ...(hasPermission("inventory.read") && inventoryUsages.length
           ? { inventoryUsages: toInventoryUsageInputs(inventoryUsages) }
           : {}),
+        ...(canCharge ? { charge: charge ?? null } : {}),
       });
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: tenantKey(["consultations"], brandingId) });
-      qc.invalidateQueries({ queryKey: tenantKey(["appointments"], brandingId) });
-      qc.invalidateQueries({ queryKey: tenantKey(["patients"], brandingId) });
-      qc.invalidateQueries({ queryKey: tenantKey(["inventory"], brandingId) });
-      if (patient) {
-        qc.invalidateQueries({ queryKey: tenantKey(["dental-chart", patient.id], brandingId) });
-        qc.invalidateQueries({ queryKey: tenantKey(["frankl-readings", patient.id], brandingId) });
-        qc.invalidateQueries({ queryKey: tenantKey(["frankl-summary", patient.id], brandingId) });
-      }
+      invalidateAfterSave();
       toast.success("Consulta registrada en la hoja clínica");
       onOpenChange(false);
     },
@@ -152,10 +165,19 @@ export function CompleteAppointmentDialog({
         <div className="space-y-3 mt-2">
           <Field label="Tratamiento realizado *" value={treatment} onChange={setTreatment} placeholder="Ej. Resina compuesta, fluorización" />
           <Field label="Próximo tratamiento" value={nextTreatment} onChange={setNextTreatment} placeholder="Ej. Corona en 64" />
-          <div className="grid sm:grid-cols-2 gap-3">
-            <Field label="Pago (monto)" value={paymentAmount} onChange={setPaymentAmount} placeholder="Ej. $800" />
-            <Field label="Método de pago" value={paymentMethod} onChange={setPaymentMethod} placeholder="Efectivo, tarjeta…" />
-          </div>
+          {canCharge && (
+            <ChargeFormFields
+              amount={paymentAmount}
+              paymentMethod={paymentMethod}
+              chargeNote={chargeNote}
+              onAmountChange={setPaymentAmount}
+              onPaymentMethodChange={setPaymentMethod}
+              onChargeNoteChange={(v) => {
+                setChargeNoteTouched(true);
+                setChargeNote(v);
+              }}
+            />
+          )}
           <Field label="Próxima cita" value={nextAppointment} onChange={setNextAppointment} placeholder="Fecha y hora" />
           <div>
             <label className="text-xs font-medium text-muted-foreground">Nota de evolución</label>

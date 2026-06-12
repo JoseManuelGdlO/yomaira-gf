@@ -16,6 +16,45 @@ export type Patient = {
   consentPhoto?: string;
 };
 
+export type PaymentMethod = "efectivo" | "tarjeta" | "transferencia" | "otro";
+
+export type FinanceChargeInput = {
+  amount: number;
+  paymentMethod: PaymentMethod;
+  note?: string;
+};
+
+export type FinanceCharge = {
+  id: string;
+  brandingId?: string;
+  consultationId?: string | null;
+  patientId: string;
+  date: string;
+  amount: number;
+  paymentMethod: PaymentMethod;
+  note: string;
+  createdBy?: string | null;
+  patient?: { id: string; name: string };
+};
+
+export type FinanceExpense = {
+  id: string;
+  brandingId?: string;
+  date: string;
+  amount: number;
+  category: string;
+  description: string;
+  createdBy?: string | null;
+};
+
+export type FinanceSummary = {
+  totalCharges: number;
+  totalExpenses: number;
+  balance: number;
+  from: string | null;
+  to: string | null;
+};
+
 export type Consultation = {
   id: string;
   patientId: string;
@@ -29,6 +68,7 @@ export type Consultation = {
   evolutionNote: string;
   doctor: string;
   inventoryUsages?: InventoryUsage[];
+  charge?: FinanceCharge | null;
 };
 
 export type InventoryItem = {

@@ -20,6 +20,8 @@ export function resourceLabel(resource: string) {
     consultations: "Consultas",
     prescriptions: "Recetas",
     medications: "Medicamentos",
+    inventory: "Inventario",
+    finances: "Finanzas",
     branding: "Personalización",
     clinical_questions: "Historia clínica",
   };

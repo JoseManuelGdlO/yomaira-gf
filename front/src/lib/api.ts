@@ -12,6 +12,11 @@ import type {
   DentitionType,
   InventoryItem,
   InventoryUsage,
+  FinanceCharge,
+  FinanceExpense,
+  FinanceSummary,
+  FinanceChargeInput,
+  PaymentMethod,
 } from "@/mocks/data";
 import type { ClinicalAnalytics, AnalyticsPeriod } from "@/lib/analytics";
 import type { Branding } from "@/mocks/brandings";
@@ -31,6 +36,11 @@ export type {
   DentitionType,
   InventoryItem,
   InventoryUsage,
+  FinanceCharge,
+  FinanceExpense,
+  FinanceSummary,
+  FinanceChargeInput,
+  PaymentMethod,
 };
 
 const TOKEN_KEY = "med:token";
@@ -287,6 +297,7 @@ export const api = {
         doctor?: string;
         frankl?: FranklReadingScale;
         inventoryUsages?: InventoryUsageInput[];
+        charge?: FinanceChargeInput | null;
       },
     ) =>
       request<{ appointment: Appointment; consultation: Consultation }>(`/appointments/${id}/complete`, {
@@ -296,9 +307,9 @@ export const api = {
   },
   consultations: {
     list: (q?: { patientId?: string }) => request<Consultation[]>("/consultations", { query: q }),
-    create: (body: Omit<Consultation, "id">) =>
+    create: (body: Omit<Consultation, "id"> & { charge?: FinanceChargeInput | null }) =>
       request<Consultation>("/consultations", { method: "POST", body }),
-    update: (id: string, body: Partial<Consultation>) =>
+    update: (id: string, body: Partial<Consultation> & { charge?: FinanceChargeInput | null }) =>
       request<Consultation>(`/consultations/${id}`, { method: "PATCH", body }),
   },
   prescriptions: {
@@ -332,6 +343,45 @@ export const api = {
     restock: (id: string, addQuantity: number) =>
       request<InventoryItem>(`/inventory/${id}/restock`, { method: "POST", body: { addQuantity } }),
     remove: (id: string) => request<void>(`/inventory/${id}`, { method: "DELETE" }),
+  },
+  finances: {
+    charges: {
+      list: (q?: { from?: string; to?: string; patientId?: string; consultationId?: string }) =>
+        request<FinanceCharge[]>("/finances/charges", { query: q }),
+      get: (id: string) => request<FinanceCharge>(`/finances/charges/${id}`),
+      create: (body: {
+        patientId: string;
+        date: string;
+        amount: number;
+        paymentMethod: PaymentMethod;
+        note?: string;
+      }) => request<FinanceCharge>("/finances/charges", { method: "POST", body }),
+      update: (
+        id: string,
+        body: Partial<{
+          patientId: string;
+          date: string;
+          amount: number;
+          paymentMethod: PaymentMethod;
+          note: string;
+        }>,
+      ) => request<FinanceCharge>(`/finances/charges/${id}`, { method: "PATCH", body }),
+      remove: (id: string) => request<void>(`/finances/charges/${id}`, { method: "DELETE" }),
+    },
+    expenses: {
+      list: (q?: { from?: string; to?: string }) =>
+        request<FinanceExpense[]>("/finances/expenses", { query: q }),
+      get: (id: string) => request<FinanceExpense>(`/finances/expenses/${id}`),
+      create: (body: { date: string; amount: number; category?: string; description?: string }) =>
+        request<FinanceExpense>("/finances/expenses", { method: "POST", body }),
+      update: (
+        id: string,
+        body: Partial<{ date: string; amount: number; category: string; description: string }>,
+      ) => request<FinanceExpense>(`/finances/expenses/${id}`, { method: "PATCH", body }),
+      remove: (id: string) => request<void>(`/finances/expenses/${id}`, { method: "DELETE" }),
+    },
+    summary: (q?: { from?: string; to?: string }) =>
+      request<FinanceSummary>("/finances/summary", { query: q }),
   },
   brandings: {
     me: () => request<Branding>("/brandings/me"),

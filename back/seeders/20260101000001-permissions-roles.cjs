@@ -24,6 +24,8 @@ const PERMISSIONS = [
   ['medications.write', 'Manage medications catalog'],
   ['inventory.read', 'List/view inventory and low-stock alerts'],
   ['inventory.write', 'Manage inventory items and restock'],
+  ['finances.read', 'View charges, expenses and finance summary'],
+  ['finances.write', 'Create/update/delete charges and expenses'],
   ['branding.read', 'View branding settings'],
   ['branding.write', 'Update branding settings'],
   ['clinical_questions.read', 'View clinical history questions'],

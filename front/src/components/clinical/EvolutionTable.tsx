@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { fmtShort } from "@/lib/format";
+import { formatConsultationPaymentColumn } from "@/lib/finance";
 import type { Consultation } from "@/mocks/data";
 import { EvolutionEntryDialog } from "./EvolutionEntryDialog";
 import { Pencil, Plus } from "lucide-react";
@@ -72,7 +73,7 @@ export function EvolutionTable({
                     <td className="p-3 whitespace-nowrap text-muted-foreground">{fmtShort(c.date)}</td>
                     <td className="p-3">{c.treatment || "—"}</td>
                     <td className="p-3">{c.nextTreatment || "—"}</td>
-                    <td className="p-3">{c.paymentAndNextAppointment || "—"}</td>
+                    <td className="p-3">{formatConsultationPaymentColumn(c)}</td>
                     <td className="p-3 whitespace-pre-wrap">{c.evolutionNote || c.notes || "—"}</td>
                     {showInventory && (
                       <td className="p-3 text-xs text-muted-foreground">{formatUsages(c)}</td>

@@ -7,6 +7,12 @@ import {
   loadConsultationUsages,
   restoreInventoryForConsultation,
 } from '../services/inventory/inventoryService';
+import {
+  deleteChargeForConsultation,
+  loadChargesForConsultations,
+  upsertChargeFromConsultation,
+} from '../services/finance/financeService';
+import { chargeSchema } from './finances.controller';
 import { NotFound } from '../utils/errors';
 
 export const inventoryUsagesSchema = z.array(
@@ -27,10 +33,13 @@ async function findTenantConsultation(req: Request, id: string): Promise<Consult
   return item;
 }
 
-function attachUsages(items: Consultation[], usageMap: Awaited<ReturnType<typeof loadConsultationUsages>>) {
+async function attachChargesAndUsages(items: Consultation[]) {
+  const usageMap = await loadConsultationUsages(items.map((i) => i.id));
+  const chargeMap = await loadChargesForConsultations(items.map((i) => i.id));
   return items.map((item) => ({
     ...item.toJSON(),
     inventoryUsages: usageMap.get(item.id) ?? [],
+    charge: chargeMap.get(item.id) ?? null,
   }));
 }
 
@@ -46,19 +55,13 @@ export async function list(req: Request, res: Response): Promise<void> {
     include: [{ model: Patient, as: 'patient', where: { brandingId: req.user!.brandingId }, required: true }],
     order: [['date', 'DESC']],
   });
-  const usageMap = await loadConsultationUsages(items.map((i) => i.id));
-  res.json({ data: attachUsages(items, usageMap) });
+  res.json({ data: await attachChargesAndUsages(items) });
 }
 
 export async function get(req: Request, res: Response): Promise<void> {
   const item = await findTenantConsultation(req, req.params.id);
-  const usageMap = await loadConsultationUsages([item.id]);
-  res.json({
-    data: {
-      ...item.toJSON(),
-      inventoryUsages: usageMap.get(item.id) ?? [],
-    },
-  });
+  const [enriched] = await attachChargesAndUsages([item]);
+  res.json({ data: enriched });
 }
 
 export const createSchema = z.object({
@@ -73,6 +76,7 @@ export const createSchema = z.object({
   evolutionNote: z.string().default(''),
   doctor: z.string().default(''),
   inventoryUsages: inventoryUsagesSchema.default([]),
+  charge: chargeSchema.nullish(),
 });
 
 export const updateSchema = createSchema.partial();
@@ -80,7 +84,7 @@ export const updateSchema = createSchema.partial();
 export async function create(req: Request, res: Response): Promise<void> {
   const body = req.body as z.infer<typeof createSchema>;
   const patient = await findTenantPatient(req, body.patientId);
-  const { inventoryUsages, ...consultationData } = body;
+  const { inventoryUsages, charge, ...consultationData } = body;
 
   const item = await sequelize.transaction(async (t) => {
     const consultation = await Consultation.create(consultationData, { transaction: t });
@@ -97,16 +101,20 @@ export async function create(req: Request, res: Response): Promise<void> {
       isUpdate: false,
       transaction: t,
     });
+    if (charge !== undefined) {
+      await upsertChargeFromConsultation({
+        consultation,
+        brandingId: req.user!.brandingId,
+        userId: req.user!.id,
+        charge,
+        transaction: t,
+      });
+    }
     return consultation;
   });
 
-  const usageMap = await loadConsultationUsages([item.id]);
-  res.status(201).json({
-    data: {
-      ...item.toJSON(),
-      inventoryUsages: usageMap.get(item.id) ?? [],
-    },
-  });
+  const [enriched] = await attachChargesAndUsages([item]);
+  res.status(201).json({ data: enriched });
 }
 
 export async function update(req: Request, res: Response): Promise<void> {
@@ -115,9 +123,10 @@ export async function update(req: Request, res: Response): Promise<void> {
   if (body.patientId) await findTenantPatient(req, body.patientId);
 
   const inventoryUsages = body.inventoryUsages;
+  const charge = body.charge;
 
   await sequelize.transaction(async (t) => {
-    const { inventoryUsages: _u, ...consultationData } = body;
+    const { inventoryUsages: _u, charge: _c, ...consultationData } = body;
     await item.update(consultationData, { transaction: t });
     if (body.date) {
       const patient = await Patient.findByPk(item.patientId, { transaction: t });
@@ -137,21 +146,27 @@ export async function update(req: Request, res: Response): Promise<void> {
         transaction: t,
       });
     }
+    if (charge !== undefined) {
+      await upsertChargeFromConsultation({
+        consultation: item,
+        brandingId: req.user!.brandingId,
+        userId: req.user!.id,
+        charge,
+        transaction: t,
+      });
+    }
   });
 
-  const usageMap = await loadConsultationUsages([item.id]);
-  res.json({
-    data: {
-      ...item.toJSON(),
-      inventoryUsages: usageMap.get(item.id) ?? [],
-    },
-  });
+  const refreshed = await findTenantConsultation(req, item.id);
+  const [enriched] = await attachChargesAndUsages([refreshed]);
+  res.json({ data: enriched });
 }
 
 export async function remove(req: Request, res: Response): Promise<void> {
   const item = await findTenantConsultation(req, req.params.id);
   await sequelize.transaction(async (t) => {
     await restoreInventoryForConsultation(item.id, req.user!.brandingId, t);
+    await deleteChargeForConsultation(item.id, t);
     await item.destroy({ transaction: t });
   });
   res.status(204).end();

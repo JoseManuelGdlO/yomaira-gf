@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { fmtLong } from "@/lib/format";
+import { formatConsultationPaymentColumn } from "@/lib/finance";
 import { useStore } from "@/lib/store";
 import { ClinicalTimeline } from "@/components/clinical/ClinicalTimeline";
 
@@ -32,8 +33,10 @@ function HistorialPage() {
                 {c.nextTreatment && (
                   <div className="text-sm"><span className="text-muted-foreground">Próximo:</span> {c.nextTreatment}</div>
                 )}
-                {c.paymentAndNextAppointment && (
-                  <div className="text-sm"><span className="text-muted-foreground">Pago / cita:</span> {c.paymentAndNextAppointment}</div>
+                {(c.charge || c.paymentAndNextAppointment) && (
+                  <div className="text-sm">
+                    <span className="text-muted-foreground">Pago / cita:</span> {formatConsultationPaymentColumn(c)}
+                  </div>
                 )}
                 <div className="text-sm"><span className="text-muted-foreground">Diagnóstico:</span> {c.diagnosis}</div>
               </div>
