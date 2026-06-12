@@ -1,4 +1,4 @@
-ssaimport { Op, Transaction } from 'sequelize';
+import { Op, Transaction } from 'sequelize';
 import { Consultation, FinanceCharge, FinanceExpense, Patient } from '../../models';
 import type { PaymentMethod } from '../../models/FinanceCharge';
 
