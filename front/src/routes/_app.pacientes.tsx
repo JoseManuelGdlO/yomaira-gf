@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth";
 import { api } from "@/lib/api";
 import { tenantKey } from "@/lib/tenantQuery";
-import { Search, Plus, AlertCircle, Eye, Pill, Trash2, ChevronLeft, ChevronRight } from "lucide-react";
+import { Search, Plus, AlertCircle, Eye, Pill, Trash2, ChevronLeft, ChevronRight, SlidersHorizontal, X } from "lucide-react";
 import { PatientAvatar } from "@/components/clinical/PatientAvatar";
 import { fmtShort } from "@/lib/format";
 import { NewPatientDialog } from "@/components/clinical/NewPatientDialog";
@@ -22,6 +22,36 @@ import { cn } from "@/lib/utils";
 import { getVisiblePages } from "@/lib/pagination";
 
 const PAGE_SIZE = 20;
+
+type GenderFilter = "" | "M" | "F";
+type YesNoFilter = "" | "yes" | "no";
+type LastVisitFilter = "" | "recent" | "overdue";
+type AgeFilter = "" | "0-5" | "6-12" | "13+";
+type SortOption = "name_asc" | "name_desc" | "age_asc" | "age_desc" | "lastVisit_desc" | "lastVisit_asc";
+
+const SORT_LABELS: Record<SortOption, string> = {
+  name_asc: "Nombre A → Z",
+  name_desc: "Nombre Z → A",
+  age_asc: "Edad menor a mayor",
+  age_desc: "Edad mayor a menor",
+  lastVisit_desc: "Última visita reciente",
+  lastVisit_asc: "Última visita antigua",
+};
+
+function parseSortOption(option: SortOption): { sortBy: "name" | "age" | "lastVisit"; sortDir: "asc" | "desc" } {
+  const [sortBy, sortDir] = option.split("_") as ["name" | "age" | "lastVisit", "asc" | "desc"];
+  return { sortBy, sortDir };
+}
+
+function ageFilterToRange(filter: AgeFilter): { ageMin?: number; ageMax?: number } {
+  if (filter === "0-5") return { ageMin: 0, ageMax: 5 };
+  if (filter === "6-12") return { ageMin: 6, ageMax: 12 };
+  if (filter === "13+") return { ageMin: 13 };
+  return {};
+}
+
+const selectClass =
+  "h-10 rounded-lg bg-surface border px-3 text-sm outline-none focus:ring-2 focus:ring-ring min-w-[10rem]";
 
 export const Route = createFileRoute("/_app/pacientes")({
   head: () => ({ meta: [{ title: "Pacientes — MediFlow" }] }),
@@ -44,16 +74,43 @@ function PatientsPage() {
   const canDelete = hasPermission("patients.delete");
   const [page, setPage] = useState(1);
   const [q, setQ] = useState("");
+  const [gender, setGender] = useState<GenderFilter>("");
+  const [allergies, setAllergies] = useState<YesNoFilter>("");
+  const [conditions, setConditions] = useState<YesNoFilter>("");
+  const [lastVisit, setLastVisit] = useState<LastVisitFilter>("");
+  const [ageFilter, setAgeFilter] = useState<AgeFilter>("");
+  const [sort, setSort] = useState<SortOption>("name_asc");
   const [newOpen, setNewOpen] = useState(false);
   const [quickId, setQuickId] = useState<string | null>(null);
   const [rxId, setRxId] = useState<string | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
+  const { sortBy, sortDir } = parseSortOption(sort);
+  const ageRange = ageFilterToRange(ageFilter);
+
   const patientsQ = useQuery({
-    queryKey: [...tenantKey(["patients", "list"], brandingId), page, q],
+    queryKey: [
+      ...tenantKey(["patients", "list"], brandingId),
+      page,
+      q,
+      gender,
+      allergies,
+      conditions,
+      lastVisit,
+      ageFilter,
+      sort,
+    ],
     queryFn: () =>
       api.patients.listPage({
         q: q || undefined,
+        gender: gender || undefined,
+        allergies: allergies || undefined,
+        conditions: conditions || undefined,
+        lastVisit: lastVisit || undefined,
+        ageMin: ageRange.ageMin,
+        ageMax: ageRange.ageMax,
+        sortBy,
+        sortDir,
         limit: PAGE_SIZE,
         offset: (page - 1) * PAGE_SIZE,
       }),
@@ -77,6 +134,25 @@ function PatientsPage() {
   const rangeStart = total === 0 ? 0 : offset + 1;
   const rangeEnd = total === 0 ? 0 : offset + patients.length;
 
+  const hasActiveFilters =
+    !!q || !!gender || !!allergies || !!conditions || !!lastVisit || !!ageFilter || sort !== "name_asc";
+
+  function resetFilters() {
+    setQ("");
+    setGender("");
+    setAllergies("");
+    setConditions("");
+    setLastVisit("");
+    setAgeFilter("");
+    setSort("name_asc");
+    setPage(1);
+  }
+
+  function updateFilter<T>(setter: (v: T) => void, value: T) {
+    setter(value);
+    setPage(1);
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-4 flex-wrap">
@@ -94,18 +170,97 @@ function PatientsPage() {
       </div>
 
       <div className="bg-card rounded-2xl border overflow-hidden">
-        <div className="p-4 border-b">
-          <div className="relative max-w-md">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <input
-              value={q}
-              onChange={(e) => {
-                setQ(e.target.value);
-                setPage(1);
-              }}
-              placeholder="Buscar por nombre o tutor..."
-              className="w-full pl-10 pr-4 h-10 rounded-lg bg-surface border text-sm outline-none focus:ring-2 focus:ring-ring"
-            />
+        <div className="p-4 border-b space-y-4">
+          <div className="flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">
+            <div className="relative flex-1 max-w-md">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <input
+                value={q}
+                onChange={(e) => updateFilter(setQ, e.target.value)}
+                placeholder="Buscar por nombre o tutor..."
+                className="w-full pl-10 pr-4 h-10 rounded-lg bg-surface border text-sm outline-none focus:ring-2 focus:ring-ring"
+              />
+            </div>
+            {hasActiveFilters && (
+              <button
+                type="button"
+                onClick={resetFilters}
+                className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground shrink-0"
+              >
+                <X className="h-4 w-4" />
+                Limpiar filtros
+              </button>
+            )}
+          </div>
+
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <SlidersHorizontal className="h-4 w-4 shrink-0" />
+            <span className="font-medium">Filtros y orden</span>
+          </div>
+
+          <div className="flex flex-wrap gap-3">
+            <select
+              value={gender}
+              onChange={(e) => updateFilter(setGender, e.target.value as GenderFilter)}
+              className={selectClass}
+            >
+              <option value="">Todos los géneros</option>
+              <option value="F">Femenino</option>
+              <option value="M">Masculino</option>
+            </select>
+
+            <select
+              value={ageFilter}
+              onChange={(e) => updateFilter(setAgeFilter, e.target.value as AgeFilter)}
+              className={selectClass}
+            >
+              <option value="">Todas las edades</option>
+              <option value="0-5">0–5 años</option>
+              <option value="6-12">6–12 años</option>
+              <option value="13+">13+ años</option>
+            </select>
+
+            <select
+              value={allergies}
+              onChange={(e) => updateFilter(setAllergies, e.target.value as YesNoFilter)}
+              className={selectClass}
+            >
+              <option value="">Todas las alergias</option>
+              <option value="yes">Con alergias</option>
+              <option value="no">Sin alergias</option>
+            </select>
+
+            <select
+              value={conditions}
+              onChange={(e) => updateFilter(setConditions, e.target.value as YesNoFilter)}
+              className={selectClass}
+            >
+              <option value="">Todos los antecedentes</option>
+              <option value="yes">Con antecedentes</option>
+              <option value="no">Sin antecedentes</option>
+            </select>
+
+            <select
+              value={lastVisit}
+              onChange={(e) => updateFilter(setLastVisit, e.target.value as LastVisitFilter)}
+              className={selectClass}
+            >
+              <option value="">Todas las visitas</option>
+              <option value="recent">Visitados recientemente</option>
+              <option value="overdue">Sin control (+6 meses)</option>
+            </select>
+
+            <select
+              value={sort}
+              onChange={(e) => updateFilter(setSort, e.target.value as SortOption)}
+              className={cn(selectClass, "min-w-[12rem]")}
+            >
+              {(Object.keys(SORT_LABELS) as SortOption[]).map((key) => (
+                <option key={key} value={key}>
+                  {SORT_LABELS[key]}
+                </option>
+              ))}
+            </select>
           </div>
         </div>
         <div className={cn("overflow-x-auto", patientsQ.isFetching && "opacity-60")}>
@@ -181,7 +336,11 @@ function PatientsPage() {
                 </tr>
               ))}
               {!patientsQ.isError && !patientsQ.isLoading && patients.length === 0 && (
-                <tr><td colSpan={6} className="text-center py-12 text-muted-foreground">Sin resultados.</td></tr>
+                <tr>
+                  <td colSpan={6} className="text-center py-12 text-muted-foreground">
+                    {hasActiveFilters ? "Sin resultados con los filtros aplicados." : "Sin resultados."}
+                  </td>
+                </tr>
               )}
             </tbody>
           </table>

@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import { Op } from 'sequelize';
 import { z } from 'zod';
-import { Patient } from '../models';
+import { Patient, sequelize } from '../models';
 import { findTenantPatient, tenantWhere } from '../middleware/tenant';
 import { NotFound } from '../utils/errors';
 
@@ -9,20 +9,83 @@ export const querySchema = z.object({
   q: z.string().optional(),
   limit: z.coerce.number().int().min(1).max(500).optional(),
   offset: z.coerce.number().int().min(0).optional(),
+  gender: z.enum(['M', 'F']).optional(),
+  allergies: z.enum(['yes', 'no']).optional(),
+  conditions: z.enum(['yes', 'no']).optional(),
+  lastVisit: z.enum(['recent', 'overdue']).optional(),
+  ageMin: z.coerce.number().int().min(0).max(120).optional(),
+  ageMax: z.coerce.number().int().min(0).max(120).optional(),
+  sortBy: z.enum(['name', 'age', 'lastVisit']).optional(),
+  sortDir: z.enum(['asc', 'desc']).optional(),
 });
 
+const SORTABLE_FIELDS = {
+  name: 'name',
+  age: 'age',
+  lastVisit: 'lastVisit',
+} as const;
+
+function sixMonthsAgoISO(): string {
+  const d = new Date();
+  d.setMonth(d.getMonth() - 6);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
 export async function list(req: Request, res: Response): Promise<void> {
-  const { q, limit, offset } = req.query as z.infer<typeof querySchema>;
+  const {
+    q,
+    limit,
+    offset,
+    gender,
+    allergies,
+    conditions,
+    lastVisit,
+    ageMin,
+    ageMax,
+    sortBy,
+    sortDir,
+  } = req.query as z.infer<typeof querySchema>;
+
   const where: Record<string, unknown> = { ...tenantWhere(req) };
+  const andClauses: unknown[] = [];
+
   if (q) {
-    Object.assign(where, {
+    andClauses.push({
       [Op.or]: [
         { name: { [Op.like]: `%${q}%` } },
         { guardian: { [Op.like]: `%${q}%` } },
       ],
     });
   }
-  const order: [string, string][] = [['name', 'ASC']];
+
+  if (gender) where.gender = gender;
+
+  if (ageMin !== undefined || ageMax !== undefined) {
+    const ageWhere: { [Op.gte]?: number; [Op.lte]?: number } = {};
+    if (ageMin !== undefined) ageWhere[Op.gte] = ageMin;
+    if (ageMax !== undefined) ageWhere[Op.lte] = ageMax;
+    where.age = ageWhere;
+  }
+
+  if (allergies === 'yes') andClauses.push(sequelize.literal('JSON_LENGTH(`allergies`) > 0'));
+  else if (allergies === 'no') andClauses.push(sequelize.literal('JSON_LENGTH(`allergies`) = 0'));
+
+  if (conditions === 'yes') andClauses.push(sequelize.literal('JSON_LENGTH(`conditions`) > 0'));
+  else if (conditions === 'no') andClauses.push(sequelize.literal('JSON_LENGTH(`conditions`) = 0'));
+
+  if (lastVisit === 'recent') {
+    where.lastVisit = { [Op.gte]: sixMonthsAgoISO() };
+  } else if (lastVisit === 'overdue') {
+    where.lastVisit = { [Op.lt]: sixMonthsAgoISO() };
+  }
+
+  if (andClauses.length > 0) {
+    Object.assign(where, { [Op.and]: andClauses });
+  }
+
+  const sortField = SORTABLE_FIELDS[sortBy ?? 'name'] ?? 'name';
+  const sortDirection = (sortDir ?? 'asc').toUpperCase();
+  const order: [string, string][] = [[sortField, sortDirection]];
 
   if (limit !== undefined) {
     const offsetVal = offset ?? 0;

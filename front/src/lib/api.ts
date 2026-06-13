@@ -272,8 +272,19 @@ export const api = {
   },
   patients: {
     list: () => request<Patient[]>("/patients"),
-    listPage: (params: { q?: string; limit: number; offset: number }) =>
-      request<PaginatedPatientsResponse>("/patients", { query: params, raw: true }),
+    listPage: (params: {
+      q?: string;
+      gender?: "M" | "F";
+      allergies?: "yes" | "no";
+      conditions?: "yes" | "no";
+      lastVisit?: "recent" | "overdue";
+      ageMin?: number;
+      ageMax?: number;
+      sortBy?: "name" | "age" | "lastVisit";
+      sortDir?: "asc" | "desc";
+      limit: number;
+      offset: number;
+    }) => request<PaginatedPatientsResponse>("/patients", { query: params, raw: true }),
     get: (id: string) => request<Patient>(`/patients/${id}`),
     create: (body: Omit<Patient, "id">) => request<Patient>("/patients", { method: "POST", body }),
     update: (id: string, body: Partial<Patient>) => request<Patient>(`/patients/${id}`, { method: "PATCH", body }),
