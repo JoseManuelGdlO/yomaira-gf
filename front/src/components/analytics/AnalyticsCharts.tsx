@@ -6,6 +6,48 @@ import { CHART_COUNT_CONFIG } from "@/lib/chartColors";
 
 const chartConfig = CHART_COUNT_CONFIG;
 
+function normalizeLabel(label: string) {
+  return label.replace(/\s+/g, " ").trim();
+}
+
+function truncateLabel(label: string, max: number) {
+  const text = normalizeLabel(label);
+  return text.length <= max ? text : `${text.slice(0, max - 1)}…`;
+}
+
+function rankedChartHeight(itemCount: number, compact: boolean) {
+  const rowHeight = compact ? 44 : 48;
+  const minHeight = compact ? 220 : 280;
+  return Math.max(minHeight, itemCount * rowHeight + 24);
+}
+
+function RankedYAxisTick({
+  x = 0,
+  y = 0,
+  payload,
+  maxChars,
+}: {
+  x?: number;
+  y?: number;
+  payload?: { value: string };
+  maxChars: number;
+}) {
+  return (
+    <g transform={`translate(${x},${y})`}>
+      <text
+        x={0}
+        y={0}
+        dy={4}
+        textAnchor="end"
+        fill="hsl(var(--muted-foreground))"
+        fontSize={11}
+      >
+        {truncateLabel(String(payload?.value ?? ""), maxChars)}
+      </text>
+    </g>
+  );
+}
+
 export function ConsultationsTrendChart({
   data,
   compact = false,
@@ -55,23 +97,46 @@ export function RankedBarChart({
     );
   }
 
-  const chartData = data.map((d) => ({ name: d.label, count: d.count, pct: d.pct }));
+  const chartData = data.map((d) => ({ name: normalizeLabel(d.label), count: d.count, pct: d.pct }));
+  const chartHeight = rankedChartHeight(chartData.length, compact);
+  const yAxisWidth = compact ? 128 : 156;
+  const labelMaxChars = compact ? 20 : 28;
 
   return (
     <ChartShell title={title} compact={compact}>
-      <ChartContainer config={chartConfig} className={compact ? "h-[180px] w-full" : "h-[280px] w-full"}>
-        <BarChart layout="vertical" data={chartData} margin={{ left: 8, right: 16, top: 8, bottom: 0 }}>
+      <ChartContainer
+        config={chartConfig}
+        className={`aspect-auto w-full ${compact ? "min-h-[220px]" : "min-h-[280px]"}`}
+        style={{ height: chartHeight }}
+      >
+        <BarChart
+          layout="vertical"
+          data={chartData}
+          margin={{ left: 4, right: 12, top: 4, bottom: 4 }}
+          barCategoryGap={compact ? "28%" : "22%"}
+          barSize={compact ? 12 : 16}
+        >
           <CartesianGrid horizontal={false} />
-          <XAxis type="number" allowDecimals={false} tickLine={false} axisLine={false} />
+          <XAxis type="number" allowDecimals={false} tickLine={false} axisLine={false} tick={{ fontSize: 11 }} />
           <YAxis
             type="category"
             dataKey="name"
             tickLine={false}
             axisLine={false}
-            width={compact ? 90 : 120}
-            tick={{ fontSize: 11 }}
+            width={yAxisWidth}
+            interval={0}
+            tick={<RankedYAxisTick maxChars={labelMaxChars} />}
           />
-          <ChartTooltip content={<ChartTooltipContent />} />
+          <ChartTooltip
+            content={
+              <ChartTooltipContent
+                labelFormatter={(_, payload) => {
+                  const row = payload?.[0]?.payload as { name?: string } | undefined;
+                  return row?.name ?? "";
+                }}
+              />
+            }
+          />
           <Bar dataKey="count" fill="var(--color-count)" radius={[0, 4, 4, 0]} />
         </BarChart>
       </ChartContainer>
