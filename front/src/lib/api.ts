@@ -75,6 +75,11 @@ export type PaginatedPatientsResponse = {
   meta: { total: number; limit: number; offset: number };
 };
 
+export type PaginatedConsultationsResponse = {
+  data: Consultation[];
+  meta: { total: number; limit: number; offset: number };
+};
+
 export class ApiError extends Error {
   status: number;
   code: string;
@@ -307,6 +312,14 @@ export const api = {
   },
   consultations: {
     list: (q?: { patientId?: string }) => request<Consultation[]>("/consultations", { query: q }),
+    listPage: (params: {
+      q?: string;
+      patientId?: string;
+      from?: string;
+      to?: string;
+      limit: number;
+      offset: number;
+    }) => request<PaginatedConsultationsResponse>("/consultations", { query: params, raw: true }),
     create: (body: Omit<Consultation, "id"> & { charge?: FinanceChargeInput | null }) =>
       request<Consultation>("/consultations", { method: "POST", body }),
     update: (id: string, body: Partial<Consultation> & { charge?: FinanceChargeInput | null }) =>

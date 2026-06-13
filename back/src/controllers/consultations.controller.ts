@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import { Op } from 'sequelize';
 import { z } from 'zod';
 import { Consultation, Patient, sequelize } from '../models';
 import { findTenantPatient } from '../middleware/tenant';
@@ -22,7 +23,24 @@ export const inventoryUsagesSchema = z.array(
   }),
 );
 
-export const querySchema = z.object({ patientId: z.string().uuid().optional() });
+export const querySchema = z.object({
+  patientId: z.string().uuid().optional(),
+  q: z.string().optional(),
+  from: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  to: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  limit: z.coerce.number().int().min(1).max(500).optional(),
+  offset: z.coerce.number().int().min(0).optional(),
+});
+
+function patientInclude(brandingId: string) {
+  return {
+    model: Patient,
+    as: 'patient',
+    where: { brandingId },
+    required: true,
+    attributes: ['id', 'name', 'avatarColor', 'allergies'],
+  };
+}
 
 async function findTenantConsultation(req: Request, id: string): Promise<Consultation> {
   const item = await Consultation.findOne({
@@ -44,17 +62,57 @@ async function attachChargesAndUsages(items: Consultation[]) {
 }
 
 export async function list(req: Request, res: Response): Promise<void> {
-  const { patientId } = req.query as z.infer<typeof querySchema>;
+  const { patientId, q, from, to, limit, offset } = req.query as z.infer<typeof querySchema>;
   const where: Record<string, unknown> = {};
+
   if (patientId) {
     await findTenantPatient(req, patientId);
     where.patientId = patientId;
   }
-  const items = await Consultation.findAll({
+
+  if (from || to) {
+    const dateWhere: { [Op.gte]?: string; [Op.lte]?: string } = {};
+    if (from) dateWhere[Op.gte] = from;
+    if (to) dateWhere[Op.lte] = to;
+    where.date = dateWhere;
+  }
+
+  if (q) {
+    Object.assign(where, {
+      [Op.or]: [
+        { reason: { [Op.like]: `%${q}%` } },
+        { diagnosis: { [Op.like]: `%${q}%` } },
+        { treatment: { [Op.like]: `%${q}%` } },
+        { doctor: { [Op.like]: `%${q}%` } },
+        { evolutionNote: { [Op.like]: `%${q}%` } },
+        { '$patient.name$': { [Op.like]: `%${q}%` } },
+      ],
+    });
+  }
+
+  const queryOptions = {
     where,
-    include: [{ model: Patient, as: 'patient', where: { brandingId: req.user!.brandingId }, required: true }],
-    order: [['date', 'DESC']],
-  });
+    include: [patientInclude(req.user!.brandingId)],
+    order: [['date', 'DESC']] as [string, string][],
+    subQuery: false,
+  };
+
+  if (limit !== undefined) {
+    const offsetVal = offset ?? 0;
+    const { rows, count } = await Consultation.findAndCountAll({
+      ...queryOptions,
+      limit,
+      offset: offsetVal,
+      distinct: true,
+    });
+    res.json({
+      data: await attachChargesAndUsages(rows),
+      meta: { total: count, limit, offset: offsetVal },
+    });
+    return;
+  }
+
+  const items = await Consultation.findAll(queryOptions);
   res.json({ data: await attachChargesAndUsages(items) });
 }
 

@@ -55,6 +55,8 @@ export type FinanceSummary = {
   to: string | null;
 };
 
+export type ConsultationPatientSummary = Pick<Patient, "id" | "name" | "avatarColor" | "allergies">;
+
 export type Consultation = {
   id: string;
   patientId: string;
@@ -69,6 +71,7 @@ export type Consultation = {
   doctor: string;
   inventoryUsages?: InventoryUsage[];
   charge?: FinanceCharge | null;
+  patient?: ConsultationPatientSummary;
 };
 
 export type InventoryItem = {
