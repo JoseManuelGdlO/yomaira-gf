@@ -13,6 +13,7 @@ import { FranklBadge } from "@/components/clinical/FranklBadge";
 import { fmtShort, fmtMonthShort, fmtDay, fmtWeekdayLong, fmtMonthLong, todayISO } from "@/lib/format";
 import { QuickPrescriptionDialog } from "@/components/prescription/QuickPrescriptionDialog";
 import { OnboardingDialog } from "@/components/app/OnboardingDialog";
+import { FeatureInviteCarousel } from "@/components/app/FeatureInviteCarousel";
 import { useEffect, useMemo, useState } from "react";
 import { useFranklSummariesMap } from "@/lib/useFranklSummaries";
 import { shouldShowFranklBadge } from "@/lib/frankl";
@@ -96,6 +97,16 @@ function Dashboard() {
           </div>
         </div>
         <div className="absolute -right-10 -top-10 text-[14rem] opacity-15 select-none">{branding.logoEmoji}</div>
+      </div>
+
+      <div className="space-y-3">
+        <div className="flex items-center gap-2">
+          <Sparkles className="h-4 w-4 text-primary" />
+          <h2 className="font-display text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+            Descubre la plataforma
+          </h2>
+        </div>
+        <FeatureInviteCarousel />
       </div>
 
       {showInventory && lowStockItems.length > 0 && (
