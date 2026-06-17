@@ -22,14 +22,17 @@ const REASONS = [
 ];
 
 export function NewAppointmentDialog({
-  open, onOpenChange, defaultDate, defaultPatientId,
+  open, onOpenChange, defaultDate, defaultPatientId, appointment, onRequestComplete,
 }: {
   open: boolean;
   onOpenChange: (o: boolean) => void;
   defaultDate?: string;
   defaultPatientId?: string;
+  appointment?: Appointment | null;
+  onRequestComplete?: (a: Appointment) => void;
 }) {
-  const { patients, addAppointment, addPatient } = useStore();
+  const { patients, addAppointment, updateAppointment, addPatient } = useStore();
+  const isEdit = !!appointment;
   const [mode, setMode] = useState<"existing" | "new">("existing");
   const [pickerQ, setPickerQ] = useState("");
   const [patientId, setPatientId] = useState<string | undefined>(defaultPatientId);
@@ -47,16 +50,26 @@ export function NewAppointmentDialog({
 
   useEffect(() => {
     if (open) {
-      setMode(defaultPatientId ? "existing" : "existing");
-      setPatientId(defaultPatientId);
-      setDate(defaultDate ?? todayISO());
-      setTime("09:00");
-      setReason(REASONS[0]);
-      setStatus("pendiente");
-      setPickerQ("");
-      setNpName(""); setNpAge(""); setNpGuardian(""); setNpPhone(""); setNpGender("F");
+      if (appointment) {
+        setMode("existing");
+        setPatientId(appointment.patientId);
+        setDate(appointment.date);
+        setTime(appointment.time);
+        setReason(appointment.reason);
+        setStatus(appointment.status);
+        setPickerQ("");
+      } else {
+        setMode(defaultPatientId ? "existing" : "existing");
+        setPatientId(defaultPatientId);
+        setDate(defaultDate ?? todayISO());
+        setTime("09:00");
+        setReason(REASONS[0]);
+        setStatus("pendiente");
+        setPickerQ("");
+        setNpName(""); setNpAge(""); setNpGuardian(""); setNpPhone(""); setNpGender("F");
+      }
     }
-  }, [open, defaultDate, defaultPatientId]);
+  }, [open, defaultDate, defaultPatientId, appointment]);
 
   const patient = patients.find((p) => p.id === patientId);
   const filtered = patients.filter((p) => p.name.toLowerCase().includes(pickerQ.toLowerCase()));
@@ -99,16 +112,39 @@ export function NewAppointmentDialog({
         usePatientId = created.id;
       }
 
-      await addAppointment({
-        id: "a" + Date.now(),
-        patientId: usePatientId!,
-        date,
-        time,
-        reason: reason.trim() || "Consulta",
-        status,
-      });
+      if (isEdit && appointment) {
+        if (status === "completada" && appointment.status !== "completada") {
+          onOpenChange(false);
+          onRequestComplete?.({
+            ...appointment,
+            patientId: usePatientId!,
+            date,
+            time,
+            reason: reason.trim() || "Consulta",
+          });
+          return;
+        }
 
-      toast.success(isNewPatient ? "Paciente registrado y cita agendada" : "Cita agendada");
+        await updateAppointment(appointment.id, {
+          patientId: usePatientId!,
+          date,
+          time,
+          reason: reason.trim() || "Consulta",
+          status,
+        });
+        toast.success("Cita actualizada");
+      } else {
+        await addAppointment({
+          id: "a" + Date.now(),
+          patientId: usePatientId!,
+          date,
+          time,
+          reason: reason.trim() || "Consulta",
+          status,
+        });
+        toast.success(isNewPatient ? "Paciente registrado y cita agendada" : "Cita agendada");
+      }
+
       onOpenChange(false);
     } catch (err) {
       const message = err instanceof ApiError ? err.message : "No se pudo guardar la cita";
@@ -127,14 +163,14 @@ export function NewAppointmentDialog({
               <CalendarPlus className="h-5 w-5" />
             </div>
             <div>
-              <DialogTitle className="font-display text-xl">Nueva cita</DialogTitle>
-              <DialogDescription>Agenda una consulta para un paciente</DialogDescription>
+              <DialogTitle className="font-display text-xl">{isEdit ? "Editar cita" : "Nueva cita"}</DialogTitle>
+              <DialogDescription>{isEdit ? "Modifica los datos de la consulta" : "Agenda una consulta para un paciente"}</DialogDescription>
             </div>
           </div>
         </DialogHeader>
 
         {/* Patient */}
-        {!patient && !defaultPatientId && (
+        {!patient && !defaultPatientId && !isEdit && (
           <div className="grid grid-cols-2 gap-2 bg-surface rounded-xl p-1">
             <button type="button" onClick={() => setMode("existing")} className={`h-9 rounded-lg text-sm font-medium inline-flex items-center justify-center gap-2 ${mode === "existing" ? "bg-card shadow-sm" : "text-muted-foreground"}`}>
               <Search className="h-4 w-4" /> Paciente existente
@@ -202,7 +238,7 @@ export function NewAppointmentDialog({
               <div className="font-medium truncate">{patient.name}</div>
               <div className="text-xs text-muted-foreground">{patient.age} años · Tutor: {patient.guardian}</div>
             </div>
-            {!defaultPatientId && (
+            {(!defaultPatientId || isEdit) && (
               <button type="button" onClick={() => setPatientId(undefined)} className="text-xs text-primary font-medium hover:underline">Cambiar</button>
             )}
           </div>
@@ -244,7 +280,7 @@ export function NewAppointmentDialog({
             disabled={saving}
             className="px-4 py-2 rounded-lg text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-60"
           >
-            {saving ? "Guardando..." : "Agendar cita"}
+            {saving ? "Guardando..." : isEdit ? "Guardar cambios" : "Agendar cita"}
           </button>
         </DialogFooter>
       </DialogContent>

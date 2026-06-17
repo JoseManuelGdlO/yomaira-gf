@@ -17,6 +17,7 @@ type Store = {
   updatePatient: (id: string, patch: Partial<Patient>) => Promise<Patient>;
   setAppointmentStatus: (id: string, status: Appointment["status"]) => void;
   addAppointment: (a: Appointment) => Promise<Appointment>;
+  updateAppointment: (id: string, patch: Partial<Appointment>) => Promise<Appointment>;
   addPatient: (p: Patient) => Promise<Patient>;
   deletePatient: (id: string) => Promise<void>;
 };
@@ -96,6 +97,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     onSuccess: () => qc.invalidateQueries({ queryKey: tenantKey(QK.appointments, brandingId) }),
   });
 
+  const updateAppointmentM = useMutation({
+    mutationFn: ({ id, patch }: { id: string; patch: Partial<Appointment> }) =>
+      api.appointments.update(id, patch),
+    onSuccess: () => qc.invalidateQueries({ queryKey: tenantKey(QK.appointments, brandingId) }),
+  });
+
   const setApptStatus = useMutation({
     mutationFn: ({ id, status }: { id: string; status: Appointment["status"] }) =>
       api.appointments.setStatus(id, status),
@@ -138,6 +145,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     addPatient: (p) => createPatient.mutateAsync(p),
     updatePatient: (id, patch) => updatePatientM.mutateAsync({ id, patch }),
     addAppointment: (a) => createAppointment.mutateAsync(a),
+    updateAppointment: (id, patch) => updateAppointmentM.mutateAsync({ id, patch }),
     setAppointmentStatus: (id, status) => { setApptStatus.mutate({ id, status }); },
     addConsultation: (c) => { createConsultation.mutate(c); },
     addPrescription: (rx) => createPrescription.mutateAsync(rx),
