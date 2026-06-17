@@ -8,7 +8,9 @@ import { tenantKey } from "@/lib/tenantQuery";
 import { fmtShort } from "@/lib/format";
 import {
   alertClass,
+  displayFranklScale,
   franklToScore,
+  isRecordableFranklScale,
   trendClass,
   trendLabel,
   type FranklAlert,
@@ -64,6 +66,7 @@ export function FranklBehaviorPanel({ patientId }: { patientId: string }) {
 
   const readings = readingsQ.data ?? [];
   const summary = summaryQ.data;
+  const chartFrankl = summary?.chartFrankl ?? "na";
   const chartData = readings.map((r) => ({
     date: r.recordedOn,
     label: fmtShort(r.recordedOn),
@@ -79,7 +82,7 @@ export function FranklBehaviorPanel({ patientId }: { patientId: string }) {
     );
   }
 
-  if (readings.length === 0) {
+  if (readings.length === 0 && !isRecordableFranklScale(chartFrankl)) {
     return (
       <section className="bg-card rounded-2xl border p-6">
         <h3 className="font-display text-lg font-semibold">Comportamiento (Frankl)</h3>
@@ -99,16 +102,20 @@ export function FranklBehaviorPanel({ patientId }: { patientId: string }) {
             Evolución del comportamiento del paciente en consulta.
           </p>
         </div>
-        {summary?.latestFrankl && (
-          <FranklBadge frankl={summary.latestFrankl} summary={summary} />
+        {isRecordableFranklScale(chartFrankl) && (
+          <FranklBadge frankl={chartFrankl} summary={summary} />
         )}
       </div>
 
       <div className="grid sm:grid-cols-3 gap-4">
         <StatCard
           label="Frankl actual"
-          value={summary?.latestFrankl ?? "—"}
-          hint={summary?.latestRecordedOn ? fmtShort(summary.latestRecordedOn) : undefined}
+          value={displayFranklScale(chartFrankl)}
+          hint={
+            isRecordableFranklScale(chartFrankl) && summary?.latestRecordedOn
+              ? fmtShort(summary.latestRecordedOn)
+              : undefined
+          }
         />
         <StatCard
           label="Tendencia"

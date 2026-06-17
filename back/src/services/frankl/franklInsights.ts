@@ -1,4 +1,5 @@
 import type { FranklReadingScale } from '../../models/PatientFranklReading';
+import type { FranklScale } from '../../models/PatientDentalChart';
 
 export type FranklTrend = 'improving' | 'stable' | 'declining' | 'insufficient';
 
@@ -22,7 +23,10 @@ export type FranklSummary = {
   trend: FranklTrend;
   alerts: FranklAlert[];
   primaryAlert: FranklAlert | null;
+  chartFrankl: FranklScale;
 };
+
+export type FranklReadingsSummary = Omit<FranklSummary, 'chartFrankl'>;
 
 export function franklToScore(frankl: FranklReadingScale): number {
   const map: Record<FranklReadingScale, number> = { I: 1, II: 2, III: 3, IV: 4 };
@@ -98,7 +102,7 @@ export function computeFranklAlerts(readings: FranklReadingInput[]): FranklAlert
   return alerts;
 }
 
-export function buildFranklSummary(readings: FranklReadingInput[]): FranklSummary {
+export function buildFranklSummary(readings: FranklReadingInput[]): FranklReadingsSummary {
   const sorted = [...readings].sort((a, b) => a.recordedOn.localeCompare(b.recordedOn));
   const latest = sorted[sorted.length - 1];
   const alerts = computeFranklAlerts(sorted);

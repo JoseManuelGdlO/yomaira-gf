@@ -123,7 +123,7 @@ export const completeSchema = z.object({
   paymentAndNextAppointment: z.string().default(''),
   evolutionNote: z.string().default(''),
   doctor: z.string().default(''),
-  frankl: z.enum(['I', 'II', 'III', 'IV']).optional(),
+  frankl: z.enum(['na', 'I', 'II', 'III', 'IV']).optional(),
   inventoryUsages: inventoryUsagesSchema.default([]),
   charge: chargeSchema.nullish(),
 });
@@ -155,7 +155,7 @@ export async function complete(req: Request, res: Response): Promise<void> {
       { where: { id: appointment.patientId, brandingId: req.user!.brandingId }, transaction: t },
     );
 
-    if (body.frankl && isRecordableFrankl(body.frankl)) {
+    if (body.frankl) {
       let chart = await PatientDentalChart.findOne({
         where: { patientId: appointment.patientId },
         transaction: t,
@@ -180,15 +180,17 @@ export async function complete(req: Request, res: Response): Promise<void> {
         await chart.update({ frankl: body.frankl }, { transaction: t });
       }
 
-      await recordFranklReading({
-        patientId: appointment.patientId,
-        brandingId: req.user!.brandingId,
-        frankl: body.frankl,
-        recordedOn: appointment.date,
-        consultationId: consultation.id,
-        appointmentId: appointment.id,
-        transaction: t,
-      });
+      if (isRecordableFrankl(body.frankl)) {
+        await recordFranklReading({
+          patientId: appointment.patientId,
+          brandingId: req.user!.brandingId,
+          frankl: body.frankl,
+          recordedOn: appointment.date,
+          consultationId: consultation.id,
+          appointmentId: appointment.id,
+          transaction: t,
+        });
+      }
     }
 
     await handleInventoryUsagesOnSave({

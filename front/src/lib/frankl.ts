@@ -1,5 +1,7 @@
 export type FranklReadingScale = "I" | "II" | "III" | "IV";
 
+export type FranklScale = FranklReadingScale | "na";
+
 export type FranklTrend = "improving" | "stable" | "declining" | "insufficient";
 
 export type FranklAlertType = "sedation" | "extra_time" | "positive_progress";
@@ -17,6 +19,8 @@ export type FranklSummary = {
   trend: FranklTrend;
   alerts: FranklAlert[];
   primaryAlert: FranklAlert | null;
+  /** Valor actual del odontograma / examen clínico (incluye N/A). */
+  chartFrankl?: FranklScale;
 };
 
 export type PatientFranklReading = {
@@ -43,6 +47,7 @@ export type DashboardFranklPatient = {
   trend: FranklTrend;
   alerts: FranklAlert[];
   primaryAlert: FranklAlert | null;
+  chartFrankl?: FranklScale;
 };
 
 export type DashboardFranklTodayAppointment = {
@@ -65,6 +70,15 @@ export type DashboardFranklData = {
   patients: DashboardFranklPatient[];
   todayAppointments: DashboardFranklTodayAppointment[];
 };
+
+export function displayFranklScale(value: FranklScale | null | undefined): string {
+  if (!value || value === "na") return "N/A";
+  return value;
+}
+
+export function isRecordableFranklScale(value: FranklScale | null | undefined): value is FranklReadingScale {
+  return !!value && value !== "na";
+}
 
 export const FRANKL_READING_OPTIONS = [
   { value: "I" as const, label: "I", description: "Definitivamente negativo" },
@@ -131,11 +145,20 @@ export function alertClass(severity: FranklAlert["severity"]): string {
 }
 
 export function shouldShowFranklBadge(summary: FranklSummary | null | undefined): boolean {
-  if (!summary?.latestFrankl) return false;
+  if (!summary) return false;
+
+  const frankl =
+    summary.latestFrankl ??
+    (isRecordableFranklScale(summary.chartFrankl) ? summary.chartFrankl : null);
+
+  if (!frankl) {
+    return summary.alerts.some((a) => a.type === "sedation" || a.type === "extra_time");
+  }
+
   return (
-    summary.latestFrankl === "I" ||
-    summary.latestFrankl === "II" ||
-    summary.latestFrankl === "III" ||
+    frankl === "I" ||
+    frankl === "II" ||
+    frankl === "III" ||
     summary.alerts.some((a) => a.type === "sedation" || a.type === "extra_time")
   );
 }

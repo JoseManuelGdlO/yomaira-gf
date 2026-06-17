@@ -1,8 +1,9 @@
 import { Request, Response } from 'express';
 import { Op } from 'sequelize';
-import { Appointment, Patient, PatientFranklReading } from '../models';
+import { Appointment, Patient, PatientDentalChart, PatientFranklReading } from '../models';
+import type { FranklScale } from '../models/PatientDentalChart';
 import { findTenantPatient } from '../middleware/tenant';
-import { buildFranklSummary } from '../services/frankl/franklInsights';
+import { buildFranklSummary, type FranklSummary } from '../services/frankl/franklInsights';
 
 function readingsToInput(rows: PatientFranklReading[]) {
   return rows.map((r) => ({ frankl: r.frankl, recordedOn: r.recordedOn }));
@@ -26,14 +27,42 @@ export async function listForPatient(req: Request, res: Response): Promise<void>
 
 export async function summaryForPatient(req: Request, res: Response): Promise<void> {
   await findTenantPatient(req, req.params.id);
-  const readings = await PatientFranklReading.findAll({
-    where: { patientId: req.params.id },
-    order: [
-      ['recordedOn', 'ASC'],
-      ['createdAt', 'ASC'],
-    ],
+  const [readings, chart] = await Promise.all([
+    PatientFranklReading.findAll({
+      where: { patientId: req.params.id },
+      order: [
+        ['recordedOn', 'ASC'],
+        ['createdAt', 'ASC'],
+      ],
+    }),
+    PatientDentalChart.findOne({ where: { patientId: req.params.id } }),
+  ]);
+  res.json({
+    data: withChartFrankl(buildFranklSummary(readingsToInput(readings)), chart?.frankl),
   });
-  res.json({ data: buildFranklSummary(readingsToInput(readings)) });
+}
+
+function withChartFrankl(
+  summary: ReturnType<typeof buildFranklSummary>,
+  chartFrankl: FranklScale | undefined,
+): FranklSummary {
+  return { ...summary, chartFrankl: chartFrankl ?? 'na' };
+}
+
+function isChallengingFrankl(frankl: string | null | undefined): boolean {
+  return frankl === 'I' || frankl === 'II' || frankl === 'III';
+}
+
+function rowNeedsAttention(row: {
+  latestFrankl: string | null;
+  chartFrankl: FranklScale;
+  alerts: FranklSummary['alerts'];
+}): boolean {
+  return (
+    row.alerts.some((a) => a.type === 'sedation' || a.type === 'extra_time') ||
+    isChallengingFrankl(row.latestFrankl) ||
+    isChallengingFrankl(row.chartFrankl)
+  );
 }
 
 export async function dashboardFrankl(req: Request, res: Response): Promise<void> {
@@ -74,6 +103,12 @@ export async function dashboardFrankl(req: Request, res: Response): Promise<void
     byPatient.set(r.patientId, list);
   }
 
+  const charts = await PatientDentalChart.findAll({
+    where: { patientId: { [Op.in]: patientIds } },
+    attributes: ['patientId', 'frankl'],
+  });
+  const chartFranklByPatient = new Map(charts.map((c) => [c.patientId, c.frankl]));
+
   type PatientRow = {
     patientId: string;
     patientName: string;
@@ -85,13 +120,15 @@ export async function dashboardFrankl(req: Request, res: Response): Promise<void
     trend: string;
     alerts: ReturnType<typeof buildFranklSummary>['alerts'];
     primaryAlert: ReturnType<typeof buildFranklSummary>['primaryAlert'];
+    chartFrankl: FranklScale;
   };
 
   const rows: PatientRow[] = [];
 
   for (const p of patients) {
     const readings = byPatient.get(p.id) ?? [];
-    if (readings.length === 0) continue;
+    const chartFrankl = chartFranklByPatient.get(p.id) ?? 'na';
+    if (readings.length === 0 && chartFrankl === 'na') continue;
 
     const summary = buildFranklSummary(readingsToInput(readings));
     rows.push({
@@ -105,26 +142,15 @@ export async function dashboardFrankl(req: Request, res: Response): Promise<void
       trend: summary.trend,
       alerts: summary.alerts,
       primaryAlert: summary.primaryAlert,
+      chartFrankl,
     });
   }
 
   const sedationAlert = rows.filter((r) => r.alerts.some((a) => a.type === 'sedation')).length;
-  const challengingLatest = rows.filter(
-    (r) =>
-      r.latestFrankl === 'I' ||
-      r.latestFrankl === 'II' ||
-      r.latestFrankl === 'III' ||
-      r.alerts.some((a) => a.type === 'sedation' || a.type === 'extra_time'),
-  ).length;
+  const challengingLatest = rows.filter((r) => rowNeedsAttention(r)).length;
   const improving = rows.filter((r) => r.trend === 'improving').length;
 
-  const filtered = rows.filter(
-    (r) =>
-      r.alerts.some((a) => a.type === 'sedation' || a.type === 'extra_time') ||
-      r.latestFrankl === 'I' ||
-      r.latestFrankl === 'II' ||
-      r.latestFrankl === 'III',
-  );
+  const filtered = rows.filter((r) => rowNeedsAttention(r));
 
   let todayAppointments: Array<Record<string, unknown>> = [];
   if (scope === 'today') {
@@ -142,11 +168,7 @@ export async function dashboardFrankl(req: Request, res: Response): Promise<void
       .map((a) => {
         const row = rows.find((r) => r.patientId === a.patientId);
         if (!row) return null;
-        const hasRelevant =
-          row.latestFrankl === 'I' ||
-          row.latestFrankl === 'II' ||
-          row.latestFrankl === 'III' ||
-          row.alerts.some((al) => al.type === 'sedation' || al.type === 'extra_time');
+        const hasRelevant = rowNeedsAttention(row);
         if (!hasRelevant) return null;
         const p = patientMap.get(a.patientId);
         return {
@@ -156,7 +178,10 @@ export async function dashboardFrankl(req: Request, res: Response): Promise<void
           time: a.time,
           reason: a.reason,
           status: a.status,
-          franklSummary: buildFranklSummary(readingsToInput(byPatient.get(a.patientId) ?? [])),
+          franklSummary: withChartFrankl(
+            buildFranklSummary(readingsToInput(byPatient.get(a.patientId) ?? [])),
+            chartFranklByPatient.get(a.patientId),
+          ),
         };
       })
       .filter(Boolean) as Array<Record<string, unknown>>;
@@ -179,7 +204,7 @@ export async function dashboardFrankl(req: Request, res: Response): Promise<void
 export async function franklSummariesForPatients(
   brandingId: string,
   patientIds: string[],
-): Promise<Map<string, ReturnType<typeof buildFranklSummary>>> {
+): Promise<Map<string, FranklSummary>> {
   if (patientIds.length === 0) return new Map();
 
   const readings = await PatientFranklReading.findAll({
@@ -197,11 +222,18 @@ export async function franklSummariesForPatients(
     byPatient.set(r.patientId, list);
   }
 
-  const result = new Map<string, ReturnType<typeof buildFranklSummary>>();
+  const charts = await PatientDentalChart.findAll({
+    where: { patientId: { [Op.in]: patientIds } },
+    attributes: ['patientId', 'frankl'],
+  });
+  const chartFranklByPatient = new Map(charts.map((c) => [c.patientId, c.frankl]));
+
+  const result = new Map<string, FranklSummary>();
   for (const id of patientIds) {
     const list = byPatient.get(id) ?? [];
-    if (list.length > 0) {
-      result.set(id, buildFranklSummary(readingsToInput(list)));
+    const chartFrankl = chartFranklByPatient.get(id) ?? 'na';
+    if (list.length > 0 || chartFrankl !== 'na') {
+      result.set(id, withChartFrankl(buildFranklSummary(readingsToInput(list)), chartFrankl));
     }
   }
   return result;

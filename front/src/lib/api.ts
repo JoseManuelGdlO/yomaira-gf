@@ -311,7 +311,7 @@ export const api = {
         paymentAndNextAppointment?: string;
         evolutionNote?: string;
         doctor?: string;
-        frankl?: FranklReadingScale;
+        frankl?: FranklScale;
         inventoryUsages?: InventoryUsageInput[];
         charge?: FinanceChargeInput | null;
       },

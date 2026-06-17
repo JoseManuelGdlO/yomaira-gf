@@ -2,14 +2,14 @@ import { useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { api, type FranklReadingScale, type PaymentMethod } from "@/lib/api";
+import { api, type FranklScale, type PaymentMethod } from "@/lib/api";
 import { useBranding } from "@/lib/theme/ThemeProvider";
 import { useAuth } from "@/lib/auth";
 import { tenantKey } from "@/lib/tenantQuery";
 import { PatientAvatar } from "./PatientAvatar";
 import { Stethoscope } from "lucide-react";
 import { toast } from "sonner";
-import { FRANKL_READING_OPTIONS } from "@/lib/frankl";
+import { FRANKL_OPTIONS } from "@/lib/dental";
 import { useClinicalSafety } from "@/lib/useClinicalSafety";
 import { ClinicalSafetyAlerts } from "@/components/clinical/ClinicalSafetyAlerts";
 import {
@@ -47,7 +47,7 @@ export function CompleteAppointmentDialog({
   const [chargeNoteTouched, setChargeNoteTouched] = useState(false);
   const [nextAppointment, setNextAppointment] = useState("");
   const [evolutionNote, setEvolutionNote] = useState("");
-  const [frankl, setFrankl] = useState<FranklReadingScale | "">("");
+  const [frankl, setFrankl] = useState<FranklScale | "">("");
   const [inventoryUsages, setInventoryUsages] = useState<SelectedUsage[]>([]);
 
   const chartQ = useQuery({
@@ -68,8 +68,7 @@ export function CompleteAppointmentDialog({
       setNextAppointment("");
       setEvolutionNote("");
       setInventoryUsages([]);
-      const current = chartQ.data?.frankl;
-      setFrankl(current && current !== "na" ? current : "");
+      setFrankl(chartQ.data?.frankl ?? "");
     }
   }, [open, appointment, chartQ.data?.frankl]);
 
@@ -196,12 +195,11 @@ export function CompleteAppointmentDialog({
           <div>
             <label className="text-xs font-medium text-muted-foreground block mb-2">Escala Frankl</label>
             <div className="flex flex-wrap gap-2">
-              {FRANKL_READING_OPTIONS.map((opt) => (
+              {FRANKL_OPTIONS.map((opt) => (
                 <button
                   key={opt.value}
                   type="button"
                   onClick={() => setFrankl(opt.value)}
-                  title={opt.description}
                   className={`min-w-[3rem] px-3 py-2 rounded-lg border text-sm font-semibold transition-colors ${
                     frankl === opt.value
                       ? "bg-primary text-primary-foreground border-primary"

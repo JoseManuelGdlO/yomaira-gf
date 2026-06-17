@@ -8,7 +8,7 @@ import { tenantKey } from "@/lib/tenantQuery";
 import { StatCard } from "@/components/clinical/StatCard";
 import { FranklBadge } from "@/components/clinical/FranklBadge";
 import { fmtShort } from "@/lib/format";
-import { trendClass, trendLabel, type FranklTrend } from "@/lib/frankl";
+import { trendClass, trendLabel, isRecordableFranklScale, type FranklTrend } from "@/lib/frankl";
 
 export const Route = createFileRoute("/_app/comportamiento")({
   head: () => ({ meta: [{ title: "Comportamiento — MediFlow" }] }),
@@ -43,7 +43,11 @@ function ComportamientoPage() {
       rows = rows.filter((r) => r.trend === trendFilter);
     }
     if (franklFilter !== "all") {
-      rows = rows.filter((r) => r.latestFrankl === franklFilter);
+      rows = rows.filter(
+        (r) =>
+          r.latestFrankl === franklFilter ||
+          (!r.latestFrankl && r.chartFrankl === franklFilter),
+      );
     }
     if (alertOnly) {
       rows = rows.filter((r) => r.alerts.some((a) => a.type === "sedation" || a.type === "extra_time"));
@@ -153,16 +157,20 @@ function ComportamientoPage() {
                 </tr>
               </thead>
               <tbody>
-                {filtered.map((row) => (
+                {filtered.map((row) => {
+                  const displayFrankl =
+                    row.latestFrankl ??
+                    (isRecordableFranklScale(row.chartFrankl) ? row.chartFrankl : null);
+                  return (
                   <tr key={row.patientId} className="border-b last:border-0 hover:bg-surface/40">
                     <td className="px-4 py-3">
                       <div className="font-medium">{row.patientName}</div>
                       <div className="text-xs text-muted-foreground">{row.age} años · {row.readingCount} lecturas</div>
                     </td>
                     <td className="px-4 py-3">
-                      {row.latestFrankl ? (
+                      {displayFrankl ? (
                         <FranklBadge
-                          frankl={row.latestFrankl}
+                          frankl={displayFrankl}
                           summary={{
                             latestFrankl: row.latestFrankl,
                             latestRecordedOn: row.latestRecordedOn,
@@ -170,6 +178,7 @@ function ComportamientoPage() {
                             trend: row.trend,
                             alerts: row.alerts,
                             primaryAlert: row.primaryAlert,
+                            chartFrankl: row.chartFrankl,
                           }}
                         />
                       ) : (
@@ -195,7 +204,8 @@ function ComportamientoPage() {
                       </Link>
                     </td>
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
           </div>
