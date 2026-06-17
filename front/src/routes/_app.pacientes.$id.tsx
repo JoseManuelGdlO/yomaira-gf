@@ -312,39 +312,74 @@ function Field({ label, value }: { label: string; value: string }) {
   );
 }
 
-function parseTreatmentValue(value: string | undefined): { yes: boolean; detail: string } {
+const DETAIL_YES_NO_FIELDS: Record<string, { placeholder: string }> = {
+  current_treatment: { placeholder: "Describa el tratamiento o medicación actual" },
+  hospitalized: { placeholder: "Describa motivo, fecha o detalles de la hospitalización" },
+  surgery: { placeholder: "Describa el tipo de intervención o detalles quirúrgicos" },
+  bottle: { placeholder: "Describa uso o duración del biberón" },
+  formula: { placeholder: "Describa consumo de leche de fórmula" },
+  breast_milk: { placeholder: "Describa consumo de leche materna" },
+  pacifier: { placeholder: "Describa uso de chupón o succión digital" },
+  lip_biting: { placeholder: "Describa el hábito de succión o mordida de labios" },
+  speech: { placeholder: "Describa la alteración en el habla observada" },
+  complementary_feeding: { placeholder: "Describa la alimentación complementaria" },
+};
+
+const YES_PENDING_MARKER = "Sí";
+
+function isYesPendingMarker(value: string): boolean {
+  return /^s[ií]$/i.test(value.trim());
+}
+
+function toStoredDetail(displayDetail: string): string {
+  return displayDetail.trim() ? displayDetail : YES_PENDING_MARKER;
+}
+
+function toDisplayDetail(stored: string): string {
+  return isYesPendingMarker(stored) ? "" : stored;
+}
+
+function parseDetailYesNoValue(value: string | undefined): { yes: boolean; detail: string } {
   const trimmed = (value ?? "").trim();
   const negative = /^(no|ninguno|n\/a|na|—|-)$/i;
   if (!trimmed || negative.test(trimmed)) return { yes: false, detail: "" };
   return { yes: true, detail: trimmed };
 }
 
-function normalizeTreatmentAnswer(answers: Answers): Answers {
+function normalizeDetailAnswers(answers: Answers): Answers {
   const normalized = { ...answers };
-  if (typeof normalized.current_treatment === "string") {
-    const parsed = parseTreatmentValue(normalized.current_treatment);
-    normalized.current_treatment = parsed.yes ? parsed.detail : "";
+  for (const code of Object.keys(DETAIL_YES_NO_FIELDS)) {
+    if (typeof normalized[code] === "string") {
+      const parsed = parseDetailYesNoValue(normalized[code]);
+      if (!parsed.yes || isYesPendingMarker(parsed.detail)) {
+        normalized[code] = "";
+      } else {
+        normalized[code] = parsed.detail;
+      }
+    }
   }
   return normalized;
 }
 
-function TreatmentYesNoField({
+function DetailYesNoField({
   label,
+  placeholder,
   value,
   onChange,
 }: {
   label: string;
+  placeholder: string;
   value: string | undefined;
   onChange: (v: string) => void;
 }) {
-  const parsed = parseTreatmentValue(value);
+  const parsed = parseDetailYesNoValue(value);
   const [yes, setYes] = useState(parsed.yes);
-  const [detail, setDetail] = useState(parsed.detail);
+  const [detail, setDetail] = useState(() => toDisplayDetail(parsed.detail));
 
   useEffect(() => {
-    const next = parseTreatmentValue(value);
+    const next = parseDetailYesNoValue(value);
     setYes(next.yes);
-    setDetail(next.detail);
+    setDetail(toDisplayDetail(next.detail));
   }, [value]);
 
   return (
@@ -362,7 +397,7 @@ function TreatmentYesNoField({
                 onChange("");
               } else {
                 setYes(true);
-                onChange(detail);
+                onChange(toStoredDetail(detail));
               }
             }}
             className={`px-4 h-10 rounded-lg border text-sm font-medium transition-colors ${
@@ -379,11 +414,12 @@ function TreatmentYesNoField({
         <textarea
           value={detail}
           onChange={(e) => {
-            setDetail(e.target.value);
-            onChange(e.target.value);
+            const next = e.target.value;
+            setDetail(next);
+            onChange(toStoredDetail(next));
           }}
           rows={3}
-          placeholder="Describa el tratamiento o medicación actual"
+          placeholder={placeholder}
           className="w-full p-3 rounded-lg bg-surface border text-sm outline-none focus:ring-2 focus:ring-ring resize-y mt-2"
         />
       )}
@@ -414,7 +450,7 @@ function HistoriaClinica({ patientId, onDirtyChange }: { patientId: string; onDi
 
   useEffect(() => {
     if (!answersQ.data || dirty) return;
-    const normalized = normalizeTreatmentAnswer(answersQ.data);
+    const normalized = normalizeDetailAnswers(answersQ.data);
     if (syncedPatient.current !== patientId) {
       syncedPatient.current = patientId;
       setDraft(normalized);
@@ -431,7 +467,7 @@ function HistoriaClinica({ patientId, onDirtyChange }: { patientId: string; onDi
   const handleSave = async () => {
     setSaving(true);
     try {
-      const toSave = normalizeTreatmentAnswer(draft);
+      const toSave = normalizeDetailAnswers(draft);
       await saveAnswers(patientId, toSave);
       setDraft(toSave);
       setDirty(false);
@@ -457,18 +493,23 @@ function HistoriaClinica({ patientId, onDirtyChange }: { patientId: string; onDi
         <div key={s} className="bg-card border rounded-2xl p-6 space-y-4">
           <div className="font-display font-semibold">{s}</div>
           <div className="grid md:grid-cols-2 gap-4">
-            {questions.filter((q) => q.section === s).map((q) =>
-              q.id === "current_treatment" ? (
-                <TreatmentYesNoField
-                  key={q.id}
-                  label={q.label}
-                  value={draft[q.id] as string | undefined}
-                  onChange={(v) => setAnswer(q.id, v)}
-                />
-              ) : (
+            {questions.filter((q) => q.section === s).map((q) => {
+              const detailConfig = DETAIL_YES_NO_FIELDS[q.id];
+              if (detailConfig) {
+                return (
+                  <DetailYesNoField
+                    key={q.id}
+                    label={q.label}
+                    placeholder={detailConfig.placeholder}
+                    value={draft[q.id] as string | undefined}
+                    onChange={(v) => setAnswer(q.id, v)}
+                  />
+                );
+              }
+              return (
                 <QuestionField key={q.id} q={q} value={draft[q.id]} onChange={(v) => setAnswer(q.id, v)} />
-              ),
-            )}
+              );
+            })}
           </div>
         </div>
       ))}

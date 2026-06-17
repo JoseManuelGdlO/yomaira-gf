@@ -28,8 +28,8 @@ const QUESTIONS = [
   ['antecedents_other', 'Antecedentes sistémicos', 'Especifique otros antecedentes', 'text', null],
 
   // Antecedentes médicos
-  ['hospitalized', 'Antecedentes médicos', '¿Ha estado hospitalizado?', 'yes_no', null],
-  ['surgery', 'Antecedentes médicos', '¿Ha sido intervenido quirúrgicamente?', 'yes_no', null],
+  ['hospitalized', 'Antecedentes médicos', '¿Ha estado hospitalizado?', 'textarea', null],
+  ['surgery', 'Antecedentes médicos', '¿Ha sido intervenido quirúrgicamente?', 'textarea', null],
   [
     'current_treatment',
     'Antecedentes médicos',
@@ -99,11 +99,11 @@ const QUESTIONS = [
   ['birth_type', 'Antecedentes perinatales', '¿Nació por parto o cesárea?', 'text', null],
 
   // Hábitos orales
-  ['bottle', 'Hábitos orales', '¿Usa o usó biberón?', 'yes_no', null],
-  ['formula', 'Hábitos orales', '¿Consume o consumió leche de fórmula?', 'yes_no', null],
-  ['breast_milk', 'Hábitos orales', '¿Consume o consumió leche materna?', 'yes_no', null],
-  ['pacifier', 'Hábitos orales', '¿Usa o usó chupón / se chupa el dedo?', 'yes_no', null],
-  ['lip_biting', 'Hábitos orales', '¿Se chupa o muerde el labio superior o inferior?', 'yes_no', null],
+  ['bottle', 'Hábitos orales', '¿Usa o usó biberón?', 'textarea', null],
+  ['formula', 'Hábitos orales', '¿Consume o consumió leche de fórmula?', 'textarea', null],
+  ['breast_milk', 'Hábitos orales', '¿Consume o consumió leche materna?', 'textarea', null],
+  ['pacifier', 'Hábitos orales', '¿Usa o usó chupón / se chupa el dedo?', 'textarea', null],
+  ['lip_biting', 'Hábitos orales', '¿Se chupa o muerde el labio superior o inferior?', 'textarea', null],
   [
     'speech',
     'Hábitos orales',
@@ -115,7 +115,7 @@ const QUESTIONS = [
     'complementary_feeding',
     'Hábitos orales',
     'Si tiene 6 meses cumplidos: ¿ya lleva alimentación complementaria?',
-    'yes_no',
+    'textarea',
     null,
   ],
 
