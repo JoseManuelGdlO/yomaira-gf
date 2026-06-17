@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { useStore } from "@/lib/store";
 import { PatientAvatar } from "./PatientAvatar";
@@ -21,6 +21,35 @@ const REASONS = [
   "Control post-tratamiento",
 ];
 
+function normalizeTime(value: string): string {
+  const match = value.match(/^(\d{1,2}):(\d{2})/);
+  if (!match) return value;
+  return `${match[1].padStart(2, "0")}:${match[2]}`;
+}
+
+function initialFormState(
+  appointment?: Appointment | null,
+  defaultDate?: string,
+  defaultPatientId?: string,
+) {
+  if (appointment) {
+    return {
+      patientId: appointment.patientId,
+      date: appointment.date,
+      time: normalizeTime(appointment.time),
+      reason: appointment.reason,
+      status: appointment.status,
+    };
+  }
+  return {
+    patientId: defaultPatientId,
+    date: defaultDate ?? todayISO(),
+    time: "09:00",
+    reason: REASONS[0],
+    status: "pendiente" as Appointment["status"],
+  };
+}
+
 export function NewAppointmentDialog({
   open, onOpenChange, defaultDate, defaultPatientId, appointment, onRequestComplete,
 }: {
@@ -33,13 +62,14 @@ export function NewAppointmentDialog({
 }) {
   const { patients, addAppointment, updateAppointment, addPatient } = useStore();
   const isEdit = !!appointment;
+  const editingIdRef = useRef<string | null>(appointment?.id ?? null);
   const [mode, setMode] = useState<"existing" | "new">("existing");
   const [pickerQ, setPickerQ] = useState("");
-  const [patientId, setPatientId] = useState<string | undefined>(defaultPatientId);
-  const [date, setDate] = useState(defaultDate ?? todayISO());
-  const [time, setTime] = useState("09:00");
-  const [reason, setReason] = useState(REASONS[0]);
-  const [status, setStatus] = useState<Appointment["status"]>("pendiente");
+  const [patientId, setPatientId] = useState<string | undefined>(() => initialFormState(appointment, defaultDate, defaultPatientId).patientId);
+  const [date, setDate] = useState(() => initialFormState(appointment, defaultDate, defaultPatientId).date);
+  const [time, setTime] = useState(() => initialFormState(appointment, defaultDate, defaultPatientId).time);
+  const [reason, setReason] = useState(() => initialFormState(appointment, defaultDate, defaultPatientId).reason);
+  const [status, setStatus] = useState<Appointment["status"]>(() => initialFormState(appointment, defaultDate, defaultPatientId).status);
   // New patient quick-form
   const [npName, setNpName] = useState("");
   const [npAge, setNpAge] = useState("");
@@ -49,25 +79,22 @@ export function NewAppointmentDialog({
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    if (open) {
-      if (appointment) {
-        setMode("existing");
-        setPatientId(appointment.patientId);
-        setDate(appointment.date);
-        setTime(appointment.time);
-        setReason(appointment.reason);
-        setStatus(appointment.status);
-        setPickerQ("");
-      } else {
-        setMode(defaultPatientId ? "existing" : "existing");
-        setPatientId(defaultPatientId);
-        setDate(defaultDate ?? todayISO());
-        setTime("09:00");
-        setReason(REASONS[0]);
-        setStatus("pendiente");
-        setPickerQ("");
-        setNpName(""); setNpAge(""); setNpGuardian(""); setNpPhone(""); setNpGender("F");
-      }
+    if (!open) {
+      editingIdRef.current = null;
+      return;
+    }
+    if (appointment?.id) editingIdRef.current = appointment.id;
+    else editingIdRef.current = null;
+    const next = initialFormState(appointment, defaultDate, defaultPatientId);
+    setMode("existing");
+    setPatientId(next.patientId);
+    setDate(next.date);
+    setTime(next.time);
+    setReason(next.reason);
+    setStatus(next.status);
+    setPickerQ("");
+    if (!appointment) {
+      setNpName(""); setNpAge(""); setNpGuardian(""); setNpPhone(""); setNpGender("F");
     }
   }, [open, defaultDate, defaultPatientId, appointment]);
 
@@ -78,8 +105,10 @@ export function NewAppointmentDialog({
     if (saving) return;
     if (!date || !time) return toast.error("Define fecha y hora");
 
+    const editId = editingIdRef.current;
+    const normalizedTime = normalizeTime(time);
     let usePatientId = patientId;
-    const isNewPatient = mode === "new" && !patient;
+    const isNewPatient = !editId && mode === "new" && !patient;
 
     if (isNewPatient) {
       if (!npName.trim() || !npAge || !npGuardian.trim()) {
@@ -112,23 +141,25 @@ export function NewAppointmentDialog({
         usePatientId = created.id;
       }
 
-      if (isEdit && appointment) {
-        if (status === "completada" && appointment.status !== "completada") {
+      if (editId) {
+        if (status === "completada" && appointment?.status !== "completada") {
           onOpenChange(false);
           onRequestComplete?.({
-            ...appointment,
+            id: editId,
             patientId: usePatientId!,
             date,
-            time,
+            time: normalizedTime,
             reason: reason.trim() || "Consulta",
+            status: appointment?.status ?? "pendiente",
+            scheduledBy: appointment?.scheduledBy,
           });
           return;
         }
 
-        await updateAppointment(appointment.id, {
+        await updateAppointment(editId, {
           patientId: usePatientId!,
           date,
-          time,
+          time: normalizedTime,
           reason: reason.trim() || "Consulta",
           status,
         });
@@ -138,7 +169,7 @@ export function NewAppointmentDialog({
           id: "a" + Date.now(),
           patientId: usePatientId!,
           date,
-          time,
+          time: normalizedTime,
           reason: reason.trim() || "Consulta",
           status,
         });
@@ -274,8 +305,9 @@ export function NewAppointmentDialog({
         </div>
 
         <DialogFooter className="gap-2 sm:gap-2">
-          <button onClick={() => onOpenChange(false)} className="px-4 py-2 rounded-lg text-sm font-medium border bg-card hover:bg-surface">Cancelar</button>
+          <button type="button" onClick={() => onOpenChange(false)} className="px-4 py-2 rounded-lg text-sm font-medium border bg-card hover:bg-surface">Cancelar</button>
           <button
+            type="button"
             onClick={() => void submit()}
             disabled={saving}
             className="px-4 py-2 rounded-lg text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-60"

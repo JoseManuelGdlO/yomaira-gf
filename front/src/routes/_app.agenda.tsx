@@ -26,14 +26,18 @@ export const Route = createFileRoute("/_app/agenda")({
   component: AgendaPage,
 });
 
+type AppointmentDialogState =
+  | { mode: "closed" }
+  | { mode: "create" }
+  | { mode: "edit"; appointment: Appointment };
+
 function AgendaPage() {
   const { hasPermission } = useAuth();
   const { appointments, patients, setAppointmentStatus } = useStore();
   const [cursor, setCursor] = useState<Date | null>(null);
   const [view, setView] = useState<"semana" | "dia">("semana");
   const [selected, setSelected] = useState<string>("");
-  const [newOpen, setNewOpen] = useState(false);
-  const [editAppt, setEditAppt] = useState<Appointment | null>(null);
+  const [apptDialog, setApptDialog] = useState<AppointmentDialogState>({ mode: "closed" });
   const [completeAppt, setCompleteAppt] = useState<Appointment | null>(null);
   const patientIds = useMemo(() => appointments.map((a) => a.patientId), [appointments]);
   const franklMap = useFranklSummariesMap(patientIds);
@@ -67,17 +71,18 @@ function AgendaPage() {
             <button onClick={() => setView("dia")} className={`px-3 py-1.5 text-sm rounded-lg ${view === "dia" ? "bg-card shadow-sm font-medium" : "text-muted-foreground"}`}>Día</button>
           </div>
           {hasPermission("appointments.write") && (
-            <button onClick={() => { setEditAppt(null); setNewOpen(true); }} className="inline-flex items-center gap-2 bg-primary text-primary-foreground rounded-xl px-4 py-2.5 text-sm font-medium hover:bg-primary/90"><Plus className="h-4 w-4" /> Nueva cita</button>
+            <button onClick={() => setApptDialog({ mode: "create" })} className="inline-flex items-center gap-2 bg-primary text-primary-foreground rounded-xl px-4 py-2.5 text-sm font-medium hover:bg-primary/90"><Plus className="h-4 w-4" /> Nueva cita</button>
           )}
         </div>
       </div>
 
       <NewAppointmentDialog
-        open={newOpen || !!editAppt}
-        onOpenChange={(o) => { if (!o) { setNewOpen(false); setEditAppt(null); } }}
+        key={apptDialog.mode === "edit" ? `edit-${apptDialog.appointment.id}` : apptDialog.mode}
+        open={apptDialog.mode !== "closed"}
+        onOpenChange={(o) => { if (!o) setApptDialog({ mode: "closed" }); }}
         defaultDate={selected || todayISO()}
-        appointment={editAppt}
-        onRequestComplete={(a) => { setEditAppt(null); setCompleteAppt(a); }}
+        appointment={apptDialog.mode === "edit" ? apptDialog.appointment : null}
+        onRequestComplete={(a) => { setApptDialog({ mode: "closed" }); setCompleteAppt(a); }}
       />
       <CompleteAppointmentDialog
         appointment={completeAppt}
@@ -186,7 +191,7 @@ function AgendaPage() {
                     {hasPermission("appointments.write") && (
                       <button
                         type="button"
-                        onClick={(e) => { e.stopPropagation(); setEditAppt(a); }}
+                        onClick={(e) => { e.stopPropagation(); setApptDialog({ mode: "edit", appointment: a }); }}
                         className="inline-flex items-center gap-1 text-xs border rounded-md px-2.5 py-1.5 font-medium bg-card hover:bg-surface"
                       >
                         <Pencil className="h-3.5 w-3.5" /> Editar
