@@ -2,7 +2,7 @@ import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { useStore } from "@/lib/store";
 import { useBranding } from "@/lib/theme/ThemeProvider";
 import { PrintClinicalSheet } from "@/components/clinical/PrintClinicalSheet";
-import { Printer, ArrowLeft } from "lucide-react";
+import { Printer, ArrowLeft, Loader2 } from "lucide-react";
 
 export const Route = createFileRoute("/_app/pacientes/$id/hoja")({
   head: () => ({ meta: [{ title: "Imprimir hoja clínica — MediFlow" }] }),
@@ -11,9 +11,17 @@ export const Route = createFileRoute("/_app/pacientes/$id/hoja")({
 
 function PrintHojaPage() {
   const { id } = Route.useParams();
-  const { patients, consultations } = useStore();
+  const { patients, patientsReady, consultations } = useStore();
   const { branding } = useBranding();
   const patient = patients.find((p) => p.id === id);
+
+  if (!patientsReady) {
+    return (
+      <div className="flex min-h-[40vh] items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
   if (!patient) throw notFound();
 
   const patientConsults = consultations.filter((c) => c.patientId === id);

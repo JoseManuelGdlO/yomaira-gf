@@ -8,6 +8,7 @@ import { tenantKey } from "@/lib/tenantQuery";
 
 type Store = {
   patients: Patient[];
+  patientsReady: boolean;
   consultations: Consultation[];
   appointments: Appointment[];
   prescriptions: Prescription[];
@@ -130,6 +131,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const value: Store = {
     patients: patientsQ.data ?? [],
+    patientsReady: !patientsQ.isPlaceholderData && patientsQ.isFetched,
     consultations: consultationsQ.data ?? [],
     appointments: appointmentsQ.data ?? [],
     prescriptions: prescriptionsQ.data ?? [],

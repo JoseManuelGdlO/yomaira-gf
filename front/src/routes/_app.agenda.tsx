@@ -115,7 +115,8 @@ function AgendaPage() {
                   </div>
                   <div className="p-2 space-y-1.5">
                     {list.map((a) => {
-                      const p = patients.find((x) => x.id === a.patientId)!;
+                      const p = patients.find((x) => x.id === a.patientId);
+                      if (!p) return null;
                       const franklSummary = franklMap.get(a.patientId);
                       return (
                         <div
@@ -150,7 +151,8 @@ function AgendaPage() {
             <div className="space-y-2">
               {apptsByDay(selected).length === 0 && <div className="text-sm text-muted-foreground py-8 text-center">Sin citas este día.</div>}
               {apptsByDay(selected).map((a) => {
-                const p = patients.find((x) => x.id === a.patientId)!;
+                const p = patients.find((x) => x.id === a.patientId);
+                if (!p) return null;
                 const franklSummary = franklMap.get(a.patientId);
                 return (
                   <div

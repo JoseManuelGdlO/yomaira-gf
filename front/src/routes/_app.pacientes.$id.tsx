@@ -9,14 +9,14 @@ import { DeletePatientDialog } from "@/components/clinical/DeletePatientDialog";
 import { EditPatientDialog } from "@/components/clinical/EditPatientDialog";
 import { PatientAvatar } from "@/components/clinical/PatientAvatar";
 import { ClinicalSheetTab } from "@/components/clinical/ClinicalSheetTab";
-import { Phone, Mail, Cake, Droplet, Scale, AlertCircle, FileText, Pill, Plus, Upload, ClipboardList, FileSignature, Camera, Trash2, Eye, Printer, Pencil } from "lucide-react";
+import { Phone, Mail, Cake, Droplet, Scale, AlertCircle, FileText, Pill, Plus, Upload, ClipboardList, FileSignature, Camera, Trash2, Eye, Printer, Pencil, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { ClinicalSafetyAlerts } from "@/components/clinical/ClinicalSafetyAlerts";
 import { useClinicalSafety } from "@/lib/useClinicalSafety";
 import { useClinicalForm, usePatientClinicalAnswers, type Answers, type Question } from "@/lib/clinicalForm";
 import { FloatingSaveButton } from "@/components/clinical/FloatingSaveButton";
 import { ViewPrescriptionDialog } from "@/components/prescription/ViewPrescriptionDialog";
-import type { Prescription } from "@/mocks/data";
+import type { Patient, Prescription } from "@/mocks/data";
 
 export const Route = createFileRoute("/_app/pacientes/$id")({
   head: ({ params }) => ({ meta: [{ title: `Expediente — MediFlow` }] }),
@@ -45,11 +45,24 @@ function getUnsavedChangesWarning(
 
 function PatientDetail() {
   const { id } = Route.useParams();
-  const { hasPermission } = useAuth();
-  const { patients, consultations, prescriptions, updatePatient } = useStore();
+  const { patients, patientsReady } = useStore();
   const patient = patients.find((p) => p.id === id);
+
+  if (!patientsReady) {
+    return (
+      <div className="flex min-h-[40vh] items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
   if (!patient) throw notFound();
 
+  return <PatientDetailContent id={id} patient={patient} />;
+}
+
+function PatientDetailContent({ id, patient }: { id: string; patient: Patient }) {
+  const { hasPermission } = useAuth();
+  const { consultations, prescriptions, updatePatient } = useStore();
   const canDelete = hasPermission("patients.delete");
   const canWrite = hasPermission("patients.write");
   const [tab, setTab] = useState<Tab>("Hoja clínica");
