@@ -98,7 +98,12 @@ function PatientDetail() {
 
   return (
     <div className="space-y-6">
-      <Link to="/pacientes" className="text-sm text-muted-foreground hover:text-foreground">← Pacientes</Link>
+      <Link
+        to="/pacientes"
+        className="inline-block pb-4 -mb-2 text-sm text-muted-foreground hover:text-foreground"
+      >
+        ← Pacientes
+      </Link>
 
       {/* Header */}
       <div className="bg-card rounded-2xl border p-6 lg:p-8">

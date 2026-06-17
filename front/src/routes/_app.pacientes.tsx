@@ -1,10 +1,10 @@
 import { createFileRoute, Link, Outlet, useLocation } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ComponentProps } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth";
 import { api } from "@/lib/api";
 import { tenantKey } from "@/lib/tenantQuery";
-import { Search, Plus, AlertCircle, Eye, Pill, Trash2, ChevronLeft, ChevronRight, SlidersHorizontal, X } from "lucide-react";
+import { Search, Plus, AlertCircle, Eye, Pill, Trash2, ChevronDown, ChevronLeft, ChevronRight, SlidersHorizontal, X } from "lucide-react";
 import { PatientAvatar } from "@/components/clinical/PatientAvatar";
 import { fmtShort } from "@/lib/format";
 import { NewPatientDialog } from "@/components/clinical/NewPatientDialog";
@@ -51,7 +51,18 @@ function ageFilterToRange(filter: AgeFilter): { ageMin?: number; ageMax?: number
 }
 
 const selectClass =
-  "h-10 rounded-lg bg-surface border px-3 text-sm outline-none focus:ring-2 focus:ring-ring min-w-[10rem]";
+  "h-10 w-full rounded-lg bg-surface border pl-3 pr-8 text-sm outline-none focus:ring-2 focus:ring-ring appearance-none";
+
+function FilterSelect({ className, children, ...props }: ComponentProps<"select">) {
+  return (
+    <div className={cn("relative min-w-[10rem]", className)}>
+      <select {...props} className={selectClass}>
+        {children}
+      </select>
+      <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-4 w-4 -translate-y-1/2 opacity-70" />
+    </div>
+  );
+}
 
 export const Route = createFileRoute("/_app/pacientes")({
   head: () => ({ meta: [{ title: "Pacientes — MediFlow" }] }),
@@ -199,68 +210,63 @@ function PatientsPage() {
           </div>
 
           <div className="flex flex-wrap gap-3">
-            <select
+            <FilterSelect
               value={gender}
               onChange={(e) => updateFilter(setGender, e.target.value as GenderFilter)}
-              className={selectClass}
             >
               <option value="">Todos los géneros</option>
               <option value="F">Femenino</option>
               <option value="M">Masculino</option>
-            </select>
+            </FilterSelect>
 
-            <select
+            <FilterSelect
               value={ageFilter}
               onChange={(e) => updateFilter(setAgeFilter, e.target.value as AgeFilter)}
-              className={selectClass}
             >
               <option value="">Todas las edades</option>
               <option value="0-5">0–5 años</option>
               <option value="6-12">6–12 años</option>
               <option value="13+">13+ años</option>
-            </select>
+            </FilterSelect>
 
-            <select
+            <FilterSelect
               value={allergies}
               onChange={(e) => updateFilter(setAllergies, e.target.value as YesNoFilter)}
-              className={selectClass}
             >
               <option value="">Todas las alergias</option>
               <option value="yes">Con alergias</option>
               <option value="no">Sin alergias</option>
-            </select>
+            </FilterSelect>
 
-            <select
+            <FilterSelect
               value={conditions}
               onChange={(e) => updateFilter(setConditions, e.target.value as YesNoFilter)}
-              className={selectClass}
             >
               <option value="">Todos los antecedentes</option>
               <option value="yes">Con antecedentes</option>
               <option value="no">Sin antecedentes</option>
-            </select>
+            </FilterSelect>
 
-            <select
+            <FilterSelect
               value={lastVisit}
               onChange={(e) => updateFilter(setLastVisit, e.target.value as LastVisitFilter)}
-              className={selectClass}
             >
               <option value="">Todas las visitas</option>
               <option value="recent">Visitados recientemente</option>
               <option value="overdue">Sin control (+6 meses)</option>
-            </select>
+            </FilterSelect>
 
-            <select
+            <FilterSelect
               value={sort}
               onChange={(e) => updateFilter(setSort, e.target.value as SortOption)}
-              className={cn(selectClass, "min-w-[12rem]")}
+              className="min-w-[12rem]"
             >
               {(Object.keys(SORT_LABELS) as SortOption[]).map((key) => (
                 <option key={key} value={key}>
                   {SORT_LABELS[key]}
                 </option>
               ))}
-            </select>
+            </FilterSelect>
           </div>
         </div>
         <div className={cn("overflow-x-auto", patientsQ.isFetching && "opacity-60")}>
