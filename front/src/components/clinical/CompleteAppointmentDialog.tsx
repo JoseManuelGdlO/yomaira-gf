@@ -38,7 +38,6 @@ export function CompleteAppointmentDialog({
   const brandingId = user?.brandingId;
   const canCharge = hasPermission("finances.write");
 
-  const [diagnosis, setDiagnosis] = useState("");
   const [treatment, setTreatment] = useState("");
   const [nextTreatment, setNextTreatment] = useState("");
   const [paymentAmount, setPaymentAmount] = useState("");
@@ -58,7 +57,6 @@ export function CompleteAppointmentDialog({
 
   useEffect(() => {
     if (open && appointment) {
-      setDiagnosis("");
       setTreatment("");
       setNextTreatment("");
       setPaymentAmount("");
@@ -96,7 +94,6 @@ export function CompleteAppointmentDialog({
     mutationFn: () => {
       const charge = canCharge ? buildChargePayload(paymentAmount, paymentMethod, chargeNote) : undefined;
       return api.appointments.complete(appointment!.id, {
-        diagnosis: diagnosis.trim(),
         treatment: treatment.trim(),
         nextTreatment: nextTreatment.trim(),
         paymentAndNextAppointment: buildNextAppointmentField(nextAppointment),
@@ -126,8 +123,8 @@ export function CompleteAppointmentDialog({
   if (!appointment || !patient) return null;
 
   const submit = () => {
-    if (!diagnosis.trim() || !treatment.trim()) {
-      return toast.error("Captura diagnóstico y tratamiento realizado");
+    if (!treatment.trim()) {
+      return toast.error("Captura el tratamiento realizado");
     }
     completeM.mutate();
   };
@@ -191,7 +188,6 @@ export function CompleteAppointmentDialog({
           {hasPermission("inventory.read") && (
             <InventoryUsagePicker value={inventoryUsages} onChange={setInventoryUsages} />
           )}
-          <Field label="Diagnóstico *" value={diagnosis} onChange={setDiagnosis} placeholder="Ej. Caries en molar 64" />
           <div>
             <label className="text-xs font-medium text-muted-foreground block mb-2">Escala Frankl</label>
             <div className="flex flex-wrap gap-2">

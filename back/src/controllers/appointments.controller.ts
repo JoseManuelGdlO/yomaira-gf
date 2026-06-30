@@ -116,7 +116,7 @@ export async function setStatus(req: Request, res: Response): Promise<void> {
 }
 
 export const completeSchema = z.object({
-  diagnosis: z.string().min(1),
+  diagnosis: z.string().default(''),
   treatment: z.string().min(1),
   notes: z.string().default(''),
   nextTreatment: z.string().default(''),

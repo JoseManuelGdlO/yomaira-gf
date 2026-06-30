@@ -304,7 +304,7 @@ export const api = {
     complete: (
       id: string,
       body: {
-        diagnosis: string;
+        diagnosis?: string;
         treatment: string;
         notes?: string;
         nextTreatment?: string;
