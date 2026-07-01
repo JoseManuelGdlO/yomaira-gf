@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as PrivacidadRouteImport } from './routes/privacidad'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AgendarRouteImport } from './routes/agendar'
 import { Route as AppRouteImport } from './routes/_app'
@@ -33,6 +34,11 @@ import { Route as AppRecetasNuevaRouteImport } from './routes/_app.recetas.nueva
 import { Route as AppPacientesIdRouteImport } from './routes/_app.pacientes.$id'
 import { Route as AppPacientesIdHojaRouteImport } from './routes/_app.pacientes.$id.hoja'
 
+const PrivacidadRoute = PrivacidadRouteImport.update({
+  id: '/privacidad',
+  path: '/privacidad',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
@@ -152,6 +158,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/agendar': typeof AgendarRouteWithChildren
   '/login': typeof LoginRoute
+  '/privacidad': typeof PrivacidadRoute
   '/administracion': typeof AppAdministracionRoute
   '/agenda': typeof AppAgendaRoute
   '/branding': typeof AppBrandingRoute
@@ -176,6 +183,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/agendar': typeof AgendarRouteWithChildren
   '/login': typeof LoginRoute
+  '/privacidad': typeof PrivacidadRoute
   '/administracion': typeof AppAdministracionRoute
   '/agenda': typeof AppAgendaRoute
   '/branding': typeof AppBrandingRoute
@@ -202,6 +210,7 @@ export interface FileRoutesById {
   '/_app': typeof AppRouteWithChildren
   '/agendar': typeof AgendarRouteWithChildren
   '/login': typeof LoginRoute
+  '/privacidad': typeof PrivacidadRoute
   '/_app/administracion': typeof AppAdministracionRoute
   '/_app/agenda': typeof AppAgendaRoute
   '/_app/branding': typeof AppBrandingRoute
@@ -228,6 +237,7 @@ export interface FileRouteTypes {
     | '/'
     | '/agendar'
     | '/login'
+    | '/privacidad'
     | '/administracion'
     | '/agenda'
     | '/branding'
@@ -252,6 +262,7 @@ export interface FileRouteTypes {
     | '/'
     | '/agendar'
     | '/login'
+    | '/privacidad'
     | '/administracion'
     | '/agenda'
     | '/branding'
@@ -277,6 +288,7 @@ export interface FileRouteTypes {
     | '/_app'
     | '/agendar'
     | '/login'
+    | '/privacidad'
     | '/_app/administracion'
     | '/_app/agenda'
     | '/_app/branding'
@@ -303,11 +315,19 @@ export interface RootRouteChildren {
   AppRoute: typeof AppRouteWithChildren
   AgendarRoute: typeof AgendarRouteWithChildren
   LoginRoute: typeof LoginRoute
+  PrivacidadRoute: typeof PrivacidadRoute
   ConfirmarCitaIdRoute: typeof ConfirmarCitaIdRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/privacidad': {
+      id: '/privacidad'
+      path: '/privacidad'
+      fullPath: '/privacidad'
+      preLoaderRoute: typeof PrivacidadRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/login': {
       id: '/login'
       path: '/login'
@@ -560,6 +580,7 @@ const rootRouteChildren: RootRouteChildren = {
   AppRoute: AppRouteWithChildren,
   AgendarRoute: AgendarRouteWithChildren,
   LoginRoute: LoginRoute,
+  PrivacidadRoute: PrivacidadRoute,
   ConfirmarCitaIdRoute: ConfirmarCitaIdRoute,
 }
 export const routeTree = rootRouteImport

@@ -287,6 +287,11 @@ function Dashboard() {
       </div>
       <QuickPrescriptionDialog patientId={null} open={rxOpen} onOpenChange={setRxOpen} />
       <OnboardingDialog open={tourOpen} onOpenChange={setTourOpen} />
+      <div className="pt-4 border-t text-center">
+        <Link to="/privacidad" search={{ from: "dashboard" }} className="text-xs text-muted-foreground hover:text-foreground hover:underline">
+          Política de privacidad
+        </Link>
+      </div>
     </div>
   );
 }

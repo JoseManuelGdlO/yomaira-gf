@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Loader2, LogIn, Mail, Lock } from "lucide-react";
 import { toast } from "sonner";
@@ -121,6 +121,10 @@ function LoginPage() {
           </form>
 
           <p className="text-center text-xs text-muted-foreground">
+            <Link to="/privacidad" search={{ from: "login" }} className="hover:text-foreground hover:underline">
+              Política de privacidad
+            </Link>
+            {" · "}
             {MEDIFLOW_PLATFORM.name} · Plataforma para consultorios
           </p>
         </div>
