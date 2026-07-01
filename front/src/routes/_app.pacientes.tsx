@@ -2,6 +2,8 @@ import { createFileRoute, Link, Outlet, useLocation } from "@tanstack/react-rout
 import { useEffect, useState, type ComponentProps } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth";
+import { usePlatformTenant } from "@/lib/platformTenant";
+import { usePermissionCheck } from "@/lib/usePermissionCheck";
 import { api } from "@/lib/api";
 import { tenantKey } from "@/lib/tenantQuery";
 import { Search, Plus, AlertCircle, Eye, Pill, Trash2, ChevronDown, ChevronLeft, ChevronRight, SlidersHorizontal, X } from "lucide-react";
@@ -80,8 +82,10 @@ function PatientsRoute() {
 }
 
 function PatientsPage() {
-  const { hasPermission, user, ready } = useAuth();
-  const brandingId = user?.brandingId;
+  const { user, ready } = useAuth();
+  const { effectiveBrandingId } = usePlatformTenant();
+  const hasPermission = usePermissionCheck();
+  const brandingId = effectiveBrandingId ?? user?.brandingId;
   const canDelete = hasPermission("patients.delete");
   const [page, setPage] = useState(1);
   const [q, setQ] = useState("");

@@ -45,6 +45,9 @@ export type {
 
 const TOKEN_KEY = "med:token";
 const REFRESH_KEY = "med:refresh";
+const ACTING_TENANT_KEY = "med:acting-tenant-id";
+
+let actingTenantIdMemory: string | null = null;
 
 const RAW_BASE = (import.meta.env?.VITE_API_URL as string | undefined) ?? "http://localhost:4000/api/v1";
 export const API_BASE = RAW_BASE.replace(/\/$/, "");
@@ -68,6 +71,24 @@ export function setRefresh(token: string | null): void {
     if (token) window.localStorage.setItem(REFRESH_KEY, token);
     else window.localStorage.removeItem(REFRESH_KEY);
   } catch {}
+}
+
+export function setActingTenantId(id: string | null): void {
+  actingTenantIdMemory = id;
+  try {
+    if (typeof window === "undefined") return;
+    if (id) sessionStorage.setItem(ACTING_TENANT_KEY, id);
+    else sessionStorage.removeItem(ACTING_TENANT_KEY);
+  } catch {}
+}
+
+export function getActingTenantId(): string | null {
+  if (actingTenantIdMemory) return actingTenantIdMemory;
+  try {
+    return typeof window === "undefined" ? null : sessionStorage.getItem(ACTING_TENANT_KEY);
+  } catch {
+    return null;
+  }
 }
 
 export type PaginatedPatientsResponse = {
@@ -126,6 +147,8 @@ export async function request<T = unknown>(path: string, opts: RequestOptions = 
   if (!opts.noAuth) {
     const t = getToken();
     if (t) headers.Authorization = `Bearer ${t}`;
+    const actingTenantId = getActingTenantId();
+    if (actingTenantId) headers["X-Acting-Tenant-Id"] = actingTenantId;
   }
 
   const res = await fetch(buildUrl(path, opts.query), {
@@ -528,6 +551,7 @@ export const api = {
   tenants: {
     list: () => request<TenantDTO[]>("/tenants"),
     get: (id: string) => request<TenantDTO>(`/tenants/${id}`),
+    users: (id: string) => request<UserDTO[]>(`/tenants/${id}/users`),
     create: (body: CreateTenantInput) => request<TenantDTO>("/tenants", { method: "POST", body }),
     update: (id: string, body: UpdateTenantInput) =>
       request<TenantDTO>(`/tenants/${id}`, { method: "PATCH", body }),

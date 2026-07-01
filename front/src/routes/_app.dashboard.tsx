@@ -4,6 +4,7 @@ import { Users, Calendar, Pill, Activity, Plus, ArrowUpRight, Sparkles, Brain, B
 import { useStore } from "@/lib/store";
 import { useBranding } from "@/lib/theme/ThemeProvider";
 import { useAuth } from "@/lib/auth";
+import { usePermissionCheck } from "@/lib/usePermissionCheck";
 import { api } from "@/lib/api";
 import { tenantKey } from "@/lib/tenantQuery";
 import { StatCard } from "@/components/clinical/StatCard";
@@ -26,7 +27,8 @@ export const Route = createFileRoute("/_app/dashboard")({
 
 function Dashboard() {
   const { branding } = useBranding();
-  const { user, hasPermission } = useAuth();
+  const { user } = useAuth();
+  const hasPermission = usePermissionCheck();
   const { patients, appointments, prescriptions, consultations } = useStore();
   const [rxOpen, setRxOpen] = useState(false);
   const [tourOpen, setTourOpen] = useState(false);

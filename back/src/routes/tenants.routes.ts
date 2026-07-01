@@ -13,6 +13,7 @@ router.use(requireRole('platform_admin'));
 const idParam = z.object({ id: z.string().uuid() });
 
 router.get('/', asyncHandler(ctrl.list));
+router.get('/:id/users', validate({ params: idParam }), asyncHandler(ctrl.listUsers));
 router.get('/:id', validate({ params: idParam }), asyncHandler(ctrl.get));
 router.post('/', validate({ body: ctrl.createSchema }), asyncHandler(ctrl.create));
 router.patch('/:id', validate({ params: idParam, body: ctrl.updateSchema }), asyncHandler(ctrl.update));

@@ -11,6 +11,8 @@ import { ThemeProvider } from "@/lib/theme/ThemeProvider";
 import { StoreProvider } from "@/lib/store";
 import { ClinicalFormProvider } from "@/lib/clinicalForm";
 import { AuthProvider } from "@/lib/auth";
+import { PlatformTenantProvider } from "@/lib/platformTenant";
+import { ViewAsProvider } from "@/lib/viewAs";
 import { Toaster } from "@/components/ui/sonner";
 
 import appCss from "../styles.css?url";
@@ -92,14 +94,18 @@ function RootComponent() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <ThemeProvider>
-          <StoreProvider>
-            <ClinicalFormProvider>
-              <Outlet />
-              <Toaster />
-            </ClinicalFormProvider>
-          </StoreProvider>
-        </ThemeProvider>
+        <PlatformTenantProvider>
+          <ViewAsProvider>
+            <ThemeProvider>
+              <StoreProvider>
+                <ClinicalFormProvider>
+                  <Outlet />
+                  <Toaster />
+                </ClinicalFormProvider>
+              </StoreProvider>
+            </ThemeProvider>
+          </ViewAsProvider>
+        </PlatformTenantProvider>
       </AuthProvider>
     </QueryClientProvider>
   );

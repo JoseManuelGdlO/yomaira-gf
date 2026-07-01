@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api, type RoleDTO, type UserDTO } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
+import { usePermissionCheck } from "@/lib/usePermissionCheck";
 import { Plus, Pencil, Trash2, UserCog } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -16,7 +17,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 const QK = ["admin", "users"] as const;
 
 export function UsersPanel({ roles }: { roles: RoleDTO[] }) {
-  const { hasPermission, user: currentUser } = useAuth();
+  const { user: currentUser } = useAuth();
+  const hasPermission = usePermissionCheck();
   const qc = useQueryClient();
   const canWrite = hasPermission("users.write");
   const canDelete = hasPermission("users.delete");

@@ -1,10 +1,11 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { Building2, Pencil, Plus, Power } from "lucide-react";
+import { Building2, LogIn, Pencil, Plus, Power } from "lucide-react";
 import { toast } from "sonner";
 import { ensureRole } from "@/lib/auth-guard";
 import { api, type TenantDTO } from "@/lib/api";
+import { usePlatformTenant } from "@/lib/platformTenant";
 import { ConsultorioFormDialog } from "@/components/platform/ConsultorioFormDialog";
 import {
   AlertDialog,
@@ -27,6 +28,8 @@ const QK = ["platform", "tenants"] as const;
 
 function ConsultoriosPage() {
   const qc = useQueryClient();
+  const navigate = useNavigate();
+  const { enteredTenant, enterTenant, exitTenant } = usePlatformTenant();
   const tenantsQ = useQuery({ queryKey: QK, queryFn: () => api.tenants.list() });
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<TenantDTO | null>(null);
@@ -54,8 +57,29 @@ function ConsultoriosPage() {
     setDialogOpen(true);
   };
 
+  const handleEnter = (t: TenantDTO) => {
+    enterTenant(t);
+    navigate({ to: "/dashboard" });
+  };
+
   return (
     <div className="space-y-6 max-w-5xl">
+      {enteredTenant && (
+        <div className="rounded-xl border bg-slate-700/10 border-slate-300 px-4 py-3 flex flex-wrap items-center justify-between gap-3 text-sm">
+          <span>
+            Dentro de: <strong>{enteredTenant.clinicName}</strong>
+          </span>
+          <button
+            type="button"
+            onClick={() => {
+              exitTenant();
+            }}
+            className="text-primary font-medium hover:underline"
+          >
+            Salir del consultorio
+          </button>
+        </div>
+      )}
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="font-display text-3xl font-semibold inline-flex items-center gap-2">
@@ -124,6 +148,17 @@ function ConsultoriosPage() {
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex justify-end gap-1">
+                      {t.active && (
+                        <button
+                          type="button"
+                          onClick={() => handleEnter(t)}
+                          className="p-2 rounded-lg hover:bg-surface text-primary"
+                          aria-label="Entrar al consultorio"
+                          title="Entrar al consultorio"
+                        >
+                          <LogIn className="h-4 w-4" />
+                        </button>
+                      )}
                       <button
                         type="button"
                         onClick={() => openEdit(t)}

@@ -4,6 +4,8 @@ import { api } from "@/lib/api";
 import type { Patient, Consultation, Appointment, Prescription } from "@/mocks/data";
 import type { ClinicalSafetyAlert } from "@/lib/clinicalSafety";
 import { useAuth } from "@/lib/auth";
+import { isPlatformAdmin } from "@/lib/auth-guard";
+import { usePlatformTenant } from "@/lib/platformTenant";
 import { tenantKey } from "@/lib/tenantQuery";
 
 type Store = {
@@ -45,8 +47,12 @@ function stripLocalId<T extends { id?: unknown }>(input: T): Omit<T, "id"> {
 export function StoreProvider({ children }: { children: ReactNode }) {
   const qc = useQueryClient();
   const { user, ready } = useAuth();
-  const enabled = ready && !!user;
-  const brandingId = user?.brandingId;
+  const { effectiveBrandingId, enteredTenant } = usePlatformTenant();
+  const enabled =
+    ready &&
+    !!user &&
+    (!isPlatformAdmin(user) || !!enteredTenant);
+  const brandingId = effectiveBrandingId;
 
   const patientsQ = useQuery({
     queryKey: tenantKey(QK.patients, brandingId),

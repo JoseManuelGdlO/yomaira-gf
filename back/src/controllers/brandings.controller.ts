@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { z } from 'zod';
 import { Branding } from '../models';
+import { requireBrandingId } from '../middleware/tenant';
 import { NotFound } from '../utils/errors';
 
 const consentPointSchema = z.object({
@@ -12,7 +13,7 @@ const consentPointSchema = z.object({
 });
 
 async function findOwnBranding(req: Request): Promise<Branding> {
-  const item = await Branding.findByPk(req.user!.brandingId);
+  const item = await Branding.findByPk(requireBrandingId(req));
   if (!item) throw NotFound('Branding not found');
   return item;
 }

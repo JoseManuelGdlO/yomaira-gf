@@ -2,6 +2,8 @@ import { createContext, useContext, useEffect, useMemo, type ReactNode } from "r
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
+import { isPlatformAdmin } from "@/lib/auth-guard";
+import { usePlatformTenant } from "@/lib/platformTenant";
 import { BRANDINGS, DEFAULT_BRANDING_ID, type Branding } from "@/mocks/brandings";
 import { applyPlatformBrandingToDOM } from "@/lib/theme/platformBranding";
 import { tenantKey } from "@/lib/tenantQuery";
@@ -38,8 +40,12 @@ const QK_ME_BASE = ["branding", "me"] as const;
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const qc = useQueryClient();
   const { user, ready } = useAuth();
-  const enabled = ready && !!user;
-  const brandingId = user?.brandingId;
+  const { effectiveBrandingId, enteredTenant } = usePlatformTenant();
+  const enabled =
+    ready &&
+    !!user &&
+    (!isPlatformAdmin(user) || !!enteredTenant);
+  const brandingId = effectiveBrandingId;
   const queryKey = tenantKey(QK_ME_BASE, brandingId);
 
   const activeQ = useQuery({

@@ -1,4 +1,5 @@
 import { clearTenantQueries } from "@/lib/tenantQuery";
+import { setActingTenantId } from "@/lib/api";
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import {
@@ -106,6 +107,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await api.auth.logout();
     } catch {}
     clearSession();
+    setActingTenantId(null);
+    try {
+      sessionStorage.removeItem("med:entered-tenant");
+      sessionStorage.removeItem("med:view-as-user-id");
+    } catch {}
     clearTenantQueries(qc);
     setTokenState(null);
     setUser(null);

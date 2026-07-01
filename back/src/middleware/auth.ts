@@ -1,5 +1,6 @@
 import { NextFunction, Request, Response } from 'express';
 import { Branding, Permission, Role, User, UserRole } from '../models';
+import { resolveActingTenant } from './tenant';
 import { Unauthorized } from '../utils/errors';
 import { verifyToken } from '../utils/jwt';
 
@@ -74,7 +75,7 @@ export async function authenticate(req: Request, _res: Response, next: NextFunct
       throw Unauthorized('Tenant context mismatch');
     }
     req.user = authUser;
-    next();
+    await resolveActingTenant(req, _res, next);
   } catch (err) {
     next(err);
   }

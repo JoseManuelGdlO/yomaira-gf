@@ -4,6 +4,8 @@ import { Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api, type FinanceCharge, type FinanceExpense } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
+import { usePlatformTenant } from "@/lib/platformTenant";
+import { usePermissionCheck } from "@/lib/usePermissionCheck";
 import { tenantKey } from "@/lib/tenantQuery";
 import { formatMoney, monthRange, paymentMethodLabel } from "@/lib/finance";
 import { ChargeDialog } from "./ChargeDialog";
@@ -14,8 +16,10 @@ import { toast } from "sonner";
 type Tab = "charges" | "expenses" | "summary";
 
 export function FinancePageContent() {
-  const { user, hasPermission } = useAuth();
-  const brandingId = user?.brandingId;
+  const { user } = useAuth();
+  const { effectiveBrandingId } = usePlatformTenant();
+  const brandingId = effectiveBrandingId ?? user?.brandingId;
+  const hasPermission = usePermissionCheck();
   const canWrite = hasPermission("finances.write");
   const qc = useQueryClient();
 

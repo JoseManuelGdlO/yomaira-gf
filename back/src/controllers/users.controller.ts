@@ -10,7 +10,7 @@ const includeRoles = {
   include: [{ model: Role, through: { attributes: [] }, include: [{ model: Permission, through: { attributes: [] } }] }],
 };
 
-function serialize(user: User): Record<string, unknown> {
+export function serializeUser(user: User): Record<string, unknown> {
   const roles = (user.Roles ?? []) as Array<Role & { Permissions?: Permission[] }>;
   return {
     id: user.id,
@@ -39,12 +39,12 @@ async function assertTenantRoles(req: Request, roleIds: string[]): Promise<Role[
 
 export async function list(req: Request, res: Response): Promise<void> {
   const users = await User.findAll({ where: tenantWhere(req), ...includeRoles, order: [['name', 'ASC']] });
-  res.json({ data: users.map(serialize) });
+  res.json({ data: users.map(serializeUser) });
 }
 
 export async function get(req: Request, res: Response): Promise<void> {
   const user = await findTenantUser(req, req.params.id);
-  res.json({ data: serialize(user) });
+  res.json({ data: serializeUser(user) });
 }
 
 export const createSchema = z.object({
@@ -74,7 +74,7 @@ export async function create(req: Request, res: Response): Promise<void> {
   }
 
   const fresh = await User.findByPk(user.id, includeRoles);
-  res.status(201).json({ data: serialize(fresh!) });
+  res.status(201).json({ data: serializeUser(fresh!) });
 }
 
 export const updateSchema = z.object({
@@ -97,7 +97,7 @@ export async function update(req: Request, res: Response): Promise<void> {
   if (typeof body.active === 'boolean') user.active = body.active;
   await user.save();
   const fresh = await User.findByPk(user.id, includeRoles);
-  res.json({ data: serialize(fresh!) });
+  res.json({ data: serializeUser(fresh!) });
 }
 
 export async function remove(req: Request, res: Response): Promise<void> {
@@ -118,7 +118,7 @@ export async function setRoles(req: Request, res: Response): Promise<void> {
     await UserRole.bulkCreate(roleIds.map((roleId) => ({ userId: user.id, roleId })));
   }
   const fresh = await User.findByPk(user.id, includeRoles);
-  res.json({ data: serialize(fresh!) });
+  res.json({ data: serializeUser(fresh!) });
 }
 
 export async function removeRole(req: Request, res: Response): Promise<void> {
@@ -129,5 +129,5 @@ export async function removeRole(req: Request, res: Response): Promise<void> {
   await UserRole.destroy({ where: { userId: id, roleId } });
   const fresh = await User.findByPk(id, includeRoles);
   if (!fresh) throw NotFound('User not found');
-  res.json({ data: serialize(fresh) });
+  res.json({ data: serializeUser(fresh) });
 }

@@ -14,6 +14,8 @@ declare global {
 
     interface Request {
       user?: AuthUser;
+      /** Effective tenant for data scoping (platform_admin may override via X-Acting-Tenant-Id). */
+      actingBrandingId?: string;
     }
   }
 }

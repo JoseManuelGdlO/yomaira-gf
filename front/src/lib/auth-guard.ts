@@ -1,5 +1,6 @@
 import { redirect } from "@tanstack/react-router";
 import { api, getToken, setRefresh, setToken, type AuthUser } from "@/lib/api";
+import { getEnteredTenantFromStorage } from "@/lib/platformTenant";
 
 /** Quita credenciales guardadas en el navegador. */
 export function clearSession(): void {
@@ -11,7 +12,12 @@ export function isPlatformAdmin(user: AuthUser): boolean {
   return user.roles.includes("platform_admin");
 }
 
+export function platformAdminInTenant(): boolean {
+  return !!getEnteredTenantFromStorage();
+}
+
 export function homeRouteForUser(user: AuthUser): "/consultorios" | "/dashboard" {
+  if (isPlatformAdmin(user) && platformAdminInTenant()) return "/dashboard";
   return isPlatformAdmin(user) ? "/consultorios" : "/dashboard";
 }
 
@@ -31,8 +37,13 @@ export async function ensureAuthenticated(): Promise<void> {
 
   try {
     const user = await api.auth.me();
-    if (isPlatformAdmin(user) && !window.location.pathname.startsWith("/consultorios")) {
-      throw redirect({ to: "/consultorios" });
+    if (isPlatformAdmin(user)) {
+      const entered = platformAdminInTenant();
+      const path = window.location.pathname;
+      if (!entered && !path.startsWith("/consultorios")) {
+        throw redirect({ to: "/consultorios" });
+      }
+      return;
     }
   } catch (err) {
     if (err && typeof err === "object" && "to" in err) throw err;
@@ -55,6 +66,7 @@ export async function ensureAnyPermission(...perms: string[]): Promise<void> {
   try {
     const user = await api.auth.me();
     if (user.roles.includes("admin")) return;
+    if (isPlatformAdmin(user) && platformAdminInTenant()) return;
     if (perms.some((p) => user.permissions.includes(p))) return;
   } catch {
     clearSession();

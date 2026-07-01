@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { useAuth } from "@/lib/auth";
+import { usePermissionCheck } from "@/lib/usePermissionCheck";
 import { useStore } from "@/lib/store";
 import { PatientAvatar } from "@/components/clinical/PatientAvatar";
 import { StatusBadge } from "@/components/clinical/StatusBadge";
@@ -32,7 +32,7 @@ type AppointmentDialogState =
   | { mode: "edit"; appointment: Appointment };
 
 function AgendaPage() {
-  const { hasPermission } = useAuth();
+  const hasPermission = usePermissionCheck();
   const { appointments, patients, setAppointmentStatus } = useStore();
   const [cursor, setCursor] = useState<Date | null>(null);
   const [view, setView] = useState<"semana" | "dia">("semana");

@@ -1,5 +1,7 @@
 import { Request, Response } from 'express';
 import { z } from 'zod';
+import { Permission, Role, User } from '../models';
+import { serializeUser } from './users.controller';
 import {
   createTenant,
   deactivateTenant,
@@ -7,6 +9,11 @@ import {
   listTenants,
   updateTenant,
 } from '../services/tenant/tenantManagement';
+import { NotFound } from '../utils/errors';
+
+const includeRoles = {
+  include: [{ model: Role, through: { attributes: [] }, include: [{ model: Permission, through: { attributes: [] } }] }],
+};
 
 export const createSchema = z.object({
   slug: z.string().min(2).max(80).regex(/^[a-z0-9-]+$/, 'Slug must be lowercase alphanumeric with hyphens'),
@@ -57,4 +64,17 @@ export async function update(req: Request, res: Response): Promise<void> {
 export async function deactivate(req: Request, res: Response): Promise<void> {
   const data = await deactivateTenant(req.params.id);
   res.json({ data });
+}
+
+export async function listUsers(req: Request, res: Response): Promise<void> {
+  const tenant = await getTenant(req.params.id);
+  if (!tenant.active) throw NotFound('Consultorio not found');
+
+  const users = await User.findAll({
+    where: { brandingId: req.params.id },
+    ...includeRoles,
+    order: [['name', 'ASC']],
+  });
+
+  res.json({ data: users.map(serializeUser) });
 }
