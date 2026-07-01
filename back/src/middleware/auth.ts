@@ -37,7 +37,7 @@ export async function loadUserWithPermissions(userId: string): Promise<Express.A
   if (!user || !user.active) return null;
 
   const branding = user.get('branding') as Branding | undefined;
-  if (!branding) return null;
+  if (!branding || !branding.active) return null;
 
   const { roles, permissions } = await loadRolesForUser(userId, user.brandingId);
   return {

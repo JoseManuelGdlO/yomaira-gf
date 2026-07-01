@@ -22,6 +22,7 @@ import { Route as AppHistorialRouteImport } from './routes/_app.historial'
 import { Route as AppFinanzasRouteImport } from './routes/_app.finanzas'
 import { Route as AppEstadisticasRouteImport } from './routes/_app.estadisticas'
 import { Route as AppDashboardRouteImport } from './routes/_app.dashboard'
+import { Route as AppConsultoriosRouteImport } from './routes/_app.consultorios'
 import { Route as AppConsentimientoRouteImport } from './routes/_app.consentimiento'
 import { Route as AppConfiguracionRouteImport } from './routes/_app.configuracion'
 import { Route as AppComportamientoRouteImport } from './routes/_app.comportamiento'
@@ -96,6 +97,11 @@ const AppDashboardRoute = AppDashboardRouteImport.update({
   path: '/dashboard',
   getParentRoute: () => AppRoute,
 } as any)
+const AppConsultoriosRoute = AppConsultoriosRouteImport.update({
+  id: '/consultorios',
+  path: '/consultorios',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppConsentimientoRoute = AppConsentimientoRouteImport.update({
   id: '/consentimiento',
   path: '/consentimiento',
@@ -152,6 +158,7 @@ export interface FileRoutesByFullPath {
   '/comportamiento': typeof AppComportamientoRoute
   '/configuracion': typeof AppConfiguracionRoute
   '/consentimiento': typeof AppConsentimientoRoute
+  '/consultorios': typeof AppConsultoriosRoute
   '/dashboard': typeof AppDashboardRoute
   '/estadisticas': typeof AppEstadisticasRoute
   '/finanzas': typeof AppFinanzasRoute
@@ -175,6 +182,7 @@ export interface FileRoutesByTo {
   '/comportamiento': typeof AppComportamientoRoute
   '/configuracion': typeof AppConfiguracionRoute
   '/consentimiento': typeof AppConsentimientoRoute
+  '/consultorios': typeof AppConsultoriosRoute
   '/dashboard': typeof AppDashboardRoute
   '/estadisticas': typeof AppEstadisticasRoute
   '/finanzas': typeof AppFinanzasRoute
@@ -200,6 +208,7 @@ export interface FileRoutesById {
   '/_app/comportamiento': typeof AppComportamientoRoute
   '/_app/configuracion': typeof AppConfiguracionRoute
   '/_app/consentimiento': typeof AppConsentimientoRoute
+  '/_app/consultorios': typeof AppConsultoriosRoute
   '/_app/dashboard': typeof AppDashboardRoute
   '/_app/estadisticas': typeof AppEstadisticasRoute
   '/_app/finanzas': typeof AppFinanzasRoute
@@ -225,6 +234,7 @@ export interface FileRouteTypes {
     | '/comportamiento'
     | '/configuracion'
     | '/consentimiento'
+    | '/consultorios'
     | '/dashboard'
     | '/estadisticas'
     | '/finanzas'
@@ -248,6 +258,7 @@ export interface FileRouteTypes {
     | '/comportamiento'
     | '/configuracion'
     | '/consentimiento'
+    | '/consultorios'
     | '/dashboard'
     | '/estadisticas'
     | '/finanzas'
@@ -272,6 +283,7 @@ export interface FileRouteTypes {
     | '/_app/comportamiento'
     | '/_app/configuracion'
     | '/_app/consentimiento'
+    | '/_app/consultorios'
     | '/_app/dashboard'
     | '/_app/estadisticas'
     | '/_app/finanzas'
@@ -387,6 +399,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppDashboardRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/consultorios': {
+      id: '/_app/consultorios'
+      path: '/consultorios'
+      fullPath: '/consultorios'
+      preLoaderRoute: typeof AppConsultoriosRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/consentimiento': {
       id: '/_app/consentimiento'
       path: '/consentimiento'
@@ -496,6 +515,7 @@ interface AppRouteChildren {
   AppComportamientoRoute: typeof AppComportamientoRoute
   AppConfiguracionRoute: typeof AppConfiguracionRoute
   AppConsentimientoRoute: typeof AppConsentimientoRoute
+  AppConsultoriosRoute: typeof AppConsultoriosRoute
   AppDashboardRoute: typeof AppDashboardRoute
   AppEstadisticasRoute: typeof AppEstadisticasRoute
   AppFinanzasRoute: typeof AppFinanzasRoute
@@ -512,6 +532,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppComportamientoRoute: AppComportamientoRoute,
   AppConfiguracionRoute: AppConfiguracionRoute,
   AppConsentimientoRoute: AppConsentimientoRoute,
+  AppConsultoriosRoute: AppConsultoriosRoute,
   AppDashboardRoute: AppDashboardRoute,
   AppEstadisticasRoute: AppEstadisticasRoute,
   AppFinanzasRoute: AppFinanzasRoute,

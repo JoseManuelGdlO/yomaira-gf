@@ -34,13 +34,14 @@ export interface BrandingAttrs {
   consentTitle: string;
   consentPoints: ConsentPointJson[] | null;
   isDefault: boolean;
+  active: boolean;
   createdAt?: Date;
   updatedAt?: Date;
 }
 
 export type BrandingCreationAttrs = Optional<
   BrandingAttrs,
-  'id' | 'isDefault' | 'createdAt' | 'updatedAt'
+  'id' | 'isDefault' | 'active' | 'createdAt' | 'updatedAt'
 >;
 
 export class Branding extends Model<BrandingAttrs, BrandingCreationAttrs> implements BrandingAttrs {
@@ -68,6 +69,7 @@ export class Branding extends Model<BrandingAttrs, BrandingCreationAttrs> implem
   declare consentTitle: string;
   declare consentPoints: ConsentPointJson[] | null;
   declare isDefault: boolean;
+  declare active: boolean;
   declare readonly createdAt: Date;
   declare readonly updatedAt: Date;
 }
@@ -103,6 +105,7 @@ Branding.init(
     },
     consentPoints: { type: DataTypes.JSON, allowNull: true, field: 'consent_points' },
     isDefault: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false, field: 'is_default' },
+    active: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: true },
   },
   {
     sequelize,

@@ -253,6 +253,36 @@ export type UserDTO = {
   updatedAt?: string;
 };
 
+export type TenantDTO = {
+  id: string;
+  slug: string;
+  clinicName: string;
+  doctorName: string;
+  specialty: string;
+  email: string;
+  active: boolean;
+  adminEmail: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type CreateTenantInput = {
+  slug: string;
+  clinicName: string;
+  doctorName: string;
+  specialty?: string;
+  adminEmail: string;
+  adminPassword: string;
+};
+
+export type UpdateTenantInput = {
+  clinicName?: string;
+  doctorName?: string;
+  specialty?: string;
+  email?: string;
+  adminPassword?: string;
+};
+
 // ============================================================
 // API surface
 // ============================================================
@@ -494,6 +524,14 @@ export const api = {
   },
   permissions: {
     list: () => request<PermissionDTO[]>("/permissions"),
+  },
+  tenants: {
+    list: () => request<TenantDTO[]>("/tenants"),
+    get: (id: string) => request<TenantDTO>(`/tenants/${id}`),
+    create: (body: CreateTenantInput) => request<TenantDTO>("/tenants", { method: "POST", body }),
+    update: (id: string, body: UpdateTenantInput) =>
+      request<TenantDTO>(`/tenants/${id}`, { method: "PATCH", body }),
+    deactivate: (id: string) => request<TenantDTO>(`/tenants/${id}/deactivate`, { method: "PATCH" }),
   },
   notifications: {
     getPreferences: () =>

@@ -1,7 +1,8 @@
 import { Link, useNavigate, useRouterState, Outlet } from "@tanstack/react-router";
-import { LayoutDashboard, Users, Calendar, Pill, History, Palette, Settings, Search, FileSignature, ShieldCheck, LogOut, Menu, Brain, BarChart3, Package, Wallet } from "lucide-react";
+import { LayoutDashboard, Users, Calendar, Pill, History, Palette, Settings, Search, FileSignature, ShieldCheck, LogOut, Menu, Brain, BarChart3, Package, Wallet, Building2 } from "lucide-react";
 import { useBranding } from "@/lib/theme/ThemeProvider";
 import { useAuth } from "@/lib/auth";
+import { isPlatformAdmin } from "@/lib/auth-guard";
 import { canAccessNav } from "@/lib/permissions";
 import { useMemo, useState } from "react";
 import { useStore } from "@/lib/store";
@@ -23,6 +24,12 @@ const BASE_NAV = [
   { to: "/configuracion", label: "Configuración", icon: Settings },
 ] as const;
 
+type NavItem = {
+  to: string;
+  label: string;
+  icon: typeof LayoutDashboard;
+};
+
 export function AppShell() {
   const { branding } = useBranding();
   const { user, hasPermission, logout } = useAuth();
@@ -36,9 +43,12 @@ export function AppShell() {
 
   const displayName = user?.name ?? branding.doctorName;
   const displayEmail = user?.email;
-  const nav = useMemo(() => {
+  const nav = useMemo((): NavItem[] => {
+    if (user && isPlatformAdmin(user)) {
+      return [{ to: "/consultorios", label: "Consultorios", icon: Building2 }];
+    }
     const showAdmin = hasPermission("users.read") || hasPermission("roles.read");
-    const items = BASE_NAV.filter((item) => {
+    const items: NavItem[] = BASE_NAV.filter((item) => {
       if (item.to === "/configuracion") {
         return (
           hasPermission("branding.read") ||
@@ -53,7 +63,7 @@ export function AppShell() {
       items.push({ to: "/administracion", label: "Administración", icon: ShieldCheck });
     }
     return items;
-  }, [hasPermission]);
+  }, [hasPermission, user]);
   const [q, setQ] = useState("");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { patients } = useStore();
@@ -138,6 +148,7 @@ export function AppShell() {
             <span className="font-display font-semibold truncate">{branding.clinicName}</span>
           </div>
           <div className="flex-1 max-w-xl relative">
+            {user && isPlatformAdmin(user) ? null : (
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <input
@@ -147,6 +158,7 @@ export function AppShell() {
                 className="w-full pl-10 pr-4 h-10 rounded-lg bg-surface border border-border text-sm outline-none focus:ring-2 focus:ring-ring"
               />
             </div>
+            )}
             {results.length > 0 && (
               <div className="absolute top-12 left-0 right-0 bg-popover border rounded-xl shadow-lg z-50 overflow-hidden">
                 {results.map((p) => (

@@ -16,7 +16,8 @@
     "db:reset": "npm run db:drop && npm run db:create && npm run db:migrate && npm run db:seed",
     "lint": "tsc --noEmit",
     "keys:vapid": "ts-node scripts/generate-vapid.ts",
-    "tenant:create": "ts-node -r tsconfig-paths/register scripts/create-tenant.ts"
+    "tenant:create": "ts-node -r tsconfig-paths/register scripts/create-tenant.ts",
+    "platform-admin:create": "ts-node -r tsconfig-paths/register scripts/create-platform-admin.ts"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

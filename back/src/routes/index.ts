@@ -16,6 +16,7 @@ import dashboardRoutes from './dashboard.routes';
 import notificationsRoutes from './notifications.routes';
 import integrationsRoutes from './integrations.routes';
 import publicRoutes from './public.routes';
+import tenantsRoutes from './tenants.routes';
 
 const router = Router();
 
@@ -39,6 +40,7 @@ router.use('/clinical-questions', clinicalQuestionsRoutes);
 router.use('/dashboard', dashboardRoutes);
 router.use('/notifications', notificationsRoutes);
 router.use('/integrations', integrationsRoutes);
+router.use('/tenants', tenantsRoutes);
 router.use('/public', publicRoutes);
 
 export default router;

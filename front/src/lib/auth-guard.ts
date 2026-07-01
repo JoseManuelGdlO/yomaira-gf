@@ -1,10 +1,18 @@
 import { redirect } from "@tanstack/react-router";
-import { api, getToken, setRefresh, setToken } from "@/lib/api";
+import { api, getToken, setRefresh, setToken, type AuthUser } from "@/lib/api";
 
 /** Quita credenciales guardadas en el navegador. */
 export function clearSession(): void {
   setToken(null);
   setRefresh(null);
+}
+
+export function isPlatformAdmin(user: AuthUser): boolean {
+  return user.roles.includes("platform_admin");
+}
+
+export function homeRouteForUser(user: AuthUser): "/consultorios" | "/dashboard" {
+  return isPlatformAdmin(user) ? "/consultorios" : "/dashboard";
 }
 
 /**
@@ -22,8 +30,12 @@ export async function ensureAuthenticated(): Promise<void> {
   }
 
   try {
-    await api.auth.me();
-  } catch {
+    const user = await api.auth.me();
+    if (isPlatformAdmin(user) && !window.location.pathname.startsWith("/consultorios")) {
+      throw redirect({ to: "/consultorios" });
+    }
+  } catch (err) {
+    if (err && typeof err === "object" && "to" in err) throw err;
     clearSession();
     throw redirect({ to: "/login" });
   }
@@ -52,8 +64,30 @@ export async function ensureAnyPermission(...perms: string[]): Promise<void> {
   throw redirect({ to: "/dashboard" });
 }
 
+/** Exige uno de los roles indicados. */
+export async function ensureRole(...roles: string[]): Promise<void> {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  const token = getToken();
+  if (!token) {
+    throw redirect({ to: "/login" });
+  }
+
+  try {
+    const user = await api.auth.me();
+    if (roles.some((r) => user.roles.includes(r))) return;
+    throw redirect({ to: homeRouteForUser(user) });
+  } catch (err) {
+    if (err && typeof err === "object" && "to" in err) throw err;
+    clearSession();
+    throw redirect({ to: "/login" });
+  }
+}
+
 /**
- * Ruta /login: si ya hay sesión válida, manda al dashboard.
+ * Ruta /login: si ya hay sesión válida, manda al home según rol.
  */
 export async function redirectIfAuthenticated(): Promise<void> {
   if (typeof window === "undefined") return;
@@ -62,9 +96,10 @@ export async function redirectIfAuthenticated(): Promise<void> {
   if (!token) return;
 
   try {
-    await api.auth.me();
-    throw redirect({ to: "/dashboard" });
-  } catch {
+    const user = await api.auth.me();
+    throw redirect({ to: homeRouteForUser(user) });
+  } catch (err) {
+    if (err && typeof err === "object" && "to" in err) throw err;
     clearSession();
   }
 }

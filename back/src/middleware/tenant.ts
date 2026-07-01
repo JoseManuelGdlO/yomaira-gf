@@ -26,6 +26,7 @@ export async function findTenantPatient(req: Request, patientId: string): Promis
 export async function resolveBrandingBySlug(slug: string): Promise<Branding> {
   const branding = await Branding.findOne({ where: { slug } });
   if (!branding) throw NotFound('Consultorio not found');
+  if (!branding.active) throw Forbidden('Consultorio inactive');
   return branding;
 }
 

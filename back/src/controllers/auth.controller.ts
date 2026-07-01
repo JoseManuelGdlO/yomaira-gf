@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { z } from 'zod';
-import { User } from '../models';
+import { Branding, User } from '../models';
 import { loadUserWithPermissions } from '../middleware/auth';
 import { signAccessToken, signRefreshToken, verifyToken } from '../utils/jwt';
 import { verifyPassword } from '../utils/password';
@@ -17,8 +17,13 @@ function tokenPayload(user: Express.AuthUser) {
 
 export async function login(req: Request, res: Response): Promise<void> {
   const { email, password } = req.body as z.infer<typeof loginSchema>;
-  const user = await User.findOne({ where: { email: email.toLowerCase() } });
+  const user = await User.findOne({
+    where: { email: email.toLowerCase() },
+    include: [{ model: Branding, as: 'branding', required: true }],
+  });
   if (!user || !user.active) throw Unauthorized('Invalid credentials');
+  const branding = user.get('branding') as Branding | undefined;
+  if (!branding?.active) throw Unauthorized('Consultorio inactive');
   const ok = await verifyPassword(password, user.password);
   if (!ok) throw Unauthorized('Invalid credentials');
 
@@ -53,8 +58,12 @@ export async function refresh(req: Request, res: Response): Promise<void> {
   }
   if (payload.type !== 'refresh') throw Unauthorized('Wrong token type');
 
-  const user = await User.findByPk(payload.sub);
+  const user = await User.findByPk(payload.sub, {
+    include: [{ model: Branding, as: 'branding', required: true }],
+  });
   if (!user || !user.active) throw Unauthorized('User not found or inactive');
+  const branding = user.get('branding') as Branding | undefined;
+  if (!branding?.active) throw Unauthorized('Consultorio inactive');
   if (user.brandingId !== payload.brandingId) throw Unauthorized('Tenant context mismatch');
 
   const authUser = await loadUserWithPermissions(user.id);

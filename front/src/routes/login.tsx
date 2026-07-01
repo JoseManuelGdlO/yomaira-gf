@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { Loader2, LogIn, Mail, Lock } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth";
-import { clearSession, redirectIfAuthenticated } from "@/lib/auth-guard";
+import { clearSession, homeRouteForUser, redirectIfAuthenticated } from "@/lib/auth-guard";
 import { MediFlowLogo } from "@/components/app/MediFlowLogo";
 import { MEDIFLOW_PLATFORM } from "@/lib/theme/platformBranding";
 import { ApiError } from "@/lib/api";
@@ -25,7 +25,7 @@ function LoginPage() {
 
   useEffect(() => {
     if (!user) return;
-    navigate({ to: "/dashboard" });
+    navigate({ to: homeRouteForUser(user) });
   }, [user, navigate]);
 
   const submit = async (e: React.FormEvent) => {
@@ -37,9 +37,9 @@ function LoginPage() {
     setBusy(true);
     try {
       clearSession();
-      await login(email.trim(), password);
+      const res = await login(email.trim(), password);
       toast.success("Bienvenido");
-      navigate({ to: "/dashboard" });
+      navigate({ to: homeRouteForUser(res.user) });
     } catch (err) {
       const msg =
         err instanceof ApiError ? err.message : "No se pudo iniciar sesión. Verifica tus credenciales.";
